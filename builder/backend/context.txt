@@ -1,0 +1,1 @@
+The user is interested in Python programming best practices, especially regarding code cleanliness, performance, and concurrency. They are working with potentially large codebases and interacting with external APIs.

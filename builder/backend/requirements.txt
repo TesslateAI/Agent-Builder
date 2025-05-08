@@ -1,0 +1,19 @@
+anyio==4.9.0
+asgiref==3.8.1
+blinker==1.9.0
+certifi==2025.4.26
+click==8.1.8
+colorama==0.4.6
+Flask==3.1.0
+flask-cors==5.0.1
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.10
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.2
+python-dotenv==1.1.0
+sniffio==1.3.1
+-e git+https://github.com/TesslateAI/TFrameX.git@cfda269e2219ec8ef7416ddccadb0dae3708e75b#egg=tframex
+Werkzeug==3.1.3
