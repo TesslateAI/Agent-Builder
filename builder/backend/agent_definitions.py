@@ -18,6 +18,7 @@ from agents.flow_builder import execute_flow_builder_agent
 from agents.planner_agent import execute_planner_agent
 from agents.distributor_agent import execute_distributor_agent
 from agents.file_generator_agent import execute_file_generator_agent
+from agents.prompt_injector_agent import execute_prompt_injector_agent # ADD THIS LINE
 # --- END NEW AGENT IMPORTS ---
 
 
@@ -356,6 +357,39 @@ register_agent(
     constructor=lambda model: BasicAgent(agent_id="dynamic_generator", model=model),
     execute_function=execute_file_generator_agent
 )
+
+# --- NEW: Prompt Injector Agent Registration ---
+register_agent(
+    agent_id="promptInjectorAgent",
+    name="Prompt Injector",
+    description="Manually input a combined memory and file prompts block. Splits into memory and file prompts data for FileGenerator.",
+    agent_type="agent",
+    inputs={
+        "full_prompt": { # This is NOT an edge input, it's a data field.
+            "description": "The full text containing <memory>...</memory> and <prompt filename='...'>...</prompt> blocks.",
+            "required": True,
+            "type": "string"
+            # No 'handle_id'
+        }
+    },
+    outputs={
+        "memory": {
+            "handle_id": "memory_out", # This IS an edge output.
+            "description": "Shared memory context extracted from the input.",
+            "type": "string"
+        },
+        "file_prompts_json": {
+            "handle_id": "file_prompts_out", # This IS an edge output.
+            "description": "JSON string of file generation prompts extracted from the input.",
+            "type": "string"
+        }
+    },
+    constructor=lambda model: BasicAgent(agent_id="dynamic_promptinjector", model=model), # Simple constructor, no LLM needed here.
+    execute_function=execute_prompt_injector_agent
+)
+
+# --- END NEW AGENT REGISTRATION ---
+
 
 # --- END NEW AGENT REGISTRATION ---
 

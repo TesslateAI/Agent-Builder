@@ -1,0 +1,9 @@
+# Ignore Python cache
+__pycache__/
+
+# Ignore environment file
+.env
+
+# Ignore output and generated folders
+example_outputs/
+generated/
