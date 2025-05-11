@@ -47,33 +47,35 @@ export const useStore = create((set, get) => ({
   nodes: savedProjects[initialProjectId]?.nodes || [...initialDefaultProjectNodes],
   edges: savedProjects[initialProjectId]?.edges || [],
   selectedNodeId: null, // For properties panel
-  isPropertiesPanelOpen: false, // For properties panel
+  // isPropertiesPanelOpen: false, // For properties panel - Removed
 
-  setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId, isPropertiesPanelOpen: !!nodeId }),
-  togglePropertiesPanel: (isOpen) => set(state => ({ 
-    isPropertiesPanelOpen: isOpen === undefined ? !state.isPropertiesPanelOpen : isOpen 
-  })),
-  
+  // When a node is selected, properties tab becomes active.
+  // When deselected (nodeId is null), properties tab becomes disabled/output tab may become active.
+  setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }), // Simplified
+  // togglePropertiesPanel: (isOpen) => set(state => ({ // Removed
+  //   isPropertiesPanelOpen: isOpen === undefined ? !state.isPropertiesPanelOpen : isOpen
+  // })),
+
   onNodesChange: (changes) => set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) })),
   onEdgesChange: (changes) => set((state) => ({ edges: applyEdgeChanges(changes, state.edges) })),
-  
+
   onConnect: (connection) => {
     const nodes = get().nodes;
     const sourceNode = nodes.find(n => n.id === connection.source);
     const targetNode = nodes.find(n => n.id === connection.target);
 
     // --- CONNECTION TYPE 1: Agent to Pattern's general config input ---
-    if (targetNode?.data?.component_category === 'pattern' && 
+    if (targetNode?.data?.component_category === 'pattern' &&
         sourceNode?.data?.component_category === 'agent' &&
         connection.targetHandle?.startsWith('pattern_agent_input_')
       ) {
-      
+
       const paramName = connection.targetHandle.substring('pattern_agent_input_'.length);
       // Use the agent's TFrameX ID if available, otherwise its ReactFlow node ID as a fallback reference
       const agentIdToAssign = sourceNode.data.tframex_component_id || sourceNode.id;
 
       get().updateNodeData(targetNode.id, { [paramName]: agentIdToAssign });
-      
+
       set((state) => ({
         edges: addEdge({
           ...connection,
@@ -91,9 +93,9 @@ export const useStore = create((set, get) => ({
         sourceNode?.data?.component_category === 'agent' &&
         connection.targetHandle?.startsWith('pattern_list_item_input_')
       ) {
-      
+
       const parts = connection.targetHandle.split('_'); // e.g. pattern_list_item_input_steps_0
-      const paramName = parts[4]; 
+      const paramName = parts[4];
       const index = parseInt(parts[5], 10);
       const agentIdToAssign = sourceNode.data.tframex_component_id || sourceNode.id;
 
@@ -122,28 +124,28 @@ export const useStore = create((set, get) => ({
     }
 
     // --- CONNECTION TYPE 3: Tool's "attachment" handle to Agent's "tool input" handle ---
-    if (sourceNode?.data?.component_category === 'tool' && 
+    if (sourceNode?.data?.component_category === 'tool' &&
         targetNode?.data?.component_category === 'agent' &&
         connection.sourceHandle === 'tool_attachment_out' &&
         connection.targetHandle === 'tool_input_handle'
       ) {
-      
+
       const toolId = sourceNode.data.tframex_component_id || sourceNode.id;
       const currentSelectedTools = targetNode.data.selected_tools || [];
-      
+
       if (!currentSelectedTools.includes(toolId)) {
         get().updateNodeData(targetNode.id, {
           selected_tools: [...currentSelectedTools, toolId]
         });
         console.log(`UI: Tool '${toolId}' enabled on Agent '${targetNode.data.label || targetNode.id}' via connection.`);
       }
-      
+
       set((state) => ({
         edges: addEdge({
           ...connection,
           type: 'smoothstep',
           animated: false,
-          style: { stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5, zIndex: 0 }, 
+          style: { stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5, zIndex: 0 },
           data: { ...connection.data, connectionType: 'toolAttachment' }
         }, state.edges),
       }));
@@ -157,7 +159,7 @@ export const useStore = create((set, get) => ({
         targetNode?.data?.component_category === 'agent' &&
         connection.targetHandle === 'input_message_in'
       ) {
-        
+
         const toolId = sourceNode.data.tframex_component_id || sourceNode.id;
         const currentSelectedTools = targetNode.data.selected_tools || [];
         if (!currentSelectedTools.includes(toolId)) {
@@ -167,12 +169,12 @@ export const useStore = create((set, get) => ({
             console.log(`UI: Tool '${toolId}' implicitly enabled on Agent '${targetNode.data.label || targetNode.id}' due to data connection.`);
         }
         set((state) => ({
-            edges: addEdge({ 
-                ...connection, 
-                type: 'smoothstep', 
-                animated: true, 
-                style: { strokeWidth: 2, stroke: '#7c3aed' }, 
-                data: {...connection.data, connectionType: 'toolDataOutputToAgent'} 
+            edges: addEdge({
+                ...connection,
+                type: 'smoothstep',
+                animated: true,
+                style: { strokeWidth: 2, stroke: '#7c3aed' },
+                data: {...connection.data, connectionType: 'toolDataOutputToAgent'}
             }, state.edges),
         }));
         return;
@@ -197,22 +199,22 @@ export const useStore = create((set, get) => ({
         }));
         return;
     }
-    
+
     // --- DEFAULT: Standard data flow edge ---
     set((state) => ({
-      edges: addEdge({ 
-          ...connection, 
-          type: 'smoothstep', 
-          animated: true, 
-          style: { strokeWidth: 2 } 
+      edges: addEdge({
+          ...connection,
+          type: 'smoothstep',
+          animated: true,
+          style: { strokeWidth: 2 }
         }, state.edges),
     }));
   },
 
   addNode: (nodeDataFromDrop, position) => {
     const { component_category, id: componentId, name: componentName, tframex_agent_type, config_options, constructor_params_schema } = nodeDataFromDrop;
-    
-    let defaultNodeData = { 
+
+    let defaultNodeData = {
       label: componentName || componentId,
       component_category: component_category, // Store this if it's coming from drop
       tframex_component_id: componentId, // Store the original TFrameX ID
@@ -223,8 +225,8 @@ export const useStore = create((set, get) => ({
     if (component_category === 'agent') {
       defaultNodeData = {
         ...defaultNodeData,
-        selected_tools: config_options?.default_tools || [], 
-        template_vars_config: {}, 
+        selected_tools: config_options?.default_tools || [],
+        template_vars_config: {},
         system_prompt_override: "", // Initialize for properties panel
         tframex_agent_type: tframex_agent_type,
         can_use_tools: config_options?.can_use_tools || false,
@@ -239,9 +241,9 @@ export const useStore = create((set, get) => ({
           const paramInfo = constructor_params_schema[paramName];
           // Initialize based on type hints for better UI experience in PatternNode
           if (listAgentParams.includes(paramName) && paramInfo.type_hint?.toLowerCase().includes('list')) {
-            patternParams[paramName] = []; 
+            patternParams[paramName] = [];
           } else if (paramInfo.type_hint?.toLowerCase().includes('agent') || paramName.startsWith('agent_') || paramName.endsWith('_agent_name')) {
-            patternParams[paramName] = null; 
+            patternParams[paramName] = null;
           } else if (paramName === 'routes' && paramInfo.type_hint?.toLowerCase().includes('dict')) {
             patternParams[paramName] = {}; // Initialize routes as an empty object
           } else if (paramInfo.type_hint?.toLowerCase().includes('list')) {
@@ -261,7 +263,7 @@ export const useStore = create((set, get) => ({
       // nodeType is componentId (Pattern class name)
     } else if (component_category === 'tool') {
         defaultNodeData.is_tool_node = true; // Mark as tool
-        defaultNodeData.has_data_output = nodeDataFromDrop.config_options?.has_data_output || 
+        defaultNodeData.has_data_output = nodeDataFromDrop.config_options?.has_data_output ||
                                           (nodeDataFromDrop.parameters_schema && Object.keys(nodeDataFromDrop.parameters_schema).length > 0 && nodeDataFromDrop.description?.toLowerCase().includes("return"));
       // nodeType is componentId (Tool name)
     } else if (component_category === 'utility' && componentId === 'textInput') { // For TextInputNode
@@ -296,7 +298,7 @@ export const useStore = create((set, get) => ({
   // === Project Management State ===
   projects: savedProjects,
   currentProjectId: initialProjectId,
-  
+
   saveCurrentProject: () => {
     const { nodes, edges, currentProjectId, projects } = get();
     const currentProject = projects[currentProjectId];
@@ -315,15 +317,15 @@ export const useStore = create((set, get) => ({
     const projectToLoad = projects[projectId];
 
     if (projectToLoad) {
-      saveCurrentProject(); 
+      saveCurrentProject();
       set({
         nodes: projectToLoad.nodes || [...initialDefaultProjectNodes],
         edges: projectToLoad.edges || [],
         currentProjectId: projectId,
-        output: "Output will appear here...", 
-        chatHistory: [], 
-        selectedNodeId: null, // Reset selection
-        isPropertiesPanelOpen: false,
+        output: "Output will appear here...",
+        chatHistory: [],
+        selectedNodeId: null, // Reset selection, implicitly handles properties tab
+        // isPropertiesPanelOpen: false, // Removed
       });
       console.log(`Project '${projectToLoad.name}' loaded.`);
     } else {
@@ -333,12 +335,12 @@ export const useStore = create((set, get) => ({
 
   createProject: (name) => {
     const { projects, saveCurrentProject } = get();
-    saveCurrentProject(); 
+    saveCurrentProject();
 
     const newProjectId = `project_${nanoid(8)}`;
     const newProject = {
         name: name || `New TFrameX Project ${Object.keys(projects).length + 1}`,
-        nodes: [...initialDefaultProjectNodes], 
+        nodes: [...initialDefaultProjectNodes],
         edges: []
     };
     const updatedProjects = { ...projects, [newProjectId]: newProject };
@@ -349,8 +351,8 @@ export const useStore = create((set, get) => ({
         currentProjectId: newProjectId,
         output: "Output will appear here...",
         chatHistory: [],
-        selectedNodeId: null,
-        isPropertiesPanelOpen: false,
+        selectedNodeId: null, // Reset selection
+        // isPropertiesPanelOpen: false, // Removed
     });
     console.log(`Project '${newProject.name}' created.`);
   },
@@ -377,7 +379,7 @@ export const useStore = create((set, get) => ({
       set({ projects: updatedProjects });
 
        if (currentProjectId === projectId) {
-           loadProject(nextProjectId); 
+           loadProject(nextProjectId);
        }
       console.log(`Project "${projects[projectId].name}" deleted.`);
   },
@@ -387,7 +389,7 @@ export const useStore = create((set, get) => ({
   isRunning: false,
   runFlow: async () => {
     const { nodes, edges, saveCurrentProject } = get();
-    saveCurrentProject(); 
+    saveCurrentProject();
 
     set({ isRunning: true, output: "Executing TFrameX flow..." });
     console.log("Sending to TFrameX backend:", { nodes, edges });
@@ -396,7 +398,7 @@ export const useStore = create((set, get) => ({
     let initialInputContent = "User input from Studio to start the flow."; // Default
     const textInputNode = nodes.find(n => n.type === 'textInput');
     if (textInputNode) {
-        const isConnectedAsStart = edges.some(edge => 
+        const isConnectedAsStart = edges.some(edge =>
             edge.source === textInputNode.id &&
             nodes.find(n => n.id === edge.target)?.data.component_category === 'agent' &&
             !edges.some(e => e.target === textInputNode.id) // Ensure TextInputNode itself has no inputs
@@ -411,7 +413,7 @@ export const useStore = create((set, get) => ({
         nodes,
         edges,
         initial_input: initialInputContent,
-        global_flow_template_vars: { "studio_user": "VisualBuilder" } 
+        global_flow_template_vars: { "studio_user": "VisualBuilder" }
     };
 
     try {
@@ -482,7 +484,7 @@ export const useStore = create((set, get) => ({
 
   // === Code Registration State ===
   isRegisteringCode: false,
-  registrationStatus: null, 
+  registrationStatus: null,
   registerTFrameXCode: async (pythonCode) => {
     if (get().isRegisteringCode) return;
     set({ isRegisteringCode: true, registrationStatus: null });
@@ -490,7 +492,7 @@ export const useStore = create((set, get) => ({
       const response = await axios.post(`${API_BASE_URL}/register_code`, { python_code: pythonCode });
       set({ registrationStatus: response.data, isRegisteringCode: false });
       if (response.data?.success) {
-        get().fetchTFrameXComponents(); 
+        get().fetchTFrameXComponents();
       }
     } catch (error) {
       const message = error.response?.data?.error || error.message || "Failed to register code.";
@@ -499,11 +501,11 @@ export const useStore = create((set, get) => ({
   },
 
   // === Chatbot for Flow Building State ===
-  chatHistory: [], 
+  chatHistory: [],
   isChatbotLoading: false,
   addChatMessage: (sender, message, type = 'normal') => {
     set((state) => ({
-      chatHistory: [...state.chatHistory, { sender, message, type }] 
+      chatHistory: [...state.chatHistory, { sender, message, type }]
     }));
   },
   clearChatHistory: () => set({ chatHistory: [] }),
@@ -515,19 +517,19 @@ export const useStore = create((set, get) => ({
     set({ isChatbotLoading: true });
 
     // Fetch latest components in case user registered new ones
-    await fetchTFrameXComponents(); 
+    await fetchTFrameXComponents();
     // The discover_tframex_components on backend will be called by the chatbot endpoint anyway,
     // but fetching here ensures UI is up-to-date if chatbot needs to refer to something.
 
     try {
       const payload = {
         message: userMessage,
-        nodes: nodes, 
+        nodes: nodes,
         edges: edges,
       };
       const response = await axios.post(`${API_BASE_URL}/chatbot_flow_builder`, payload);
       console.log("Received from chatbot flow builder:", response.data);
-      
+
       const reply = response.data?.reply || "Received no reply from chatbot flow builder.";
       const flowUpdate = response.data?.flow_update;
 
@@ -543,7 +545,7 @@ export const useStore = create((set, get) => ({
             ...get().tframexComponents.utility.map(u => u.id), // like 'textInput'
             'tframexAgent', 'tframexPattern', 'tframexTool' // Generic fallbacks if used
         ];
-        
+
         const allNodesValid = flowUpdate.nodes.every(node => allKnownTypes.includes(node.type));
 
         if (allNodesValid) {
@@ -575,8 +577,8 @@ export const useStore = create((set, get) => ({
 
 // --- Persistence Subscription ---
 useStore.subscribe(
-  (state) => ({ 
-    projects: state.projects, 
+  (state) => ({
+    projects: state.projects,
     currentProjectId: state.currentProjectId,
     // nodes: state.nodes, // Removed nodes/edges from direct save for project structure
     // edges: state.edges,
@@ -596,7 +598,7 @@ useStore.subscribe(
       // }
     }
   },
-  { fireImmediately: false } 
+  { fireImmediately: false }
 );
 
 // --- Initial Fetch of TFrameX Components ---

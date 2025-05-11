@@ -46,10 +46,10 @@ const PropertiesPanel = () => {
     if (selectedNodeId) {
       updateNodeData(selectedNodeId, localData);
       // Optionally, close panel or give feedback:
-      // setSelectedNodeId(null); 
+      // setSelectedNodeId(null);
     }
   };
-  
+
   const handleClosePanel = () => {
       setSelectedNodeId(null); // This will also set isPropertiesPanelOpen to false via store logic
   };
@@ -58,14 +58,14 @@ const PropertiesPanel = () => {
     return null; // Or a placeholder if always visible but empty
   }
 
-  const originalAgentDefinition = selectedNode.data.component_category === 'agent' 
-    ? tframexComponents.agents.find(a => a.id === selectedNode.data.tframex_component_id) 
+  const originalAgentDefinition = selectedNode.data.component_category === 'agent'
+    ? tframexComponents.agents.find(a => a.id === selectedNode.data.tframex_component_id)
     : null;
 
-  const originalPatternDefinition = selectedNode.data.component_category === 'pattern' 
+  const originalPatternDefinition = selectedNode.data.component_category === 'pattern'
     ? tframexComponents.patterns.find(p => p.id === selectedNode.data.tframex_component_id)
     : null;
-  
+
   const originalToolDefinition = selectedNode.data.component_category === 'tool'
     ? tframexComponents.tools.find(t => t.id === selectedNode.data.tframex_component_id)
     : null;
@@ -146,7 +146,7 @@ const PropertiesPanel = () => {
        )}
     </>
   );
-  
+
   const renderToolProperties = () => (
      <>
       <div className="mb-3">
@@ -193,7 +193,8 @@ const PropertiesPanel = () => {
   }
 
   return (
-    <Card className="w-[380px] flex flex-col rounded-none border-l border-t-0 border-b-0 border-r-0 border-border h-full shadow-lg">
+    // Updated className here
+    <Card className="flex flex-col h-full rounded-none border-0 shadow-none">
       <CardHeader className="p-3 border-b border-border flex-shrink-0 h-16 flex flex-row justify-between items-center">
         <div className="flex items-center">
             {titleIcon}
