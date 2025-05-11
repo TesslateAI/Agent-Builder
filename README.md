@@ -64,7 +64,7 @@ Tesslate Studio bridges the power and flexibility of TFrameX with a user-friendl
     pip install tframex
     ```
 *   **Node.js and npm (or yarn):** Required for the frontend.
-*   **LLM API Access:** An OpenAI-compatible API endpoint (e.g., a local Ollama instance, vLLM, or the official OpenAI API).
+*   **LLM API Access:** An OpenAI-compatible API endpoint (e.g., a local Ollama instance, vLLM, etc).
 *   **Environment Variables:** Your backend needs to know how to connect to your LLM. See "Backend Setup" below.
 
 ## 🚀 Getting Started
