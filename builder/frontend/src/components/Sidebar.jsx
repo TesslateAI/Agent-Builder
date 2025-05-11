@@ -1,47 +1,52 @@
-// src/components/Sidebar.jsx
-import React, { useState, useEffect } from 'react';
+// builder/frontend/src/components/Sidebar.jsx
+import React, { useEffect } from 'react'; // Removed useState as Tabs manages its state
 import NodesPanel from './NodesPanel';
-import ChatbotPanel from './ChatbotPanel';
+import ChatbotPanel from './ChatbotPanel'; // Assuming ChatbotPanel calls sendChatMessageToFlowBuilder now
+import CodeRegistrationPanel from './CodeRegistrationPanel'; // NEW
 import { useStore } from '../store';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Use shadcn Tabs
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Sidebar = () => {
-  // Shadcn Tabs manages its own active state via the defaultValue/value prop
-  const agentDefinitions = useStore((state) => state.agentDefinitions);
-  const fetchAgentDefinitions = useStore((state) => state.fetchAgentDefinitions);
-  const isLoading = useStore((state) => state.isDefinitionLoading);
-  const error = useStore((state) => state.definitionError);
+  const tframexComponents = useStore((state) => state.tframexComponents);
+  const fetchTFrameXComponents = useStore((state) => state.fetchTFrameXComponents);
+  const isLoading = useStore((state) => state.isComponentLoading);
+  const error = useStore((state) => state.componentError);
 
   useEffect(() => {
-      if (agentDefinitions.length === 0 && !isLoading && !error) {
-          fetchAgentDefinitions();
-      }
-  }, [fetchAgentDefinitions, agentDefinitions.length, isLoading, error]);
+    // Fetch if no components are loaded and not currently loading/error
+    const hasComponents = tframexComponents.agents.length > 0 || tframexComponents.tools.length > 0 || tframexComponents.patterns.length > 0;
+    if (!hasComponents && !isLoading && !error) {
+      fetchTFrameXComponents();
+    }
+  }, [fetchTFrameXComponents, tframexComponents, isLoading, error]);
 
   return (
-    // Use background defined by shadcn's card or background
-    <aside className="w-72 flex flex-col bg-card border-r border-border h-full">
+    <aside className="w-80 flex flex-col bg-card border-r border-border h-full"> {/* Slightly wider */}
       <Tabs defaultValue="nodes" className="flex flex-col flex-grow h-full">
-        {/* Tabs Header */}
-        <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">
+        <TabsList className="grid w-full grid-cols-3 rounded-none border-b border-border"> {/* 3 tabs */}
           <TabsTrigger value="nodes" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
-             Nodes
+            Components
           </TabsTrigger>
           <TabsTrigger value="chatbot" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
-             Chatbot
+            AI Flow Builder
+          </TabsTrigger>
+          <TabsTrigger value="register" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+            Add Code
           </TabsTrigger>
         </TabsList>
 
-        {/* Content Area */}
         <TabsContent value="nodes" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
-            {/* NodesPanel content needs padding */}
-            <div className="h-full overflow-y-auto p-3">
-                <NodesPanel agentDefs={agentDefinitions} isLoading={isLoading} error={error} />
-            </div>
+          <div className="h-full overflow-y-auto p-3">
+            <NodesPanel tframexComponents={tframexComponents} isLoading={isLoading} error={error} />
+          </div>
         </TabsContent>
         <TabsContent value="chatbot" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
-           {/* ChatbotPanel already has internal padding */}
-           <ChatbotPanel />
+          <ChatbotPanel /> 
+        </TabsContent>
+         <TabsContent value="register" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
+            <div className="h-full overflow-y-auto p-3">
+                <CodeRegistrationPanel />
+            </div>
         </TabsContent>
       </Tabs>
     </aside>

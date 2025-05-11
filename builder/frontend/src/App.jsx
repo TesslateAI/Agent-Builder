@@ -1,58 +1,43 @@
 // builder/frontend/src/App.jsx
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useEffect, useMemo } from 'react'; // Added useEffect, useMemo
 import ReactFlow, {
   ReactFlowProvider,
   Controls,
   Background,
-  addEdge,
   MiniMap,
   useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { nanoid } from 'nanoid';
 
 import { useStore } from './store';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import OutputPanel from './components/OutputPanel';
 
-// ... (your existing node imports)
-import BasicAgentNode from './nodes/BasicAgentNode';
-import ContextAgentNode from './nodes/ContextAgentNode';
-import ChainOfAgentsNode from './nodes/ChainOfAgentsNode';
-import MultiCallSystemNode from './nodes/MultiCallSystemNode';
-import PlannerAgentNode from './nodes/PlannerAgentNode';
-import DistributorAgentNode from './nodes/DistributorAgentNode';
-import FileGeneratorAgentNode from './nodes/FileGeneratorAgentNode';
-import PromptInjectorNode from './nodes/PromptInjectorNode';
+import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
+import TFrameXPatternNode from './nodes/tframex/TFrameXPatternNode';
+import TFrameXToolNode from './nodes/tframex/TFrameXToolNode';
 
-
-const nodeTypes = {
-  basicAgent: BasicAgentNode,
-  contextAgent: ContextAgentNode,
-  chainOfAgents: ChainOfAgentsNode,
-  multiCallSystem: MultiCallSystemNode,
-  plannerAgent: PlannerAgentNode,
-  distributorAgent: DistributorAgentNode,
-  fileGeneratorAgent: FileGeneratorAgentNode,
-  promptInjectorAgent: PromptInjectorNode,
+// This was missing, but your logic for dynamicNodeTypes implies it should be here.
+// If you define these statically, ensure component IDs match.
+const staticNodeTypes = {
+  tframexAgent: TFrameXAgentNode,
+  tframexPattern: TFrameXPatternNode,
+  tframexTool: TFrameXToolNode,
+  // Add any other static/primitive node types here if you have them
+  // e.g. promptPrimitive: PromptPrimitiveNode,
 };
 
 const FlowEditor = () => {
   const reactFlowWrapper = useRef(null);
-  const { project } = useReactFlow();
+  const { project } = useReactFlow(); // Ensure useReactFlow is correctly imported and used
 
   const nodes = useStore((state) => state.nodes);
-  const originalEdges = useStore((state) => state.edges); // Get original edges
+  const edges = useStore((state) => state.edges);
   const onNodesChange = useStore((state) => state.onNodesChange);
   const onEdgesChange = useStore((state) => state.onEdgesChange);
+  const onConnect = useStore((state) => state.onConnect);
   const addNode = useStore((state) => state.addNode);
-  const setEdges = useStore((state) => state.setEdges);
-
-  const onConnect = useCallback(
-    (params) => setEdges(addEdge({ ...params, type: 'smoothstep', animated: true }, originalEdges)),
-    [originalEdges, setEdges],
-  );
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -62,110 +47,147 @@ const FlowEditor = () => {
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
-      const currentRef = reactFlowWrapper.current;
-      if (!currentRef) return;
-      const reactFlowBounds = currentRef.getBoundingClientRect();
-      const nodeInfoString = event.dataTransfer.getData('application/reactflow');
-      if (!nodeInfoString) return;
 
-      try {
-        const { type, label } = JSON.parse(nodeInfoString);
-        if (typeof type === 'undefined' || !type) return;
-
-        const position = project({
-          x: event.clientX - reactFlowBounds.left,
-          y: event.clientY - reactFlowBounds.top,
-        });
-
-        let nodeSpecificData = {};
-        // ... (your existing onDrop nodeSpecificData logic)
-        if (type === 'basicAgent') {
-            nodeSpecificData = { prompt: "", max_tokens: null };
-        } else if (type === 'contextAgent') {
-            const exampleContextContent = useStore.getState().projects?.example2?.nodes?.[0]?.data?.context || "Default context.";
-            nodeSpecificData = { context: exampleContextContent, prompt: "", max_tokens: null };
-        } else if (type === 'chainOfAgents') {
-            const exampleLongTextContent = useStore.getState().projects?.example3?.nodes?.[0]?.data?.longText || "Default long text.";
-            nodeSpecificData = { initialPrompt: "", longText: exampleLongTextContent, chunkSize: 2000, chunkOverlap: 200, maxTokens: null };
-        } else if (type === 'multiCallSystem') {
-            nodeSpecificData = { prompt: "", numCalls: 3, baseFilename: "output", maxTokens: null };
-        } else if (type === 'plannerAgent') {
-            nodeSpecificData = { user_request: "Build a simple todo list application." };
-        } else if (type === 'promptInjectorAgent') {
-            nodeSpecificData = {
-                full_prompt: "<memory>\nType shared memory here...\n</memory>\n\n<prompt filename=\"example.txt\">\nType prompt for example.txt here...\n</prompt>",
-            };
-        }
-        // ... (ensure all your node types have default data if needed)
-
-        const newNode = {
-          id: `${type}-${nanoid(6)}`,
-          type,
-          position,
-          data: { label: label || `${type} Node`, ...nodeSpecificData },
-        };
-        addNode(newNode);
-      } catch (e) {
-        console.error("Failed to parse dropped node data:", e);
+      if (!reactFlowWrapper.current) {
+        console.error('App.jsx onDrop: reactFlowWrapper.current is null');
+        return;
       }
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const typeDataString = event.dataTransfer.getData('application/tframex_component');
+
+      console.log('App.jsx onDrop: typeDataString:', typeDataString);
+
+      if (!typeDataString) {
+        console.warn('App.jsx onDrop: No data found for application/tframex_component');
+        return;
+      }
+
+      let componentData;
+      try {
+        componentData = JSON.parse(typeDataString);
+      } catch (e) {
+        console.error('App.jsx onDrop: Failed to parse componentData JSON:', e, typeDataString);
+        return;
+      }
+
+      console.log('App.jsx onDrop: Parsed componentData:', componentData);
+
+      if (!componentData || !componentData.id) {
+        console.warn('App.jsx onDrop: Invalid componentData or missing ID:', componentData);
+        return;
+      }
+
+      // Calculate position relative to the ReactFlow pane
+      const position = project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      console.log('App.jsx onDrop: Calculated position:', position);
+      addNode(componentData, position);
     },
-    [addNode, project],
+    [project, addNode, reactFlowWrapper] // reactFlowWrapper added to dependencies
   );
 
-  // --- START SMALL CHANGE FOR YELLOW MEMORY EDGES ---
-  const styledEdges = originalEdges.map(edge => {
-    // Check if the edge is connected to/from a memory handle
-    if (edge.sourceHandle === 'memory_out' || edge.targetHandle === 'memory_in') {
-      return {
-        ...edge,
-        style: {
-          ...edge.style, // Preserve other styles if any
-          stroke: '#eab308', // A nice yellow color (Tailwind's amber-500)
-          strokeWidth: 3,     // Slightly thicker
-        },
-        // animated: false, // Optionally make memory lines not animated
-      };
+  const tframexComponents = useStore(s => s.tframexComponents);
+
+  const dynamicNodeTypes = useMemo(() => {
+    const customNodes = { ...staticNodeTypes }; // Start with static/primitive types
+    if (tframexComponents?.agents) {
+        tframexComponents.agents.forEach(agent => {
+            if (agent.id) customNodes[agent.id] = TFrameXAgentNode;
+        });
     }
-    return edge; // Return unchanged if not a memory edge
+    if (tframexComponents?.patterns) {
+        tframexComponents.patterns.forEach(pattern => {
+            if (pattern.id) customNodes[pattern.id] = TFrameXPatternNode;
+        });
+    }
+    if (tframexComponents?.tools) {
+        tframexComponents.tools.forEach(tool => {
+            if (tool.id) customNodes[tool.id] = TFrameXToolNode;
+        });
+    }
+    console.log('App.jsx FlowEditor: Generated dynamicNodeTypes:', JSON.stringify(Object.keys(customNodes))); // Log keys for brevity
+    return customNodes;
+  }, [tframexComponents]);
+
+  useEffect(() => {
+    console.log('App.jsx FlowEditor: Nodes state updated:', nodes.map(n => ({id: n.id, type: n.type, label: n.data.label})));
+  }, [nodes]);
+
+  const styledEdges = edges.map(edge => {
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    // const targetNode = nodes.find(n => n.id === edge.target); // If needed
+
+    switch (edge.data?.connectionType) {
+      case 'toolAttachment':
+        return {
+          ...edge,
+          style: { ...edge.style, stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5 },
+          animated: false,
+        };
+      case 'agentInstanceToPatternParam': // Agent connected to a pattern's single agent param
+        return {
+          ...edge,
+          style: { ...edge.style, stroke: '#F59E0B', strokeWidth: 2 }, // Amber
+          animated: false,
+        };
+      case 'agentToPatternListItem': // Agent connected to a pattern's list item slot
+        return {
+          ...edge,
+          style: { ...edge.style, stroke: '#4CAF50', strokeWidth: 1.8 }, // Green
+          animated: false,
+        };
+      case 'toolDataOutputToAgent': // Tool's data output connected to an agent
+        return {
+            ...edge,
+            style: { ...edge.style, stroke: '#7c3aed', strokeWidth: 2}, // Purple
+            animated: true,
+        };
+      default:
+        // General styling for data output from a tool node if not explicitly typed above
+        if (sourceNode?.data?.component_category === 'tool' && edge.sourceHandle === 'tool_output_data') {
+            return {
+                ...edge,
+                style: { ...edge.style, stroke: '#7c3aed', strokeWidth: 2 }, // Purple
+                animated: true,
+            };
+        }
+        // Fallback to default edge style or preserve existing custom style
+        return edge;
+    }
   });
-  // --- END SMALL CHANGE FOR YELLOW MEMORY EDGES ---
 
   return (
-    <div className="flex h-screen w-screen bg-gray-900" ref={reactFlowWrapper}>
+    <div className="flex h-screen w-screen bg-background text-foreground" ref={reactFlowWrapper}>
       <Sidebar />
       <div className="flex-grow flex flex-col h-full">
         <TopBar />
-        <div className="flex-grow relative">
+        <div className="flex-grow relative"> {/* This div will be the drop target area */}
           <ReactFlow
             nodes={nodes}
-            edges={styledEdges} // Use the dynamically styled edges
+            edges={styledEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onDrop={onDrop}
             onDragOver={onDragOver}
-            nodeTypes={nodeTypes}
+            nodeTypes={dynamicNodeTypes} // Use the dynamically generated node types
             fitView
-            className="bg-gray-900"
-            defaultEdgeOptions={{ type: 'smoothstep', animated: true, style: { strokeWidth: 2 } }}
-            connectionLineStyle={{ stroke: '#4f46e5', strokeWidth: 2 }}
+            className="bg-background" // Make sure this className matches if you rely on it for reactFlowBounds
+            defaultEdgeOptions={{ type: 'smoothstep', animated: true, style: { strokeWidth: 2, stroke: 'var(--color-primary)' } }}
+            connectionLineStyle={{ stroke: 'var(--color-primary)', strokeWidth: 2 }}
             connectionLineType="smoothstep"
           >
             <Controls className="react-flow__controls" />
-            <Background variant="dots" gap={16} size={1} color="#4A5568" />
+            <Background variant="dots" gap={16} size={1} color="var(--color-border)" />
             <MiniMap nodeStrokeWidth={3} nodeColor={(n) => {
-                 switch (n.type) {
-                     case 'basicAgent': return '#3b82f6';
-                     case 'contextAgent': return '#10b981';
-                     case 'chainOfAgents': return '#f97316';
-                     case 'multiCallSystem': return '#a855f7';
-                     case 'plannerAgent': return '#ef4444';
-                     case 'distributorAgent': return '#eab308';
-                     case 'fileGeneratorAgent': return '#22c55e';
-                     case 'promptInjectorAgent': return '#6366f1';
-                     default: return '#6b7280';
-                 }
-             }} />
+                if (n.type === 'tframexAgent' || tframexComponents.agents.some(a => a.id === n.type)) return 'var(--color-primary)';
+                if (n.type === 'tframexPattern' || tframexComponents.patterns.some(p => p.id === n.type)) return 'var(--color-secondary)';
+                if (n.type === 'tframexTool' || tframexComponents.tools.some(t => t.id === n.type)) return 'var(--color-accent)';
+                return '#ddd';
+            }} />
           </ReactFlow>
         </div>
       </div>
