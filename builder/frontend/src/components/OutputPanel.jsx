@@ -1,5 +1,5 @@
 // src/components/OutputPanel.jsx
-import React from 'react';
+import React, { useEffect, useRef } from 'react'; // Import useEffect and useRef
 import { useStore } from '../store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ const OutputPanel = () => {
   const output = useStore((state) => state.output);
   const clearOutput = useStore((state) => state.clearOutput);
   const isRunning = useStore((state) => state.isRunning);
+  const scrollAreaRef = useRef(null); // Add scrollAreaRef
 
   const hasContent = output && output !== "Output will appear here..." && output.trim() !== "";
 
@@ -39,8 +40,17 @@ const OutputPanel = () => {
   }
   // --- END NEW ---
 
+  useEffect(() => {
+    // Scroll to bottom of output when new content arrives
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) viewport.scrollTop = viewport.scrollHeight;
+    }
+  }, [cleanedOutput]); // Trigger on cleanedOutput change
+
   return (
-    <Card className="w-[450px] flex flex-col rounded-none border-l border-t-0 border-b-0 border-r-0 border-border h-full shadow-none">
+    // Update Card classes: remove width, simplify border
+    <Card className="flex flex-col h-full rounded-none border-0 shadow-none">
        <CardHeader className="flex flex-row justify-between items-center p-3 border-b border-border flex-shrink-0 h-16">
             <CardTitle className="text-lg font-semibold">Output</CardTitle>
             {/* --- NEW: Add Preview Button --- */}
@@ -67,7 +77,8 @@ const OutputPanel = () => {
        </CardHeader>
 
       <CardContent className="flex-grow p-0 overflow-hidden">
-        <ScrollArea className="h-full w-full">
+        {/* Add ref to ScrollArea */}
+        <ScrollArea className="h-full w-full" ref={scrollAreaRef}>
             <pre className="text-sm text-muted-foreground whitespace-pre-wrap break-words font-mono p-4">
                  {/* Display cleanedOutput */}
                 {hasContent ? cleanedOutput : <span className="text-muted-foreground/70 italic">Output will appear here...</span>}

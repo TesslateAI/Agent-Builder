@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'; // Import cn utility
 const ChatbotPanel = () => {
   const [inputMessage, setInputMessage] = useState('');
   const chatHistory = useStore((state) => state.chatHistory);
-  const sendChatMessage = useStore((state) => state.sendChatMessage);
+  const sendChatMessageToFlowBuilder = useStore((state) => state.sendChatMessageToFlowBuilder);
   const isChatbotLoading = useStore((state) => state.isChatbotLoading);
   const clearChatHistory = useStore((state) => state.clearChatHistory);
   const messagesEndRef = useRef(null);
@@ -30,7 +30,7 @@ const ChatbotPanel = () => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (inputMessage.trim() && !isChatbotLoading) {
-      sendChatMessage(inputMessage.trim());
+      sendChatMessageToFlowBuilder(inputMessage.trim());
       setInputMessage('');
     }
   };
