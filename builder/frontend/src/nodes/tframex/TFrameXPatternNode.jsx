@@ -13,40 +13,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Puzzle, PlusCircle, Trash2, Users, Settings2, Route, GitBranch, Link2 } from 'lucide-react';
 
 const PatternListItem = ({ parentNodeId, paramName, agentIdInSlot, index, onRemove, getAgentNameById }) => {
-    const itemRef = useRef(null);
-    const [handleTop, setHandleTop] = useState('50%');
+    // console.log(`[PatternListItem] Rendering for ${paramName}[${index}] on node ${parentNodeId}. Agent ID: ${agentIdInSlot}`); // DEBUG: Uncomment to see if item renders
 
-    useEffect(() => {
-        if (itemRef.current) {
-            // Calculate position relative to the node for the handle
-            const nodeElement = document.querySelector(`[data-id="${parentNodeId}"] .react-flow__renderer`); // Be more specific if needed
-            if (nodeElement) {
-                const nodeRect = nodeElement.getBoundingClientRect();
-                const itemRect = itemRef.current.getBoundingClientRect();
-                const relativeTop = itemRect.top - nodeRect.top + (itemRect.height / 2);
-                setHandleTop(`${relativeTop}px`);
-            } else { // Fallback using offsetParent if direct node not found
-                 const parentEl = itemRef.current.offsetParent;
-                 if (parentEl) {
-                    const offsetTop = itemRef.current.offsetTop + (itemRef.current.offsetHeight / 2);
-                    setHandleTop(`${offsetTop}px`);
-                 }
-            }
-        }
-    }, [parentNodeId, agentIdInSlot]); // Recalc if agentIdInSlot changes (e.g. item re-renders)
+    // Removed itemRef, useState for handleTop, and useEffect for handleTop calculation.
+    // The Handle will be positioned relative to this component's main div due to 'position: relative' on the div
+    // and 'position: absolute' (default for Handle) + 'top: 50%' on the Handle style.
 
     return (
-        <div ref={itemRef} className="flex items-center space-x-2 p-1.5 border border-dashed border-input rounded hover:border-primary/70 transition-colors relative my-1 bg-background/30">
+        <div className="flex items-center space-x-2 p-1.5 border border-dashed border-input rounded hover:border-primary/70 transition-colors relative my-1 bg-background/30">
+            {/* DEBUG: Uncomment to add a visual border to the item: style={{ border: '1px solid red' }} */}
             <Handle
                 type="target"
-                position={Position.Left}
+                position={Position.Left} // React Flow uses this for default class, but style overrides precise positioning
                 id={`pattern_list_item_input_${paramName}_${index}`}
-                style={{ background: '#4CAF50', top: handleTop, left: -12, width:10, height:10, zIndex:1 }}
+                style={{ 
+                    background: '#4CAF50', 
+                    top: '50%',         // Vertically center relative to this PatternListItem
+                    left: '-10px',      // Pull out to the left
+                    width:10, 
+                    height:10, 
+                    zIndex:10           // Ensure it's above other elements in the item
+                }}
                 title={`Connect Agent to ${paramName} slot #${index + 1}`}
                 isConnectable={true}
             />
             <Users className="h-4 w-4 text-green-600 flex-shrink-0 ml-1" />
-            <div className="flex-grow text-xs truncate">
+            {/* Added pl-2 to give a bit of space for the handle visually */}
+            <div className="flex-grow text-xs truncate pl-2"> 
                 {agentIdInSlot ? (
                     <span className="font-medium text-green-700" title={getAgentNameById(agentIdInSlot)}>{getAgentNameById(agentIdInSlot)}</span>
                 ) : (
@@ -64,14 +57,13 @@ const PatternListItem = ({ parentNodeId, paramName, agentIdInSlot, index, onRemo
 const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const allAgents = useStore((state) => state.tframexComponents.agents);
-  const allPatternsFromStore = useStore((state) => state.tframexComponents.patterns); // Renamed to avoid conflict
-  const nodes = useStore((state) => state.nodes); // For resolving agent names from canvas
+  const allPatternsFromStore = useStore((state) => state.tframexComponents.patterns);
+  const nodes = useStore((state) => state.nodes); 
 
   const patternDefinition = useStore(state => 
     state.tframexComponents.patterns.find(p => p.id === tframexPatternId)
   );
 
-  // Memoize options for select dropdowns to prevent re-computation on every render
   const agentOptions = useMemo(() => allAgents.map(agent => ({ value: agent.id, label: `${agent.name} (Agent)` })), [allAgents]);
   const patternOptions = useMemo(() => allPatternsFromStore.map(p => ({ value: p.id, label: `${p.name} (Pattern)` })), [allPatternsFromStore]);
   const defaultRouteOptions = useMemo(() => [...agentOptions, ...patternOptions], [agentOptions, patternOptions]);
@@ -79,17 +71,15 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
 
   const getAgentNameById = useCallback((targetId) => {
     if (!targetId) return "Unassigned";
-    // Check nodes on canvas first for their current label
     const canvasNode = nodes.find(n => n.id === targetId || n.data.tframex_component_id === targetId);
     if (canvasNode) return canvasNode.data.label || canvasNode.data.tframex_component_id || targetId;
     
-    // Fallback to definitions from store
     const agentDef = allAgents.find(a => a.id === targetId);
     if (agentDef) return agentDef.name;
     const patternDef = allPatternsFromStore.find(p => p.id === targetId);
     if (patternDef) return patternDef.name;
     
-    return targetId; // Return ID if no name found
+    return targetId;
   }, [nodes, allAgents, allPatternsFromStore]);
   
   const handleSimpleChange = useCallback((paramName, newValue) => {
@@ -97,7 +87,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
     const paramSchema = patternDefinition?.constructor_params_schema?.[paramName];
     if (paramSchema?.type_hint?.toLowerCase().includes('int')) {
         val = newValue === '' ? null : parseInt(newValue, 10);
-        if (isNaN(val)) val = null; // Or some default like 0 or keep as is for validation
+        if (isNaN(val)) val = null;
     } else if (paramSchema?.type_hint?.toLowerCase().includes('bool')) {
         val = newValue; 
     } else if (paramSchema?.type_hint?.toLowerCase().includes('float')) {
@@ -109,6 +99,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
 
   const addListItem = useCallback((paramName) => {
     const currentList = Array.isArray(data[paramName]) ? [...data[paramName]] : [];
+    // console.log(`[TFrameXPatternNode] Adding item to ${paramName}. Current length: ${currentList.length}`); // DEBUG
     updateNodeData(id, { ...data, [paramName]: [...currentList, null] }); 
   }, [id, updateNodeData, data]);
 
@@ -133,7 +124,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
 
   const handleRouteValueChange = useCallback((key, newValue) => {
     const currentRoutes = typeof data.routes === 'object' && data.routes !== null ? { ...data.routes } : {};
-    currentRoutes[key] = newValue || null; // Store null if empty selection
+    currentRoutes[key] = newValue || null;
     updateNodeData(id, { ...data, routes: currentRoutes });
   }, [id, updateNodeData, data]);
 
@@ -146,7 +137,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
         newKey = `${newKeyBase}_${i}`;
         i++;
     }
-    updateNodeData(id, { ...data, routes: { ...currentRoutes, [newKey]: null } }); // Initialize value with null
+    updateNodeData(id, { ...data, routes: { ...currentRoutes, [newKey]: null } });
   }, [id, updateNodeData, data]);
 
   const removeRouteItem = useCallback((keyToRemove) => {
@@ -166,11 +157,13 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
     const label = paramName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     const placeholder = paramSchema.default !== "REQUIRED" && paramSchema.default !== undefined ? String(paramSchema.default) : "";
 
-    const listAgentParams = ['participant_agent_names', 'tasks', 'steps']; // From TFrameXPatternNode definition
-    if (paramSchema.type_hint?.toLowerCase().includes('list') && listAgentParams.includes(paramName)) {
+    if (paramSchema.type_hint?.toLowerCase().includes('list')) {
+      // console.log(`[TFrameXPatternNode] Param "${paramName}" IS a list for node ${id}. Type hint: "${paramSchema.type_hint}". Current value:`, value); // DEBUG: Uncomment to confirm this branch is hit
       const currentList = Array.isArray(value) ? value : [];
+      // console.log(`[TFrameXPatternNode] currentList for ${paramName}:`, currentList); // DEBUG
       return (
         <div className="space-y-1 p-1.5 border border-input rounded-md bg-background/40">
+          {/* DEBUG: Uncomment to add visual border: style={{ border: '1px solid blue' }} */}
           {currentList.length === 0 && <p className="text-xs text-muted-foreground italic p-1">No slots. Add one below.</p>}
           {currentList.map((agentIdInSlot, index) => (
             <PatternListItem
@@ -188,6 +181,8 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
           </Button>
         </div>
       );
+    // } else { // DEBUG: Uncomment to see which params are not lists
+    //   console.log(`[TFrameXPatternNode] Param "${paramName}" is NOT a list for node ${id}. Type hint: "${paramSchema.type_hint}"`);
     }
     
     if (paramName === 'routes' && paramSchema.type_hint?.toLowerCase().includes('dict')) {
@@ -224,7 +219,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
 
     const singleAgentParams = ['router_agent_name', 'moderator_agent_name', 'default_route'];
     if (singleAgentParams.includes(paramName)) {
-        const connectedAgentId = data[paramName]; // This should be an ID
+        const connectedAgentId = data[paramName]; 
         const placeholderText = paramName === 'default_route' ? "-- Select Target --" : "-- Select Agent --";
         const optionsForSelect = paramName === 'default_route' ? defaultRouteOptions : agentOptions;
         return (
@@ -232,7 +227,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
                 <Handle
                     type="target"
                     position={Position.Left}
-                    id={`pattern_agent_input_${paramName}`} // Unique handle ID
+                    id={`pattern_agent_input_${paramName}`}
                     style={{ background: '#F59E0B', top: '50%', left: -12, width:10, height:10, transform: 'translateY(-50%)', zIndex: 1 }}
                     title={`Connect Agent/Pattern for ${label}`}
                     isConnectable={true}
@@ -290,29 +285,26 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
   };
   
   const hasDynamicRouteOutputs = tframexPatternId === 'RouterPattern' && data.routes && Object.keys(data.routes).length > 0;
-  const outputHandleTop = '50px'; // Consistent vertical position for main flow handles
+  const outputHandleTop = '50px'; 
 
 
-  // Calculate dynamic output handle positions for RouterPattern
   const routeOutputHandles = useMemo(() => {
     if (!hasDynamicRouteOutputs) return [];
     
     const routeKeys = Object.keys(data.routes);
     const numHandles = routeKeys.length;
-    // Define vertical spread range, e.g., from 25% to 75% of node height.
-    // This is an approximation. A more precise calculation would need node height.
     const startPercent = 25;
     const endPercent = 75;
     const totalSpreadPercent = endPercent - startPercent;
 
     return routeKeys.map((routeKey, index) => {
-        let topPercent = 50; // Default if only one handle
+        let topPercent = 50; 
         if (numHandles > 1) {
             topPercent = startPercent + (index / (numHandles - 1)) * totalSpreadPercent;
         }
         return {
             key: `route-out-${id}-${routeKey}`,
-            id: `output_route_${routeKey.replace(/[\s.:;()]/g, '_')}`, // Sanitize ID
+            id: `output_route_${routeKey.replace(/[\s.:;()]/g, '_')}`, 
             top: `${topPercent}%`,
             title: `Output for route: ${routeKey}`
         };
@@ -351,7 +343,10 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
         </div>
         {patternDefinition.description && <CardDescription className="text-xs mt-1 line-clamp-3">{patternDefinition.description}</CardDescription>}
       </CardHeader>
-      <CardContent className="p-3 space-y-3 text-sm nodrag max-h-[24rem] overflow-y-auto pattern-params-content">
+      <CardContent 
+        className="p-3 space-y-3 text-sm nodrag max-h-[24rem] pattern-params-content overflow-visible" // class 'overflow-visible' is key
+        style={{ overflowY: 'auto', overflowX: 'visible' }} // style 'overflowX: visible' is key
+      >
         {patternDefinition.constructor_params_schema && Object.entries(patternDefinition.constructor_params_schema).map(([paramName, paramSchema]) => (
           <div key={paramName}>
             <Label htmlFor={`${id}-${paramName}`} className="text-xs font-medium block mb-1.5">
