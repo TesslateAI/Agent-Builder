@@ -1,33 +1,112 @@
-# builder/backend/flow_translator.py
+# backend/flow_translator.py
 import inspect
 import logging
 from typing import List, Dict, Any, Tuple
 from collections import deque
+import copy
+import hashlib
 
-from tframex import Flow
-from tframex import patterns as tframex_patterns_module # Module itself
-from tframex.patterns import BasePattern # Base class for type checking
-from tframex_config import get_tframex_app_instance
+from tframex import Flow, TFrameXApp # Import TFrameXApp for type hinting
+from tframex import patterns as tframex_patterns_module
+from tframex.patterns import BasePattern
+# from tframex_config import get_tframex_app_instance # Not used directly, app instances are passed
 
 logger = logging.getLogger("FlowTranslator")
+
+def _generate_unique_suffix_for_instance(config_dict, canvas_node_id):
+    """Generates a short hash suffix based on a dictionary and canvas ID to make names unique."""
+    hasher = hashlib.md5()
+    # Include canvas_node_id in the hash to differentiate nodes even if they have identical override configs
+    # (though less likely for agents, more for ensuring uniqueness)
+    combined_repr = str(sorted(config_dict.items())) + f"_nodeid_{canvas_node_id}"
+    encoded = combined_repr.encode('utf-8')
+    hasher.update(encoded)
+    return hasher.hexdigest()[:8] # Slightly longer for more uniqueness
 
 def translate_visual_to_tframex_flow(
     flow_id: str,
     visual_nodes: List[Dict[str, Any]],
-    visual_edges: List[Dict[str, Any]]
-) -> Tuple[Flow | None, List[str]]:
+    visual_edges: List[Dict[str, Any]],
+    global_app_instance: TFrameXApp,       # Source of base definitions
+    current_run_app_instance: TFrameXApp   # Target for this run's specific agent configs & flow
+) -> Tuple[Flow | None, List[str], Dict[str, str]]:
     """
-    Translates a visual flow (ReactFlow nodes and edges) into an executable tframex.Flow.
-    Handles agent steps and pattern steps with their configurations.
-    Returns the constructed Flow object and a list of log messages.
+    Translates a visual flow into an executable tframex.Flow using the current_run_app_instance.
+    Agent overrides result in temporary agent registrations on current_run_app_instance.
+    Returns the Flow, log messages, and a map of canvas node IDs to effective TFrameX names.
     """
-    app = get_tframex_app_instance()
     translation_log = [f"--- Flow Translation Start (Visual Flow ID: {flow_id}) ---"]
-    
+    canvas_node_to_effective_name_map: Dict[str, str] = {} # Maps canvas node ID to its TFrameX name on current_run_app
+
     if not visual_nodes:
         translation_log.append("Error: No visual nodes provided for flow translation.")
-        return None, translation_log
+        return None, translation_log, canvas_node_to_effective_name_map
 
+    # --- Pre-pass: Register all agents (original or overridden) on current_run_app_instance ---
+    translation_log.append("\n--- Pre-processing Agent Nodes for Current Run App ---")
+    for node_config in visual_nodes:
+        if node_config.get('data', {}).get('component_category') == 'agent':
+            canvas_node_id = node_config['id']
+            original_tframex_id = node_config['type'] # This is the base agent ID from global app
+            node_data = node_config.get('data', {})
+
+            if original_tframex_id not in global_app_instance._agents:
+                msg = f"  Base Agent Definition '{original_tframex_id}' for canvas node '{canvas_node_id}' not found in global app. Skipping."
+                translation_log.append(msg)
+                logger.warning(msg)
+                continue
+
+            base_agent_reg_info = global_app_instance._agents[original_tframex_id]
+            effective_config = copy.deepcopy(base_agent_reg_info.get("config", {}))
+            
+            overrides_applied = {} # For logging and unique name generation
+
+            # Apply system_prompt_override
+            if node_data.get('system_prompt_override') and node_data['system_prompt_override'].strip():
+                effective_config['system_prompt'] = node_data['system_prompt_override']
+                overrides_applied['system_prompt'] = True
+            
+            # Apply selected_tools override
+            if node_data.get('selected_tools') and isinstance(node_data.get('selected_tools'), list):
+                # Ensure tools are valid against current_run_app_instance._tools (which should mirror global tools)
+                valid_tools = [t for t in node_data['selected_tools'] if t in current_run_app_instance._tools]
+                original_decorator_tools = set(base_agent_reg_info.get("config", {}).get("tool_names", []))
+                if set(valid_tools) != original_decorator_tools: # Only if different from base
+                    effective_config['tool_names'] = valid_tools
+                    overrides_applied['tool_names'] = valid_tools
+            
+            # Apply strip_think_tags_override
+            if 'strip_think_tags_override' in node_data:
+                override_val = node_data['strip_think_tags_override']
+                original_strip_val = base_agent_reg_info.get("config", {}).get("strip_think_tags", False)
+                if override_val != original_strip_val:
+                    effective_config['strip_think_tags'] = override_val
+                    overrides_applied['strip_think_tags'] = override_val
+
+            effective_agent_name_for_run = original_tframex_id
+            if overrides_applied:
+                unique_suffix = _generate_unique_suffix_for_instance(overrides_applied, canvas_node_id)
+                effective_agent_name_for_run = f"{original_tframex_id}_run_{unique_suffix}"
+                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): Overrides detected {overrides_applied}. Effective name: '{effective_agent_name_for_run}'")
+            else:
+                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): No overrides. Effective name: '{original_tframex_id}'")
+
+
+            # Register this configuration on the current_run_app_instance
+            if effective_agent_name_for_run not in current_run_app_instance._agents:
+                current_run_app_instance._agents[effective_agent_name_for_run] = {
+                    "func_ref": base_agent_reg_info.get("func_ref"), # Placeholder function
+                    "config": effective_config,
+                    "agent_class_ref": base_agent_reg_info.get("agent_class_ref")
+                }
+                translation_log.append(f"    Registered '{effective_agent_name_for_run}' on current run app instance.")
+            elif effective_agent_name_for_run != original_tframex_id : # It was an overridden agent already registered
+                translation_log.append(f"    Re-using already registered overridden agent '{effective_agent_name_for_run}' on current run app instance.")
+            
+            canvas_node_to_effective_name_map[canvas_node_id] = effective_agent_name_for_run
+    translation_log.append("--- End Agent Pre-processing ---")
+
+    # --- Standard Topological Sort for Flow Construction ---
     node_map: Dict[str, Dict] = {node['id']: node for node in visual_nodes}
     adj: Dict[str, List[str]] = {node_id: [] for node_id in node_map}
     in_degree: Dict[str, int] = {node_id: 0 for node_id in node_map}
@@ -35,180 +114,172 @@ def translate_visual_to_tframex_flow(
     for edge in visual_edges:
         source_id = edge.get('source')
         target_id = edge.get('target')
-        
         if source_id in node_map and target_id in node_map:
-            # Consider edges primarily between agent/pattern nodes for main flow sequence
             source_node_data = node_map[source_id].get('data', {})
             target_node_data = node_map[target_id].get('data', {})
-            
             is_source_flow_element = source_node_data.get('component_category') in ['agent', 'pattern']
             is_target_flow_element = target_node_data.get('component_category') in ['agent', 'pattern']
-
-            # This edge defines execution order if both source and target are flow elements
-            if is_source_flow_element and is_target_flow_element:
-                # And it's not a configuration edge (like tool to agent)
-                # Simple check: if sourceHandle and targetHandle are typical flow handles
-                # Frontend should ideally mark flow edges vs config edges.
-                # For now, assume if source is not a 'tool', it's a flow edge to another agent/pattern.
-                if source_node_data.get('component_category') != 'tool':
-                    adj[source_id].append(target_id)
-                    in_degree[target_id] += 1
-                    translation_log.append(f"  Graph edge (flow): {source_id} -> {target_id}")
-            elif source_node_data.get('component_category') == 'tool' and is_target_flow_element:
-                translation_log.append(f"  Config edge (visual only): Tool {source_id} to Agent/Pattern {target_id}")
-            # Other edge types (e.g., agent output to pattern config input) are not for graph sorting,
-            # but their data is used during pattern instantiation.
-
-    # Topological sort for execution order of main flow elements
+            if is_source_flow_element and is_target_flow_element and source_node_data.get('component_category') != 'tool':
+                adj[source_id].append(target_id)
+                in_degree[target_id] += 1
+    
     queue = deque()
-    for node_id in node_map:
-        node_data = node_map[node_id].get('data', {})
-        if node_data.get('component_category') in ['agent', 'pattern'] and in_degree[node_id] == 0:
-            queue.append(node_id)
+    for node_id_in_map in node_map: # Iterate all nodes present in the map
+        node_data = node_map[node_id_in_map].get('data', {})
+        # Only consider agent/pattern nodes for starting points of topo sort
+        if node_data.get('component_category') in ['agent', 'pattern'] and in_degree[node_id_in_map] == 0:
+            queue.append(node_id_in_map)
             
-    sorted_node_ids_for_flow = []
+    sorted_canvas_node_ids_for_flow = []
     visited_for_sort = set()
-
     while queue:
         u_id = queue.popleft()
         if u_id in visited_for_sort: continue
         visited_for_sort.add(u_id)
-        sorted_node_ids_for_flow.append(u_id)
-        
-        for v_id in adj[u_id]: # adj only contains flow element connections
+        sorted_canvas_node_ids_for_flow.append(u_id)
+        for v_id in adj[u_id]:
             in_degree[v_id] -= 1
-            if in_degree[v_id] == 0: # No need to check category again, adj ensures it's flow element
+            if in_degree[v_id] == 0:
                 queue.append(v_id)
 
-    num_flow_elements = sum(1 for nid in node_map if node_map[nid].get('data',{}).get('component_category') in ['agent', 'pattern'])
-    if len(sorted_node_ids_for_flow) != num_flow_elements:
+    num_flow_elements_on_canvas = sum(1 for nid in node_map if node_map[nid].get('data',{}).get('component_category') in ['agent', 'pattern'])
+    if len(sorted_canvas_node_ids_for_flow) != num_flow_elements_on_canvas:
         translation_log.append(
-            f"Warning: Flow graph might have issues. Sorted {len(sorted_node_ids_for_flow)} of {num_flow_elements} agent/pattern nodes. "
-            f"Untraversed flow nodes: {set(node_map.keys()) - visited_for_sort - set(nid for nid in node_map if node_map[nid].get('data',{}).get('component_category') == 'tool')}"
+            f"Warning: Flow graph might have issues. Sorted {len(sorted_canvas_node_ids_for_flow)} of {num_flow_elements_on_canvas} agent/pattern canvas nodes. "
+            f"Untraversed flow nodes: {set(n['id'] for n in visual_nodes if n.get('data',{}).get('component_category') in ['agent','pattern']) - visited_for_sort}"
         )
-        # For robustness, we proceed with sorted nodes but log clearly.
+    translation_log.append(f"  Topological Sort for Flow Steps (Canvas Node IDs): {sorted_canvas_node_ids_for_flow}")
 
-    translation_log.append(f"  Topological Sort for TFrameX Flow Steps: {sorted_node_ids_for_flow}")
-
+    # --- Construct Flow using current_run_app_instance ---
     constructed_flow = Flow(flow_name=f"studio_visual_flow_{flow_id}")
+    for canvas_node_id_in_flow_order in sorted_canvas_node_ids_for_flow:
+        node_config = node_map.get(canvas_node_id_in_flow_order)
+        if not node_config: continue # Should not happen if sort is correct
 
-    for node_id_in_flow_order in sorted_node_ids_for_flow:
-        node_config = node_map.get(node_id_in_flow_order)
-        if not node_config:
-            translation_log.append(f"  Warning: Node ID '{node_id_in_flow_order}' from sort not found in node_map. Skipping.")
-            continue
-
-        # 'type' from visual node IS the TFrameX agent name or Pattern class name
-        tframex_component_id = node_config.get('type') 
-        node_data_from_frontend = node_config.get('data', {}) # Config from the visual node's UI
+        node_data_from_frontend = node_config.get('data', {})
         component_category = node_data_from_frontend.get('component_category')
+        # original_tframex_component_id is the 'type' from ReactFlow, e.g. "MyBaseAgent" or "SequentialPattern"
+        original_tframex_component_id = node_config.get('type') 
 
-        if not tframex_component_id:
-            translation_log.append(f"  Warning: Node '{node_id_in_flow_order}' (Data: {node_data_from_frontend.get('label', 'N/A')}) has no 'type' (TFrameX ID). Skipping.")
-            continue
-
-        translation_log.append(f"\nProcessing Visual Node: '{node_data_from_frontend.get('label', node_id_in_flow_order)}' (Type: {tframex_component_id}, Category: {component_category})")
+        translation_log.append(f"\nProcessing Sorted Canvas Node: '{node_data_from_frontend.get('label', canvas_node_id_in_flow_order)}' (Base Type: {original_tframex_component_id}, Category: {component_category})")
 
         if component_category == 'agent':
-            if tframex_component_id in app._agents:
-                # Agent step. The 'type' is the TFrameX agent's registered name.
-                # Frontend 'data.selected_tools' is now used by the TFrameXRuntimeContext
-                # during agent instantiation if that logic is added to tframex or our wrapper.
-                # For now, TFrameX will use tools from @app.agent decorator.
-                # Template vars are passed globally to run_flow.
-                constructed_flow.add_step(tframex_component_id)
-                translation_log.append(f"  Added TFrameX Agent Step: '{tframex_component_id}'")
+            effective_agent_name = canvas_node_to_effective_name_map.get(canvas_node_id_in_flow_order)
+            if effective_agent_name and effective_agent_name in current_run_app_instance._agents:
+                constructed_flow.add_step(effective_agent_name)
+                translation_log.append(f"  Added Agent Step to Flow: '{effective_agent_name}'")
             else:
-                translation_log.append(f"  Error: Agent '{tframex_component_id}' not registered in TFrameX. Skipping step.")
-                logger.error(f"Flow Translation: Agent '{tframex_component_id}' for node '{node_id_in_flow_order}' not found in TFrameX app registry.")
-
+                msg = f"  Error: Effective agent name for canvas node '{canvas_node_id_in_flow_order}' ('{effective_agent_name}') not found or not registered on current run app. Skipping step."
+                translation_log.append(msg)
+                logger.error(msg)
+        
         elif component_category == 'pattern':
-            if not hasattr(tframex_patterns_module, tframex_component_id):
-                translation_log.append(f"  Error: Pattern class '{tframex_component_id}' not found in tframex.patterns. Skipping.")
-                logger.error(f"Flow Translation: Pattern class '{tframex_component_id}' for node '{node_id_in_flow_order}' not found.")
-                continue
-                
-            PatternClass = getattr(tframex_patterns_module, tframex_component_id)
-            if not (inspect.isclass(PatternClass) and issubclass(PatternClass, BasePattern)):
-                translation_log.append(f"  Error: '{tframex_component_id}' is not a valid TFrameX Pattern class. Skipping.")
+            PatternClass = getattr(tframex_patterns_module, original_tframex_component_id, None)
+            if not (PatternClass and inspect.isclass(PatternClass) and issubclass(PatternClass, BasePattern)):
+                translation_log.append(f"  Error: Pattern class '{original_tframex_component_id}' not found or invalid. Skipping.")
                 continue
 
             pattern_init_params = {}
             sig = inspect.signature(PatternClass.__init__)
             missing_required_params = []
 
-            # Populate pattern_init_params from node_data_from_frontend
-            # The keys in node_data_from_frontend should match the constructor param names of the TFrameX Pattern.
             for param_name_in_sig, param_obj_in_sig in sig.parameters.items():
-                if param_name_in_sig in ['self', 'pattern_name', 'args', 'kwargs']:
-                    continue
+                if param_name_in_sig in ['self', 'pattern_name', 'args', 'kwargs']: continue
                 
-                # Frontend must send data keys matching constructor params for patterns
-                # e.g., for SequentialPattern, frontend data might have a "steps" key
-                # (previously called "steps_config")
                 if param_name_in_sig in node_data_from_frontend:
                     value = node_data_from_frontend[param_name_in_sig]
                     
-                    # Type coercion or validation might be needed here based on param_obj_in_sig.annotation
-                    # Example: Ensure lists of agent names are actually lists of valid strings
-                    if param_name_in_sig in ["steps", "tasks", "participant_agent_names"] and isinstance(value, list):
-                        valid_agents_for_pattern = []
-                        for item in value:
-                            if isinstance(item, str) and item in app._agents:
-                                valid_agents_for_pattern.append(item)
+                    # Resolve agent/pattern names in parameters using the map
+                    agent_ref_params = ["steps", "tasks", "participant_agent_names", "router_agent_name", "moderator_agent_name", "default_route"]
+                    is_list_of_agents = param_name_in_sig in ["steps", "tasks", "participant_agent_names"]
+                    is_single_agent_ref = param_name_in_sig in ["router_agent_name", "moderator_agent_name"]
+                    is_route_target_ref = param_name_in_sig == "default_route" # Can be agent or pattern CLASS name
+                    
+                    if is_list_of_agents and isinstance(value, list):
+                        resolved_targets = []
+                        for item_canvas_node_id_or_tframex_id in value:
+                            # The 'item_canvas_node_id_or_tframex_id' is what TFrameXPatternNode stored in data.
+                            # It should be the TFrameX component ID (original or from dropdown).
+                            # If it was a connection, the frontend store.js onConnect should have stored the tframex_component_id
+                            # of the source agent node.
+                            
+                            # If this `item` is an ID of a canvas agent node that might have overrides, resolve it.
+                            # Otherwise, assume it's a direct TFrameX name (e.g. another pattern's class name).
+                            effective_name = canvas_node_to_effective_name_map.get(item_canvas_node_id_or_tframex_id, item_canvas_node_id_or_tframex_id)
+                            
+                            # Validate against current_run_app (for agents) or tframex_patterns_module (for pattern classes)
+                            if effective_name in current_run_app_instance._agents or \
+                               hasattr(tframex_patterns_module, effective_name) or \
+                               effective_name.startswith("p_"): # previously instantiated pattern
+                                resolved_targets.append(effective_name)
                             else:
-                                translation_log.append(f"  Warning: Invalid/unregistered agent name '{item}' found in '{param_name_in_sig}' for pattern '{tframex_component_id}'. It will be excluded.")
-                        pattern_init_params[param_name_in_sig] = valid_agents_for_pattern
-                    elif param_name_in_sig in ["router_agent_name", "moderator_agent_name", "default_route"] and isinstance(value, str):
-                        if value and value not in app._agents: # Also check if 'value' is a pattern name for default_route
-                             if not (param_name_in_sig == "default_route" and hasattr(tframex_patterns_module, value)):
-                                translation_log.append(f"  Warning: Agent/Pattern name '{value}' for '{param_name_in_sig}' in Pattern '{tframex_component_id}' is not registered. Pattern might fail.")
-                        pattern_init_params[param_name_in_sig] = value if value else None # Allow empty string to be None if appropriate
+                                translation_log.append(f"  Warning: Invalid agent/pattern target '{effective_name}' (original ref: '{item_canvas_node_id_or_tframex_id}') in list '{param_name_in_sig}' for pattern '{original_tframex_component_id}'. Excluding.")
+                        pattern_init_params[param_name_in_sig] = resolved_targets
+                    
+                    elif (is_single_agent_ref or is_route_target_ref) and (value is None or isinstance(value, str)):
+                        if value: # If not None or empty
+                            # `value` here is expected to be a canvas node ID (if connected) or a TFrameX ID (if selected)
+                            effective_name = canvas_node_to_effective_name_map.get(value, value)
+                            is_valid_target = False
+                            if effective_name in current_run_app_instance._agents: is_valid_target = True
+                            elif is_route_target_ref and hasattr(tframex_patterns_module, effective_name): is_valid_target = True # Pattern class for default_route
+                            elif is_route_target_ref and effective_name.startswith("p_"): is_valid_target = True # Instantiated pattern
+
+                            if not is_valid_target:
+                                translation_log.append(f"  Warning: Invalid target '{effective_name}' (original ref: '{value}') for '{param_name_in_sig}' in Pattern '{original_tframex_component_id}'. May fail.")
+                            pattern_init_params[param_name_in_sig] = effective_name if effective_name else None
+                        else:
+                            pattern_init_params[param_name_in_sig] = None
+                            
                     elif param_name_in_sig == "routes" and isinstance(value, dict):
-                        valid_routes = {}
-                        for k, route_target_name in value.items():
-                            if isinstance(route_target_name, str) and route_target_name and \
-                               (route_target_name in app._agents or hasattr(tframex_patterns_module, route_target_name)):
-                                valid_routes[k] = route_target_name
-                            else:
-                                translation_log.append(f"  Warning: Invalid route target '{route_target_name}' for key '{k}' in Pattern '{tframex_component_id}'.")
-                        pattern_init_params[param_name_in_sig] = valid_routes
+                        resolved_routes = {}
+                        for k, target_canvas_node_id_or_tframex_id in value.items():
+                            if isinstance(target_canvas_node_id_or_tframex_id, str) and target_canvas_node_id_or_tframex_id:
+                                effective_name = canvas_node_to_effective_name_map.get(target_canvas_node_id_or_tframex_id, target_canvas_node_id_or_tframex_id)
+                                if effective_name in current_run_app_instance._agents or \
+                                   hasattr(tframex_patterns_module, effective_name) or \
+                                   effective_name.startswith("p_"):
+                                    resolved_routes[k] = effective_name
+                                else:
+                                    translation_log.append(f"  Warning: Invalid route target '{effective_name}' (original ref: {target_canvas_node_id_or_tframex_id}) for key '{k}' in Pattern '{original_tframex_component_id}'.")
+                            else: # Handle null/empty target_name if needed, or skip
+                                 translation_log.append(f"  Warning: Empty/invalid route target for key '{k}' in Pattern '{original_tframex_component_id}'.")
+                        pattern_init_params[param_name_in_sig] = resolved_routes
                     elif param_name_in_sig == "discussion_rounds" and value is not None:
-                        try:
-                            pattern_init_params[param_name_in_sig] = int(value)
-                        except ValueError:
-                            translation_log.append(f"  Warning: Invalid integer value '{value}' for '{param_name_in_sig}' in Pattern '{tframex_component_id}'. Using default or pattern might fail.")
-                            # Let pattern's own validation handle it or use a default.
+                        try: pattern_init_params[param_name_in_sig] = int(value)
+                        except (ValueError, TypeError): translation_log.append(f"  Warning: Invalid integer for 'discussion_rounds'.")
                     else:
                         pattern_init_params[param_name_in_sig] = value
-                elif param_obj_in_sig.default == inspect.Parameter.empty: # Required param, not provided
+                elif param_obj_in_sig.default == inspect.Parameter.empty:
                     missing_required_params.append(param_name_in_sig)
             
             if missing_required_params:
-                translation_log.append(f"  Error: Pattern '{tframex_component_id}' (Node: {node_data_from_frontend.get('label', node_id_in_flow_order)}) is missing required constructor parameters: {missing_required_params}. Skipping pattern.")
+                translation_log.append(f"  Error: Pattern '{original_tframex_component_id}' (Node: {canvas_node_id_in_flow_order}) missing params: {missing_required_params}. Skipping.")
                 continue
 
             try:
-                # pattern_name for TFrameX Pattern constructor is mandatory
-                pattern_display_name = node_data_from_frontend.get('label', node_id_in_flow_order).replace(" ", "_")
-                instance_pattern_name = f"p_{pattern_display_name}_{node_id_in_flow_order[:4]}"
-
+                pattern_display_name = node_data_from_frontend.get('label', canvas_node_id_in_flow_order).replace(" ", "_").replace("-","_")
+                instance_pattern_name = f"p_{pattern_display_name}_{canvas_node_id_in_flow_order[:4]}"
                 pattern_instance = PatternClass(pattern_name=instance_pattern_name, **pattern_init_params)
+                # The pattern instance will resolve agent/pattern names using the current_run_app_instance's context implicitly when run.
                 constructed_flow.add_step(pattern_instance)
-                translation_log.append(f"  Added TFrameX Pattern Step: '{tframex_component_id}' (Instance: {pattern_instance.pattern_name}) with params: {pattern_init_params}")
+                translation_log.append(f"  Added Pattern Step to Flow: '{original_tframex_component_id}' (Instance: {instance_pattern_name}) with resolved params: {pattern_init_params}")
             except Exception as e:
-                translation_log.append(f"  Error instantiating Pattern '{tframex_component_id}' (Node: {node_data_from_frontend.get('label', node_id_in_flow_order)}) with params {pattern_init_params}: {e}")
-                logger.error(f"Flow Translation: Error instantiating Pattern '{tframex_component_id}': {e}", exc_info=True)
+                translation_log.append(f"  Error instantiating Pattern '{original_tframex_component_id}': {e}")
+                logger.error(f"Error instantiating Pattern '{original_tframex_component_id}': {e}", exc_info=True)
         
+        # Tool nodes and utility nodes are not added as direct flow steps
         elif component_category == 'tool':
-            translation_log.append(f"  Info: Visual Tool Node '{tframex_component_id}' (Node: {node_data_from_frontend.get('label', node_id_in_flow_order)}) is not directly added as a TFrameX flow step. It configures Agents.")
-        else:
-            translation_log.append(f"  Warning: Visual node '{node_data_from_frontend.get('label', node_id_in_flow_order)}' (Type: {tframex_component_id}) has unknown category '{component_category}'. Skipping.")
+            translation_log.append(f"  Info: Tool Node '{original_tframex_component_id}' (Canvas ID: {canvas_node_id_in_flow_order}) - not a direct flow step.")
+        elif component_category == 'utility' and original_tframex_component_id == 'textInput':
+             translation_log.append(f"  Info: Utility Node 'textInput' (Canvas ID: {canvas_node_id_in_flow_order}) - not a direct flow step.")
+        elif component_category not in ['agent', 'pattern']: # Should be caught by topo sort if not agent/pattern
+            translation_log.append(f"  Warning: Node '{canvas_node_id_in_flow_order}' (Type: {original_tframex_component_id}) has unknown category '{component_category}' or is not a flow element. Skipping.")
+
 
     if not constructed_flow.steps:
         translation_log.append("\nError: No valid executable steps were translated into the TFrameX Flow.")
-        # Return None for the flow object if no steps, but still return logs
-        return None, translation_log
+        return None, translation_log, canvas_node_to_effective_name_map
         
     translation_log.append("--- Flow Translation End ---")
-    return constructed_flow, translation_log
+    return constructed_flow, translation_log, canvas_node_to_effective_name_map

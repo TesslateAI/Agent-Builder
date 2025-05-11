@@ -1,4 +1,4 @@
-// src/store.js
+// frontend/src/store.js
 import { create } from 'zustand';
 import {
   applyNodeChanges,
@@ -46,6 +46,13 @@ export const useStore = create((set, get) => ({
   // === React Flow State ===
   nodes: savedProjects[initialProjectId]?.nodes || [...initialDefaultProjectNodes],
   edges: savedProjects[initialProjectId]?.edges || [],
+  selectedNodeId: null, // For properties panel
+  isPropertiesPanelOpen: false, // For properties panel
+
+  setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId, isPropertiesPanelOpen: !!nodeId }),
+  togglePropertiesPanel: (isOpen) => set(state => ({ 
+    isPropertiesPanelOpen: isOpen === undefined ? !state.isPropertiesPanelOpen : isOpen 
+  })),
   
   onNodesChange: (changes) => set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) })),
   onEdgesChange: (changes) => set((state) => ({ edges: applyEdgeChanges(changes, state.edges) })),
@@ -56,14 +63,13 @@ export const useStore = create((set, get) => ({
     const targetNode = nodes.find(n => n.id === connection.target);
 
     // --- CONNECTION TYPE 1: Agent to Pattern's general config input ---
-    // (e.g., connecting an Agent to a RouterPattern's 'router_agent_name' input)
     if (targetNode?.data?.component_category === 'pattern' && 
         sourceNode?.data?.component_category === 'agent' &&
-        connection.targetHandle?.startsWith('pattern_agent_input_') && // Target is a specific pattern param input
-        connection.sourceHandle === 'output_message_out' // Source is the agent's main output
+        connection.targetHandle?.startsWith('pattern_agent_input_')
       ) {
       
       const paramName = connection.targetHandle.substring('pattern_agent_input_'.length);
+      // Use the agent's TFrameX ID if available, otherwise its ReactFlow node ID as a fallback reference
       const agentIdToAssign = sourceNode.data.tframex_component_id || sourceNode.id;
 
       get().updateNodeData(targetNode.id, { [paramName]: agentIdToAssign });
@@ -72,7 +78,7 @@ export const useStore = create((set, get) => ({
         edges: addEdge({
           ...connection,
           type: 'smoothstep',
-          style: { ...connection.style, stroke: '#F59E0B', strokeWidth: 2.5, zIndex: 0 }, // Amber, slightly thicker
+          style: { ...connection.style, stroke: '#F59E0B', strokeWidth: 2.5, zIndex: 0 },
           animated: false,
           data: { ...connection.data, connectionType: 'agentInstanceToPatternParam' }
         }, state.edges),
@@ -81,22 +87,19 @@ export const useStore = create((set, get) => ({
     }
 
     // --- CONNECTION TYPE 2: Agent to Pattern's list item slot ---
-    // (e.g., connecting Agent to DiscussionPattern's 'participant_agent_names[0]' slot)
     if (targetNode?.data?.component_category === 'pattern' &&
         sourceNode?.data?.component_category === 'agent' &&
-        connection.targetHandle?.startsWith('pattern_list_item_input_') && // Target is a list item slot
-        connection.sourceHandle === 'output_message_out' // Source is the agent's main output
+        connection.targetHandle?.startsWith('pattern_list_item_input_')
       ) {
       
-      const parts = connection.targetHandle.split('_');
-      const paramName = parts[4];
+      const parts = connection.targetHandle.split('_'); // e.g. pattern_list_item_input_steps_0
+      const paramName = parts[4]; 
       const index = parseInt(parts[5], 10);
       const agentIdToAssign = sourceNode.data.tframex_component_id || sourceNode.id;
 
       const currentList = Array.isArray(targetNode.data[paramName]) ? [...targetNode.data[paramName]] : [];
-      // Ensure the list is long enough (it should be if UI added slots correctly)
       while (currentList.length <= index) {
-        currentList.push(null); // Pad with null if necessary
+        currentList.push(null);
       }
 
       if (index >= 0 && index < currentList.length) {
@@ -107,7 +110,7 @@ export const useStore = create((set, get) => ({
           edges: addEdge({
             ...connection,
             type: 'smoothstep',
-            style: { ...connection.style, stroke: '#4CAF50', strokeWidth: 2, zIndex: 0 }, // Green
+            style: { ...connection.style, stroke: '#4CAF50', strokeWidth: 2, zIndex: 0 },
             animated: false,
             data: { ...connection.data, connectionType: 'agentToPatternListItem' }
           }, state.edges),
@@ -121,17 +124,18 @@ export const useStore = create((set, get) => ({
     // --- CONNECTION TYPE 3: Tool's "attachment" handle to Agent's "tool input" handle ---
     if (sourceNode?.data?.component_category === 'tool' && 
         targetNode?.data?.component_category === 'agent' &&
-        connection.sourceHandle === 'tool_attachment_out' && // From tool's attachment handle
-        connection.targetHandle === 'tool_input_handle'       // To agent's tool input handle
+        connection.sourceHandle === 'tool_attachment_out' &&
+        connection.targetHandle === 'tool_input_handle'
       ) {
       
-      const toolName = sourceNode.data.tframex_component_id || sourceNode.id;
+      const toolId = sourceNode.data.tframex_component_id || sourceNode.id;
       const currentSelectedTools = targetNode.data.selected_tools || [];
       
-      if (!currentSelectedTools.includes(toolName)) {
+      if (!currentSelectedTools.includes(toolId)) {
         get().updateNodeData(targetNode.id, {
-          selected_tools: [...currentSelectedTools, toolName]
+          selected_tools: [...currentSelectedTools, toolId]
         });
+        console.log(`UI: Tool '${toolId}' enabled on Agent '${targetNode.data.label || targetNode.id}' via connection.`);
       }
       
       set((state) => ({
@@ -139,7 +143,7 @@ export const useStore = create((set, get) => ({
           ...connection,
           type: 'smoothstep',
           animated: false,
-          style: { stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5, zIndex: 0 }, // Indigo, dashed
+          style: { stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5, zIndex: 0 }, 
           data: { ...connection.data, connectionType: 'toolAttachment' }
         }, state.edges),
       }));
@@ -149,27 +153,46 @@ export const useStore = create((set, get) => ({
     // --- CONNECTION TYPE 4: Tool's "data output" handle to an Agent's "message input" handle ---
     // This also implies enabling the tool.
     if (sourceNode?.data?.component_category === 'tool' &&
-        connection.sourceHandle === 'tool_output_data' &&    // From tool's data output
+        connection.sourceHandle === 'tool_output_data' &&
         targetNode?.data?.component_category === 'agent' &&
-        connection.targetHandle === 'input_message_in'      // To agent's message input
+        connection.targetHandle === 'input_message_in'
       ) {
         
-        const toolName = sourceNode.data.tframex_component_id || sourceNode.id;
+        const toolId = sourceNode.data.tframex_component_id || sourceNode.id;
         const currentSelectedTools = targetNode.data.selected_tools || [];
-        if (!currentSelectedTools.includes(toolName)) {
+        if (!currentSelectedTools.includes(toolId)) {
             get().updateNodeData(targetNode.id, {
-                selected_tools: [...currentSelectedTools, toolName]
+                selected_tools: [...currentSelectedTools, toolId]
             });
-            console.log(`UI: Tool '${toolName}' implicitly enabled on Agent '${targetNode.data.label || targetNode.id}' due to data connection.`);
+            console.log(`UI: Tool '${toolId}' implicitly enabled on Agent '${targetNode.data.label || targetNode.id}' due to data connection.`);
         }
-        // Proceed to create a standard data flow edge
         set((state) => ({
             edges: addEdge({ 
                 ...connection, 
                 type: 'smoothstep', 
                 animated: true, 
-                style: { strokeWidth: 2, stroke: '#7c3aed' }, // Purple for tool data
+                style: { strokeWidth: 2, stroke: '#7c3aed' }, 
                 data: {...connection.data, connectionType: 'toolDataOutputToAgent'} 
+            }, state.edges),
+        }));
+        return;
+    }
+     // --- CONNECTION TYPE 5: TextInputNode's output to an Agent's "message input" handle ---
+    if (sourceNode?.type === 'textInput' && // Check type for TextInputNode
+        targetNode?.data?.component_category === 'agent' &&
+        connection.targetHandle === 'input_message_in'
+      ) {
+        // This is a standard data flow, but we can style it if needed
+        // The content from TextInputNode (data.text_content) will be naturally
+        // part of the message payload if TFrameX handles inputs generically.
+        // No special data update on the agent node is needed here, beyond the edge itself.
+        set((state) => ({
+            edges: addEdge({
+                ...connection,
+                type: 'smoothstep',
+                animated: true,
+                style: { strokeWidth: 2, stroke: '#0ea5e9' }, // Cyan for text input
+                data: {...connection.data, connectionType: 'textInputToAgent'}
             }, state.edges),
         }));
         return;
@@ -181,7 +204,7 @@ export const useStore = create((set, get) => ({
           ...connection, 
           type: 'smoothstep', 
           animated: true, 
-          style: { strokeWidth: 2 } // Default flow color from App.jsx will apply
+          style: { strokeWidth: 2 } 
         }, state.edges),
     }));
   },
@@ -191,54 +214,69 @@ export const useStore = create((set, get) => ({
     
     let defaultNodeData = { 
       label: componentName || componentId,
-      component_category: component_category,
-      tframex_component_id: componentId, 
+      component_category: component_category, // Store this if it's coming from drop
+      tframex_component_id: componentId, // Store the original TFrameX ID
     };
+
+    let nodeType = componentId; // Default to componentId as node type
 
     if (component_category === 'agent') {
       defaultNodeData = {
         ...defaultNodeData,
         selected_tools: config_options?.default_tools || [], 
         template_vars_config: {}, 
+        system_prompt_override: "", // Initialize for properties panel
         tframex_agent_type: tframex_agent_type,
         can_use_tools: config_options?.can_use_tools || false,
-        strip_think_tags_override: config_options?.strip_think_tags,
+        strip_think_tags_override: config_options?.strip_think_tags, // Use original default
       };
+      // nodeType is already componentId, which is correct for agents
     } else if (component_category === 'pattern') {
       const patternParams = {};
-      const listAgentParams = ['participant_agent_names', 'tasks', 'steps']; // From TFrameXPatternNode
+      const listAgentParams = ['participant_agent_names', 'tasks', 'steps'];
       if (constructor_params_schema) {
         for (const paramName in constructor_params_schema) {
           const paramInfo = constructor_params_schema[paramName];
+          // Initialize based on type hints for better UI experience in PatternNode
           if (listAgentParams.includes(paramName) && paramInfo.type_hint?.toLowerCase().includes('list')) {
-            patternParams[paramName] = []; // CRITICAL: Initialize as empty list for agent slots
-          } else if (paramInfo.type_hint?.toLowerCase().includes('agent') || paramName.startsWith('agent_') || paramName.endsWith('_agent')) {
+            patternParams[paramName] = []; 
+          } else if (paramInfo.type_hint?.toLowerCase().includes('agent') || paramName.startsWith('agent_') || paramName.endsWith('_agent_name')) {
             patternParams[paramName] = null; 
-          } else if (paramInfo.type_hint?.toLowerCase().includes('list')) patternParams[paramName] = [];
-          else if (paramInfo.type_hint?.toLowerCase().includes('dict')) patternParams[paramName] = {};
-          else if (paramInfo.type_hint?.toLowerCase().includes('int') || paramInfo.type_hint?.toLowerCase().includes('float')) patternParams[paramName] = null;
-          else if (paramInfo.type_hint?.toLowerCase().includes('bool')) patternParams[paramName] = false;
-          else patternParams[paramName] = '';
-          
-          if (paramInfo.default && paramInfo.default !== "REQUIRED") {
-            try { patternParams[paramName] = JSON.parse(paramInfo.default); }
-            catch (e) { patternParams[paramName] = paramInfo.default; }
+          } else if (paramName === 'routes' && paramInfo.type_hint?.toLowerCase().includes('dict')) {
+            patternParams[paramName] = {}; // Initialize routes as an empty object
+          } else if (paramInfo.type_hint?.toLowerCase().includes('list')) {
+            patternParams[paramName] = [];
+          } else if (paramInfo.type_hint?.toLowerCase().includes('dict')) {
+             patternParams[paramName] = {};
+          } else if (paramInfo.type_hint?.toLowerCase().includes('int') || paramInfo.type_hint?.toLowerCase().includes('float')) {
+             patternParams[paramName] = paramInfo.default !== "REQUIRED" && paramInfo.default !== undefined ? parseFloat(paramInfo.default) || null : null;
+          } else if (paramInfo.type_hint?.toLowerCase().includes('bool')) {
+             patternParams[paramName] = paramInfo.default !== "REQUIRED" && paramInfo.default !== undefined ? (String(paramInfo.default).toLowerCase() === 'true') : false;
+          } else { // Default to string or use actual default
+             patternParams[paramName] = paramInfo.default !== "REQUIRED" && paramInfo.default !== undefined ? String(paramInfo.default) : '';
           }
         }
       }
       defaultNodeData = { ...defaultNodeData, ...patternParams };
+      // nodeType is componentId (Pattern class name)
     } else if (component_category === 'tool') {
-        defaultNodeData.is_tool_node = true;
-        // Example: backend might tell us if a tool produces data
-        // This info would ideally come from the component discovery endpoint
-        // Assuming nodeDataFromDrop contains fields like 'parameters_schema' and 'description' if they are relevant
+        defaultNodeData.is_tool_node = true; // Mark as tool
         defaultNodeData.has_data_output = nodeDataFromDrop.config_options?.has_data_output || 
                                           (nodeDataFromDrop.parameters_schema && Object.keys(nodeDataFromDrop.parameters_schema).length > 0 && nodeDataFromDrop.description?.toLowerCase().includes("return"));
+      // nodeType is componentId (Tool name)
+    } else if (component_category === 'utility' && componentId === 'textInput') { // For TextInputNode
+        nodeType = 'textInput'; // Specific type for ReactFlow
+        defaultNodeData = {
+            label: "Text Input",
+            text_content: "Enter your prompt or text here...",
+            component_category: 'utility', // Mark for properties panel or filtering
+        };
     }
 
+
     const newNode = {
-      id: `${componentId}-${nanoid(6)}`, 
-      type: componentId, // This should match the registered custom node type names
+      id: `${nodeType}-${nanoid(6)}`, // Use nodeType for ID prefix
+      type: nodeType, // This MUST match a key in ReactFlow's nodeTypes
       position,
       data: defaultNodeData,
     };
@@ -268,7 +306,6 @@ export const useStore = create((set, get) => ({
             [currentProjectId]: { ...currentProject, nodes, edges }
         };
         set({ projects: updatedProjects });
-        // Persistence handled by subscribe
         console.log(`Project '${currentProject.name}' saved.`);
     }
   },
@@ -278,15 +315,16 @@ export const useStore = create((set, get) => ({
     const projectToLoad = projects[projectId];
 
     if (projectToLoad) {
-      saveCurrentProject(); // Save current state before switching
+      saveCurrentProject(); 
       set({
         nodes: projectToLoad.nodes || [...initialDefaultProjectNodes],
         edges: projectToLoad.edges || [],
         currentProjectId: projectId,
-        output: "Output will appear here...", // Clear output
-        chatHistory: [], // Clear chat history
+        output: "Output will appear here...", 
+        chatHistory: [], 
+        selectedNodeId: null, // Reset selection
+        isPropertiesPanelOpen: false,
       });
-      // Persistence handled by subscribe
       console.log(`Project '${projectToLoad.name}' loaded.`);
     } else {
         console.warn(`Project with ID ${projectId} not found.`);
@@ -295,12 +333,12 @@ export const useStore = create((set, get) => ({
 
   createProject: (name) => {
     const { projects, saveCurrentProject } = get();
-    saveCurrentProject(); // Save current state before creating
+    saveCurrentProject(); 
 
     const newProjectId = `project_${nanoid(8)}`;
     const newProject = {
         name: name || `New TFrameX Project ${Object.keys(projects).length + 1}`,
-        nodes: [...initialDefaultProjectNodes], // Start with default nodes
+        nodes: [...initialDefaultProjectNodes], 
         edges: []
     };
     const updatedProjects = { ...projects, [newProjectId]: newProject };
@@ -311,8 +349,9 @@ export const useStore = create((set, get) => ({
         currentProjectId: newProjectId,
         output: "Output will appear here...",
         chatHistory: [],
+        selectedNodeId: null,
+        isPropertiesPanelOpen: false,
     });
-    // Persistence handled by subscribe
     console.log(`Project '${newProject.name}' created.`);
   },
 
@@ -336,7 +375,6 @@ export const useStore = create((set, get) => ({
       }
 
       set({ projects: updatedProjects });
-      // Persistence handled by subscribe
 
        if (currentProjectId === projectId) {
            loadProject(nextProjectId); 
@@ -349,17 +387,31 @@ export const useStore = create((set, get) => ({
   isRunning: false,
   runFlow: async () => {
     const { nodes, edges, saveCurrentProject } = get();
-    saveCurrentProject(); // Save before running
+    saveCurrentProject(); 
 
     set({ isRunning: true, output: "Executing TFrameX flow..." });
     console.log("Sending to TFrameX backend:", { nodes, edges });
 
-    // TODO: Allow UI to specify initial_input and global_flow_template_vars
+    // Find the first TextInputNode if it exists and is connected to an agent
+    let initialInputContent = "User input from Studio to start the flow."; // Default
+    const textInputNode = nodes.find(n => n.type === 'textInput');
+    if (textInputNode) {
+        const isConnectedAsStart = edges.some(edge => 
+            edge.source === textInputNode.id &&
+            nodes.find(n => n.id === edge.target)?.data.component_category === 'agent' &&
+            !edges.some(e => e.target === textInputNode.id) // Ensure TextInputNode itself has no inputs
+        );
+        if (isConnectedAsStart) {
+            initialInputContent = textInputNode.data.text_content || initialInputContent;
+        }
+    }
+
+
     const payload = {
         nodes,
         edges,
-        initial_input: "User input from Studio to start the flow.", // Example
-        global_flow_template_vars: { "studio_user": "VisualBuilder" } // Example
+        initial_input: initialInputContent,
+        global_flow_template_vars: { "studio_user": "VisualBuilder" } 
     };
 
     try {
@@ -372,7 +424,7 @@ export const useStore = create((set, get) => ({
       if (error.response) {
         console.error("TFrameX Backend Error Data:", error.response.data);
         console.error("TFrameX Backend Error Status:", error.response.status);
-        errorMessage = `TFrameX Backend Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}`;
+        errorMessage = `TFrameX Backend Error (${error.response.status}): ${error.response.data?.error || 'Unknown error'}\n\nOutput Log:\n${error.response.data?.output || ''}`;
       } else if (error.request) {
         console.error("No response received:", error.request);
         errorMessage = "Network Error: Could not connect to the TFrameX backend. Is it running?";
@@ -388,7 +440,7 @@ export const useStore = create((set, get) => ({
   clearOutput: () => set({ output: "" }),
 
   // === TFrameX Components State ===
-  tframexComponents: { agents: [], tools: [], patterns: [] },
+  tframexComponents: { agents: [], tools: [], patterns: [], utility: [] }, // Added utility
   isComponentLoading: false,
   componentError: null,
   fetchTFrameXComponents: async () => {
@@ -397,21 +449,32 @@ export const useStore = create((set, get) => ({
     try {
       const response = await axios.get(`${API_BASE_URL}/components`);
       if (response.data && typeof response.data === 'object') {
+        // Add TextInputNode to utility components for NodesPanel
+        const utilityComponents = [
+          {
+            id: 'textInput', // This will be the node type
+            name: 'Text Input',
+            description: 'A node to provide text input to a flow or agent. Has a large text box.',
+            component_category: 'utility', // For categorization
+            config_options: {}
+          }
+        ];
         set({
           tframexComponents: {
             agents: response.data.agents || [],
             tools: response.data.tools || [],
             patterns: response.data.patterns || [],
+            utility: utilityComponents, // Add our frontend-only utility node
           },
           isComponentLoading: false,
         });
-         console.log("Fetched TFrameX components:", response.data);
+         console.log("Fetched TFrameX components (and added utility):", get().tframexComponents);
       } else { throw new Error("Invalid component response format from server."); }
     } catch (err) {
       console.error("Failed to fetch TFrameX components:", err);
       set({
         componentError: `Could not load TFrameX components. Backend error: ${err.message}. Is the backend running on port 5001?`,
-        tframexComponents: { agents: [], tools: [], patterns: [] },
+        tframexComponents: { agents: [], tools: [], patterns: [], utility: [] },
         isComponentLoading: false,
       });
     }
@@ -419,7 +482,7 @@ export const useStore = create((set, get) => ({
 
   // === Code Registration State ===
   isRegisteringCode: false,
-  registrationStatus: null, // { success: boolean, message: string }
+  registrationStatus: null, 
   registerTFrameXCode: async (pythonCode) => {
     if (get().isRegisteringCode) return;
     set({ isRegisteringCode: true, registrationStatus: null });
@@ -427,7 +490,7 @@ export const useStore = create((set, get) => ({
       const response = await axios.post(`${API_BASE_URL}/register_code`, { python_code: pythonCode });
       set({ registrationStatus: response.data, isRegisteringCode: false });
       if (response.data?.success) {
-        get().fetchTFrameXComponents(); // Re-fetch components after successful registration
+        get().fetchTFrameXComponents(); 
       }
     } catch (error) {
       const message = error.response?.data?.error || error.message || "Failed to register code.";
@@ -436,11 +499,11 @@ export const useStore = create((set, get) => ({
   },
 
   // === Chatbot for Flow Building State ===
-  chatHistory: [], // Array of { sender: 'user' | 'bot', message: string, type?: 'error' | 'normal' | 'info' }
+  chatHistory: [], 
   isChatbotLoading: false,
   addChatMessage: (sender, message, type = 'normal') => {
     set((state) => ({
-      chatHistory: [...state.chatHistory, { sender, message, type }] //.slice(-50) // Optional: limit history
+      chatHistory: [...state.chatHistory, { sender, message, type }] 
     }));
   },
   clearChatHistory: () => set({ chatHistory: [] }),
@@ -451,7 +514,10 @@ export const useStore = create((set, get) => ({
     addChatMessage('user', userMessage);
     set({ isChatbotLoading: true });
 
+    // Fetch latest components in case user registered new ones
     await fetchTFrameXComponents(); 
+    // The discover_tframex_components on backend will be called by the chatbot endpoint anyway,
+    // but fetching here ensures UI is up-to-date if chatbot needs to refer to something.
 
     try {
       const payload = {
@@ -468,8 +534,25 @@ export const useStore = create((set, get) => ({
       addChatMessage('bot', reply);
 
       if (flowUpdate && Array.isArray(flowUpdate.nodes) && Array.isArray(flowUpdate.edges)) {
-        set({ nodes: flowUpdate.nodes, edges: flowUpdate.edges });
-        addChatMessage('bot', "(Flow canvas updated successfully)", 'info');
+        // Before applying, ensure node types from chatbot exist in our dynamicNodeTypes
+        // This is a simplified check; a more robust check would involve `get().tframexComponents`
+        const allKnownTypes = [
+            ...get().tframexComponents.agents.map(a => a.id),
+            ...get().tframexComponents.patterns.map(p => p.id),
+            ...get().tframexComponents.tools.map(t => t.id),
+            ...get().tframexComponents.utility.map(u => u.id), // like 'textInput'
+            'tframexAgent', 'tframexPattern', 'tframexTool' // Generic fallbacks if used
+        ];
+        
+        const allNodesValid = flowUpdate.nodes.every(node => allKnownTypes.includes(node.type));
+
+        if (allNodesValid) {
+            set({ nodes: flowUpdate.nodes, edges: flowUpdate.edges });
+            addChatMessage('bot', "(Flow canvas updated successfully)", 'info');
+        } else {
+            addChatMessage('bot', "(Chatbot proposed a flow with unknown component types. Update aborted.)", 'error');
+            console.warn("Chatbot proposed invalid node types. Proposed:", flowUpdate.nodes.map(n=>n.type), "Known:", allKnownTypes);
+        }
       } else if (response.data?.hasOwnProperty('flow_update') && flowUpdate !== null) {
         addChatMessage('bot', "(Chatbot returned an invalid flow structure)", 'error');
       }
@@ -492,14 +575,28 @@ export const useStore = create((set, get) => ({
 
 // --- Persistence Subscription ---
 useStore.subscribe(
-  (state) => ({ projects: state.projects, currentProjectId: state.currentProjectId }),
+  (state) => ({ 
+    projects: state.projects, 
+    currentProjectId: state.currentProjectId,
+    // nodes: state.nodes, // Removed nodes/edges from direct save for project structure
+    // edges: state.edges,
+   }),
   (currentState) => {
     if (currentState.projects && currentState.currentProjectId) {
+      // Save the entire projects object and the current project ID
       saveState('tframexStudioProjects', currentState.projects);
       saveState('tframexStudioCurrentProject', currentState.currentProjectId);
+
+      // If you still want to save the current nodes/edges separately for some reason (e.g. quick recovery),
+      // you could, but it's better to rely on the project structure.
+      // const currentProject = currentState.projects[currentState.currentProjectId];
+      // if (currentProject) {
+      //   saveState('tframexStudioNodes', currentProject.nodes);
+      //   saveState('tframexStudioEdges', currentProject.edges);
+      // }
     }
   },
-  { fireImmediately: false } // Only save on actual changes after initial load
+  { fireImmediately: false } 
 );
 
 // --- Initial Fetch of TFrameX Components ---
