@@ -186,7 +186,7 @@ async def handle_register_tframex_code():
         return jsonify({"error": "Missing 'python_code' in request"}), 400
 
     logger.info(f"Attempting to register new TFrameX component from user code (length: {len(python_code)}).")
-    
+
     # Code is registered on the global app instance
     result = register_code_dynamically(python_code, app_instance_to_modify=global_tframex_app)
 
@@ -200,7 +200,7 @@ async def handle_register_tframex_code():
 async def handle_execute_tframex_flow():
     run_id = f"sflw_{int(time.time())}_{os.urandom(3).hex()}"
     logger.info(f"--- API Call: /api/tframex/flow/execute (Run ID: {run_id}) ---")
-    
+
     data = request.get_json()
     visual_nodes = data.get('nodes')
     visual_edges = data.get('edges')
@@ -212,7 +212,7 @@ async def handle_execute_tframex_flow():
         return jsonify({"output": f"Run ID {run_id}: Error - No visual nodes provided.", "error": "Missing 'nodes' in flow definition"}), 400
 
     execution_log = [f"--- TFrameX Visual Flow Execution Start (Run ID: {run_id}) ---"]
-    
+
     # --- Create a temporary TFrameXApp instance for this specific run ---
     temp_run_app = TFrameXApp(default_llm=global_tframex_app.default_llm)
     execution_log.append(f"  Created temporary TFrameXApp for run_id: {run_id}")
@@ -223,14 +223,16 @@ async def handle_execute_tframex_flow():
         execution_log.append(f"  Registering {len(global_tframex_app._tools)} global tools onto temporary app...")
         for tool_name, tool_obj in global_tframex_app._tools.items():
             try:
-                # Assumes Tool object has these attributes, as per tframex.Tool structure
-                temp_run_app.add_tool(
+                # Re-register by calling the .tool() decorator method on the temp_run_app instance
+                # Provide the JSON schema dictionary for parameters_schema,
+                # as tool_obj.parameters (the Pydantic model class) seems to cause issues with '.get()'
+                params_json_schema = tool_obj.parameters.model_json_schema() if tool_obj.parameters else None
+
+                temp_run_app.tool( # This is the decorator method of the TFrameXApp instance
                     name=tool_name,
-                    func=tool_obj.func,
                     description=tool_obj.description,
-                    parameters=tool_obj.parameters, # This should be the Pydantic model class
-                    enabled=tool_obj.enabled
-                )
+                    parameters_schema=params_json_schema # Pass the JSON schema dict
+                )(tool_obj.func) # Call the returned decorator with the actual tool function
                 execution_log.append(f"    - Tool '{tool_name}' registered on temporary app.")
             except Exception as e_tool_reg:
                 error_msg = f"    - Failed to register tool '{tool_name}' on temporary app: {e_tool_reg}"
@@ -255,7 +257,7 @@ async def handle_execute_tframex_flow():
         logger.error(error_msg)
         execution_log.append(f"\nFATAL ERROR: {error_msg}")
         return jsonify({"output": "\n".join(execution_log), "error": error_msg}), 500
-    
+
     if not constructed_tframex_flow.steps:
         error_msg = f"Run ID {run_id}: Translated TFrameX Flow has no steps. Nothing to execute."
         logger.warning(error_msg)
@@ -274,7 +276,7 @@ async def handle_execute_tframex_flow():
         # Use the temporary app for the run context
         async with temp_run_app.run_context() as rt:
             start_message = Message(role="user", content=str(initial_input_content))
-            
+
             execution_log.append(f"\nRunning TFrameX Flow with initial input: '{start_message.content[:100]}...'")
             if global_flow_template_vars:
                  execution_log.append(f"Global Flow Template Variables: {global_flow_template_vars}")
@@ -285,23 +287,23 @@ async def handle_execute_tframex_flow():
                 initial_shared_data={"studio_run_id": run_id},
                 flow_template_vars=global_flow_template_vars
             )
-            
+
             execution_log.append(f"\n--- TFrameX Flow Result (Run ID: {run_id}) ---")
             execution_log.append(f"Final Message Role: {final_flow_context.current_message.role}")
             execution_log.append(f"Final Message Content:\n{final_flow_context.current_message.content}")
-            
+
             if final_flow_context.current_message.tool_calls:
                 tool_calls_summary = json.dumps([tc.model_dump(exclude_none=True) for tc in final_flow_context.current_message.tool_calls], indent=2)
                 execution_log.append(f"Final Message Tool Calls (if any, unhandled at flow end):\n{tool_calls_summary}")
-            
+
             if final_flow_context.shared_data:
                  shared_data_summary = {k: (str(v)[:200] + '...' if len(str(v)) > 200 else str(v)) for k,v in final_flow_context.shared_data.items()}
                  execution_log.append(f"Final Flow Shared Data:\n{json.dumps(shared_data_summary, indent=2)}")
-            
+
             if "studio_preview_url" in final_flow_context.shared_data:
                 final_preview_link = final_flow_context.shared_data["studio_preview_url"]
                 execution_log.append(f"\n--- Preview Link Detected ---")
-                execution_log.append(f"PREVIEW_LINK::{final_preview_link}") 
+                execution_log.append(f"PREVIEW_LINK::{final_preview_link}")
                 logger.info(f"Run ID {run_id}: Preview link found in shared_data: {final_preview_link}")
 
     except Exception as e:
@@ -310,7 +312,7 @@ async def handle_execute_tframex_flow():
         execution_log.append(f"\nEXECUTION ERROR: {str(e)}")
         # Include the full execution log for debugging
         return jsonify({"output": "\n".join(execution_log), "error": f"Flow execution runtime error: {e}"}), 500
-    
+
     execution_log.append(f"\n--- TFrameX Visual Flow Execution End (Run ID: {run_id}) ---")
     logger.info(f"Run ID {run_id}: Flow execution finished.")
     # The temp_run_app and its registered components will go out of scope and be garbage collected.
@@ -331,13 +333,13 @@ async def handle_tframex_chatbot_flow_builder():
     logger.info(f"Chatbot flow builder request: '{user_message[:100]}...'")
 
     # 1. Prepare context for the FlowBuilderMetaAgent
-    available_components_data = discover_tframex_components(app_instance=global_tframex_app) 
-    
+    available_components_data = discover_tframex_components(app_instance=global_tframex_app)
+
     ac_context_parts = ["Available TFrameX Components:"]
     for cat in ["agents", "patterns", "tools"]:
         ac_context_parts.append(f"\n{cat.upper()}:")
         for comp in available_components_data.get(cat, []):
-            desc = comp.get('description', 'No description.')[:100] 
+            desc = comp.get('description', 'No description.')[:100]
             param_info = ""
             if cat == "patterns":
                 param_info = f"(Params: {list(comp.get('constructor_params_schema', {}).keys())})"
@@ -345,14 +347,14 @@ async def handle_tframex_chatbot_flow_builder():
                 param_info = f"(Params: {list(comp.get('parameters_schema', {}).get('properties', {}).keys())})"
             ac_context_parts.append(f"  - ID: {comp['id']}, Name: {comp['name']} {param_info}. Desc: {desc}...")
     available_components_context_str = "\n".join(ac_context_parts)
-    
+
     current_flow_state_context_str = (
         f"Current Visual Flow State (Nodes: {len(current_nodes_json)}, Edges: {len(current_edges_json)}):\n"
-        f"Nodes: {json.dumps(current_nodes_json, indent=2)}\n" 
+        f"Nodes: {json.dumps(current_nodes_json, indent=2)}\n"
         f"Edges: {json.dumps(current_edges_json, indent=2)}"
     )
 
-    flow_builder_agent_name = "StudioFlowBuilderMetaAgent" 
+    flow_builder_agent_name = "StudioFlowBuilderMetaAgent"
     if flow_builder_agent_name not in global_tframex_app._agents:
          logger.error(f"Critical: Meta-agent '{flow_builder_agent_name}' for chatbot flow building is not registered on global app.")
          return jsonify({"reply": f"Error: Chatbot's meta-agent '{flow_builder_agent_name}' is not configured.", "flow_update": None}), 500
@@ -362,20 +364,20 @@ async def handle_tframex_chatbot_flow_builder():
         "current_flow_state_context": current_flow_state_context_str,
         "user_query": user_message
     }
-    
+
     llm_response_content = None
     try:
         # Chatbot meta-agent runs within the context of the global app
         async with global_tframex_app.run_context() as rt:
             input_msg_for_builder = Message(role="user", content="Generate ReactFlow JSON based on my user_query and the provided context.")
-            
+
             builder_response_message = await rt.call_agent(
                 flow_builder_agent_name,
                 input_msg_for_builder,
                 template_vars=template_vars
             )
             llm_response_content = builder_response_message.content
-            
+
     except Exception as e:
         logger.error(f"Error calling StudioFlowBuilderMetaAgent: {e}", exc_info=True)
         return jsonify({"reply": f"Error contacting chatbot AI: {str(e)}", "flow_update": None}), 500
@@ -386,11 +388,11 @@ async def handle_tframex_chatbot_flow_builder():
 
     try:
         flow_update_json = json.loads(llm_response_content)
-        
-        if (isinstance(flow_update_json, dict) and 
+
+        if (isinstance(flow_update_json, dict) and
             "nodes" in flow_update_json and isinstance(flow_update_json.get("nodes"), list) and
             "edges" in flow_update_json and isinstance(flow_update_json.get("edges"), list)):
-            
+
             logger.info("Chatbot successfully generated valid ReactFlow JSON structure.")
             return jsonify({
                 "reply": "Okay, I've updated the flow based on your request. Please review the canvas.",
@@ -400,7 +402,7 @@ async def handle_tframex_chatbot_flow_builder():
             logger.warning(f"Chatbot flow builder returned JSON but with invalid structure: {llm_response_content[:500]}...")
             return jsonify({
                 "reply": "I tried to update the flow, but the structure I generated wasn't quite right. Could you rephrase or check my output in the server logs?",
-                "flow_update": None 
+                "flow_update": None
             }), 200
 
     except json.JSONDecodeError:
@@ -409,7 +411,7 @@ async def handle_tframex_chatbot_flow_builder():
             "reply": "I generated a response, but it wasn't in the correct JSON format for the flow. Please try again, or check server logs for my raw output.",
             "flow_update": None
         }), 200
-    except Exception as e: 
+    except Exception as e:
         logger.error(f"Unexpected error processing chatbot flow builder JSON response: {e}. Raw response: {llm_response_content[:500]}...", exc_info=True)
         return jsonify({"reply": f"Error processing my own JSON response: {str(e)}", "flow_update": None}), 500
 
@@ -421,9 +423,9 @@ def serve_generated_tframex_studio_file(run_id, filepath):
     if '..' in run_id or '..' in filepath:
         logger.warning(f"Path traversal attempt denied: {run_id}/{filepath}")
         return "Invalid path", 403
-    
+
     directory_to_serve_from = os.path.abspath(os.path.join(TFRAMEX_GENERATED_FILES_DIR, run_id))
-    
+
     if not directory_to_serve_from.startswith(os.path.abspath(TFRAMEX_GENERATED_FILES_DIR)):
          logger.error(f"Attempt to access directory outside allowed generated folder: {directory_to_serve_from}")
          return "Access denied", 403
@@ -431,7 +433,7 @@ def serve_generated_tframex_studio_file(run_id, filepath):
     if not os.path.isdir(directory_to_serve_from):
         logger.warning(f"Preview directory not found for run_id '{run_id}': {directory_to_serve_from}")
         return "Run ID not found or no files generated.", 404
-    
+
     try:
         logger.debug(f"Attempting to send file: {filepath} from directory: {directory_to_serve_from}")
         return send_from_directory(directory_to_serve_from, filepath)
@@ -445,7 +447,7 @@ def serve_generated_tframex_studio_file(run_id, filepath):
 
 if __name__ == '__main__':
     host = os.getenv('FLASK_RUN_HOST', '127.0.0.1')
-    port = int(os.getenv('FLASK_RUN_PORT', 5001)) 
+    port = int(os.getenv('FLASK_RUN_PORT', 5001))
     debug_mode = os.getenv('FLASK_ENV', 'development').lower() == 'development'
 
     logger.info(f"Starting TFrameX Studio Flask server on http://{host}:{port} (Debug: {debug_mode})")
@@ -668,39 +670,62 @@ def translate_visual_to_tframex_flow(
                 continue
 
             base_agent_reg_info = global_app_instance._agents[original_tframex_id]
+            # Start with a deepcopy of the base agent's registered configuration
             effective_config = copy.deepcopy(base_agent_reg_info.get("config", {}))
             
-            overrides_applied = {} # For logging and unique name generation
+            # Define base values from the agent's original definition for comparison
+            # These keys match what component_manager provides to the frontend
+            base_decorator_config = base_agent_reg_info.get("config", {})
+            base_values_for_comparison = {
+                "system_prompt": base_agent_reg_info.get("config", {}).get("system_prompt_template", ""),
+                "tool_names": sorted(base_agent_reg_info.get("config", {}).get("tool_names", [])),
+                "strip_think_tags": base_agent_reg_info.get("config", {}).get("strip_think_tags", False)
+            }
+
+            config_values_for_hashing = {} # Store actual overridden values that differ from base
 
             # Apply system_prompt_override
-            if node_data.get('system_prompt_override') and node_data['system_prompt_override'].strip():
-                effective_config['system_prompt'] = node_data['system_prompt_override']
-                overrides_applied['system_prompt'] = True
+            node_system_prompt_override = node_data.get('system_prompt_override')
+            if node_system_prompt_override and node_system_prompt_override.strip():
+                # Store the override under 'system_prompt_template' for the agent's runtime config.
+                # LLMAgent likely uses 'system_prompt_template' internally for rendering.
+                effective_config['system_prompt_template'] = node_system_prompt_override
+                if node_system_prompt_override != base_values_for_comparison["system_prompt"]:
+                    config_values_for_hashing['system_prompt'] = node_system_prompt_override
+            else: # No override or empty override, ensure effective_config has the base prompt.
+                effective_config['system_prompt_template'] = base_values_for_comparison["system_prompt"]
             
+            # Remove the original 'system_prompt' key if it was just a boolean indicator from the decorator
+            if 'system_prompt' in effective_config and isinstance(effective_config['system_prompt'], bool):
+                del effective_config['system_prompt']
+
             # Apply selected_tools override
-            if node_data.get('selected_tools') and isinstance(node_data.get('selected_tools'), list):
-                # Ensure tools are valid against current_run_app_instance._tools (which should mirror global tools)
-                valid_tools = [t for t in node_data['selected_tools'] if t in current_run_app_instance._tools]
-                original_decorator_tools = set(base_agent_reg_info.get("config", {}).get("tool_names", []))
-                if set(valid_tools) != original_decorator_tools: # Only if different from base
-                    effective_config['tool_names'] = valid_tools
-                    overrides_applied['tool_names'] = valid_tools
-            
+            node_selected_tools = node_data.get('selected_tools')
+            # Check for None explicitly as an empty list [] is a valid override
+            if node_selected_tools is not None and isinstance(node_selected_tools, list):
+                valid_tools = sorted([t for t in node_selected_tools if t in current_run_app_instance._tools])
+                effective_config['tool_names'] = valid_tools # Set for runtime
+                if valid_tools != base_values_for_comparison["tool_names"]: # Compare sorted lists
+                    config_values_for_hashing['tool_names'] = valid_tools
+            else: # No 'selected_tools' in node_data, agent uses its default tools.
+                effective_config['tool_names'] = base_values_for_comparison["tool_names"]
+
             # Apply strip_think_tags_override
             if 'strip_think_tags_override' in node_data:
-                override_val = node_data['strip_think_tags_override']
-                original_strip_val = base_agent_reg_info.get("config", {}).get("strip_think_tags", False)
-                if override_val != original_strip_val:
-                    effective_config['strip_think_tags'] = override_val
-                    overrides_applied['strip_think_tags'] = override_val
+                node_strip_tags_override = node_data['strip_think_tags_override']
+                effective_config['strip_think_tags'] = node_strip_tags_override # Set for runtime
+                if node_strip_tags_override != base_values_for_comparison["strip_think_tags"]:
+                    config_values_for_hashing['strip_think_tags'] = node_strip_tags_override
+            else: # No override for strip_think_tags
+                effective_config['strip_think_tags'] = base_values_for_comparison["strip_think_tags"]
 
             effective_agent_name_for_run = original_tframex_id
-            if overrides_applied:
-                unique_suffix = _generate_unique_suffix_for_instance(overrides_applied, canvas_node_id)
+            if config_values_for_hashing: # If any actual values were different and recorded for hashing
+                unique_suffix = _generate_unique_suffix_for_instance(config_values_for_hashing, canvas_node_id)
                 effective_agent_name_for_run = f"{original_tframex_id}_run_{unique_suffix}"
-                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): Overrides detected {overrides_applied}. Effective name: '{effective_agent_name_for_run}'")
+                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): Overrides for {list(config_values_for_hashing.keys())}. Effective name: '{effective_agent_name_for_run}'")
             else:
-                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): No overrides. Effective name: '{original_tframex_id}'")
+                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): Config matches base or no differing overrides. Effective name: '{original_tframex_id}'")
 
 
             # Register this configuration on the current_run_app_instance
@@ -713,7 +738,7 @@ def translate_visual_to_tframex_flow(
                 translation_log.append(f"    Registered '{effective_agent_name_for_run}' on current run app instance.")
             elif effective_agent_name_for_run != original_tframex_id : # It was an overridden agent already registered
                 translation_log.append(f"    Re-using already registered overridden agent '{effective_agent_name_for_run}' on current run app instance.")
-            
+
             canvas_node_to_effective_name_map[canvas_node_id] = effective_agent_name_for_run
     translation_log.append("--- End Agent Pre-processing ---")
 
@@ -721,7 +746,7 @@ def translate_visual_to_tframex_flow(
     node_map: Dict[str, Dict] = {node['id']: node for node in visual_nodes}
     adj: Dict[str, List[str]] = {node_id: [] for node_id in node_map}
     in_degree: Dict[str, int] = {node_id: 0 for node_id in node_map}
-    
+
     for edge in visual_edges:
         source_id = edge.get('source')
         target_id = edge.get('target')
@@ -733,14 +758,14 @@ def translate_visual_to_tframex_flow(
             if is_source_flow_element and is_target_flow_element and source_node_data.get('component_category') != 'tool':
                 adj[source_id].append(target_id)
                 in_degree[target_id] += 1
-    
+
     queue = deque()
     for node_id_in_map in node_map: # Iterate all nodes present in the map
         node_data = node_map[node_id_in_map].get('data', {})
         # Only consider agent/pattern nodes for starting points of topo sort
         if node_data.get('component_category') in ['agent', 'pattern'] and in_degree[node_id_in_map] == 0:
             queue.append(node_id_in_map)
-            
+
     sorted_canvas_node_ids_for_flow = []
     visited_for_sort = set()
     while queue:
@@ -770,7 +795,7 @@ def translate_visual_to_tframex_flow(
         node_data_from_frontend = node_config.get('data', {})
         component_category = node_data_from_frontend.get('component_category')
         # original_tframex_component_id is the 'type' from ReactFlow, e.g. "MyBaseAgent" or "SequentialPattern"
-        original_tframex_component_id = node_config.get('type') 
+        original_tframex_component_id = node_config.get('type')
 
         translation_log.append(f"\nProcessing Sorted Canvas Node: '{node_data_from_frontend.get('label', canvas_node_id_in_flow_order)}' (Base Type: {original_tframex_component_id}, Category: {component_category})")
 
@@ -783,7 +808,7 @@ def translate_visual_to_tframex_flow(
                 msg = f"  Error: Effective agent name for canvas node '{canvas_node_id_in_flow_order}' ('{effective_agent_name}') not found or not registered on current run app. Skipping step."
                 translation_log.append(msg)
                 logger.error(msg)
-        
+
         elif component_category == 'pattern':
             PatternClass = getattr(tframex_patterns_module, original_tframex_component_id, None)
             if not (PatternClass and inspect.isclass(PatternClass) and issubclass(PatternClass, BasePattern)):
@@ -796,16 +821,16 @@ def translate_visual_to_tframex_flow(
 
             for param_name_in_sig, param_obj_in_sig in sig.parameters.items():
                 if param_name_in_sig in ['self', 'pattern_name', 'args', 'kwargs']: continue
-                
+
                 if param_name_in_sig in node_data_from_frontend:
                     value = node_data_from_frontend[param_name_in_sig]
-                    
+
                     # Resolve agent/pattern names in parameters using the map
                     agent_ref_params = ["steps", "tasks", "participant_agent_names", "router_agent_name", "moderator_agent_name", "default_route"]
                     is_list_of_agents = param_name_in_sig in ["steps", "tasks", "participant_agent_names"]
                     is_single_agent_ref = param_name_in_sig in ["router_agent_name", "moderator_agent_name"]
                     is_route_target_ref = param_name_in_sig == "default_route" # Can be agent or pattern CLASS name
-                    
+
                     if is_list_of_agents and isinstance(value, list):
                         resolved_targets = []
                         for item_canvas_node_id_or_tframex_id in value:
@@ -813,11 +838,11 @@ def translate_visual_to_tframex_flow(
                             # It should be the TFrameX component ID (original or from dropdown).
                             # If it was a connection, the frontend store.js onConnect should have stored the tframex_component_id
                             # of the source agent node.
-                            
+
                             # If this `item` is an ID of a canvas agent node that might have overrides, resolve it.
                             # Otherwise, assume it's a direct TFrameX name (e.g. another pattern's class name).
                             effective_name = canvas_node_to_effective_name_map.get(item_canvas_node_id_or_tframex_id, item_canvas_node_id_or_tframex_id)
-                            
+
                             # Validate against current_run_app (for agents) or tframex_patterns_module (for pattern classes)
                             if effective_name in current_run_app_instance._agents or \
                                hasattr(tframex_patterns_module, effective_name) or \
@@ -826,7 +851,7 @@ def translate_visual_to_tframex_flow(
                             else:
                                 translation_log.append(f"  Warning: Invalid agent/pattern target '{effective_name}' (original ref: '{item_canvas_node_id_or_tframex_id}') in list '{param_name_in_sig}' for pattern '{original_tframex_component_id}'. Excluding.")
                         pattern_init_params[param_name_in_sig] = resolved_targets
-                    
+
                     elif (is_single_agent_ref or is_route_target_ref) and (value is None or isinstance(value, str)):
                         if value: # If not None or empty
                             # `value` here is expected to be a canvas node ID (if connected) or a TFrameX ID (if selected)
@@ -841,7 +866,7 @@ def translate_visual_to_tframex_flow(
                             pattern_init_params[param_name_in_sig] = effective_name if effective_name else None
                         else:
                             pattern_init_params[param_name_in_sig] = None
-                            
+
                     elif param_name_in_sig == "routes" and isinstance(value, dict):
                         resolved_routes = {}
                         for k, target_canvas_node_id_or_tframex_id in value.items():
@@ -863,7 +888,7 @@ def translate_visual_to_tframex_flow(
                         pattern_init_params[param_name_in_sig] = value
                 elif param_obj_in_sig.default == inspect.Parameter.empty:
                     missing_required_params.append(param_name_in_sig)
-            
+
             if missing_required_params:
                 translation_log.append(f"  Error: Pattern '{original_tframex_component_id}' (Node: {canvas_node_id_in_flow_order}) missing params: {missing_required_params}. Skipping.")
                 continue
@@ -878,7 +903,7 @@ def translate_visual_to_tframex_flow(
             except Exception as e:
                 translation_log.append(f"  Error instantiating Pattern '{original_tframex_component_id}': {e}")
                 logger.error(f"Error instantiating Pattern '{original_tframex_component_id}': {e}", exc_info=True)
-        
+
         # Tool nodes and utility nodes are not added as direct flow steps
         elif component_category == 'tool':
             translation_log.append(f"  Info: Tool Node '{original_tframex_component_id}' (Canvas ID: {canvas_node_id_in_flow_order}) - not a direct flow step.")
@@ -891,7 +916,7 @@ def translate_visual_to_tframex_flow(
     if not constructed_flow.steps:
         translation_log.append("\nError: No valid executable steps were translated into the TFrameX Flow.")
         return None, translation_log, canvas_node_to_effective_name_map
-        
+
     translation_log.append("--- Flow Translation End ---")
     return constructed_flow, translation_log, canvas_node_to_effective_name_map
 </file>
@@ -1135,6 +1160,7 @@ export default [
     "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.507.0",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
@@ -1198,6 +1224,7 @@ import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import OutputPanel from './components/OutputPanel';
 import PropertiesPanel from './components/PropertiesPanel'; // New
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Import Tabs
 import TextInputNode from './nodes/inputs/TextInputNode'; // New
 
 import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
@@ -1214,7 +1241,7 @@ const staticNodeTypes = {
 
 const FlowEditor = () => {
   const reactFlowWrapper = useRef(null);
-  const { project, getViewport, setViewport } = useReactFlow(); 
+  const { project, getViewport, setViewport } = useReactFlow();
 
   const nodes = useStore((state) => state.nodes);
   const edges = useStore((state) => state.edges);
@@ -1222,8 +1249,8 @@ const FlowEditor = () => {
   const onEdgesChange = useStore((state) => state.onEdgesChange);
   const onConnect = useStore((state) => state.onConnect);
   const addNode = useStore((state) => state.addNode);
-  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
-  const isPropertiesPanelOpen = useStore((state) => state.isPropertiesPanelOpen);
+  const selectedNodeId = useStore((state) => state.selectedNodeId); // Get selectedNodeId
+  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId); // Keep for node deselection
 
   // Fit view logic using useNodesInitialized
   const nodesInitialized = useNodesInitialized();
@@ -1237,7 +1264,7 @@ const FlowEditor = () => {
             setTimeout(() => {
                 // This ensures fitView is called after nodes are definitely rendered
                 // No direct 'fitView' from useReactFlow, rely on ReactFlow's prop or manual calc
-            }, 100); 
+            }, 100);
         }
     }
   }, [nodesInitialized, nodes, getViewport, project]);
@@ -1282,13 +1309,13 @@ const FlowEditor = () => {
       });
       addNode(componentData, position);
     },
-    [project, addNode] 
+    [project, addNode]
   );
 
   const tframexComponents = useStore(s => s.tframexComponents);
 
   const dynamicNodeTypes = useMemo(() => {
-    const customNodes = { ...staticNodeTypes }; 
+    const customNodes = { ...staticNodeTypes };
     if (tframexComponents?.agents) {
         tframexComponents.agents.forEach(agent => {
             if (agent.id) customNodes[agent.id] = TFrameXAgentNode;
@@ -1391,8 +1418,25 @@ const FlowEditor = () => {
           </ReactFlow>
         </div>
       </div>
-      {isPropertiesPanelOpen && <PropertiesPanel />} {/* Conditionally render PropertiesPanel */}
-      <OutputPanel />
+      {/* NEW: Right Tabbed Panel for Output and Properties */}
+      <div className="w-[450px] flex flex-col border-l border-border h-full bg-card"> {/* Fixed width for the tabbed panel */}
+        <Tabs defaultValue="output" className="flex flex-col flex-grow h-full" value={selectedNodeId ? "properties" : "output"}>
+          <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">
+            <TabsTrigger value="output" onClick={() => setSelectedNodeId(null)} className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+              Output
+            </TabsTrigger>
+            <TabsTrigger value="properties" disabled={!selectedNodeId} className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+              Properties
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="output" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
+            <OutputPanel />
+          </TabsContent>
+          <TabsContent value="properties" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
+            {selectedNodeId && <PropertiesPanel />}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
@@ -1728,7 +1772,7 @@ export default NodesPanel;
 
 <file path="frontend/src/components/OutputPanel.jsx">
 // src/components/OutputPanel.jsx
-import React from 'react';
+import React, { useEffect, useRef } from 'react'; // Import useEffect and useRef
 import { useStore } from '../store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1739,6 +1783,7 @@ const OutputPanel = () => {
   const output = useStore((state) => state.output);
   const clearOutput = useStore((state) => state.clearOutput);
   const isRunning = useStore((state) => state.isRunning);
+  const scrollAreaRef = useRef(null); // Add scrollAreaRef
 
   const hasContent = output && output !== "Output will appear here..." && output.trim() !== "";
 
@@ -1768,8 +1813,17 @@ const OutputPanel = () => {
   }
   // --- END NEW ---
 
+  useEffect(() => {
+    // Scroll to bottom of output when new content arrives
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) viewport.scrollTop = viewport.scrollHeight;
+    }
+  }, [cleanedOutput]); // Trigger on cleanedOutput change
+
   return (
-    <Card className="w-[450px] flex flex-col rounded-none border-l border-t-0 border-b-0 border-r-0 border-border h-full shadow-none">
+    // Update Card classes: remove width, simplify border
+    <Card className="flex flex-col h-full rounded-none border-0 shadow-none">
        <CardHeader className="flex flex-row justify-between items-center p-3 border-b border-border flex-shrink-0 h-16">
             <CardTitle className="text-lg font-semibold">Output</CardTitle>
             {/* --- NEW: Add Preview Button --- */}
@@ -1796,7 +1850,8 @@ const OutputPanel = () => {
        </CardHeader>
 
       <CardContent className="flex-grow p-0 overflow-hidden">
-        <ScrollArea className="h-full w-full">
+        {/* Add ref to ScrollArea */}
+        <ScrollArea className="h-full w-full" ref={scrollAreaRef}>
             <pre className="text-sm text-muted-foreground whitespace-pre-wrap break-words font-mono p-4">
                  {/* Display cleanedOutput */}
                 {hasContent ? cleanedOutput : <span className="text-muted-foreground/70 italic">Output will appear here...</span>}
@@ -1859,10 +1914,10 @@ const PropertiesPanel = () => {
     if (selectedNodeId) {
       updateNodeData(selectedNodeId, localData);
       // Optionally, close panel or give feedback:
-      // setSelectedNodeId(null); 
+      // setSelectedNodeId(null);
     }
   };
-  
+
   const handleClosePanel = () => {
       setSelectedNodeId(null); // This will also set isPropertiesPanelOpen to false via store logic
   };
@@ -1871,14 +1926,14 @@ const PropertiesPanel = () => {
     return null; // Or a placeholder if always visible but empty
   }
 
-  const originalAgentDefinition = selectedNode.data.component_category === 'agent' 
-    ? tframexComponents.agents.find(a => a.id === selectedNode.data.tframex_component_id) 
+  const originalAgentDefinition = selectedNode.data.component_category === 'agent'
+    ? tframexComponents.agents.find(a => a.id === selectedNode.data.tframex_component_id)
     : null;
 
-  const originalPatternDefinition = selectedNode.data.component_category === 'pattern' 
+  const originalPatternDefinition = selectedNode.data.component_category === 'pattern'
     ? tframexComponents.patterns.find(p => p.id === selectedNode.data.tframex_component_id)
     : null;
-  
+
   const originalToolDefinition = selectedNode.data.component_category === 'tool'
     ? tframexComponents.tools.find(t => t.id === selectedNode.data.tframex_component_id)
     : null;
@@ -1959,7 +2014,7 @@ const PropertiesPanel = () => {
        )}
     </>
   );
-  
+
   const renderToolProperties = () => (
      <>
       <div className="mb-3">
@@ -2006,7 +2061,8 @@ const PropertiesPanel = () => {
   }
 
   return (
-    <Card className="w-[380px] flex flex-col rounded-none border-l border-t-0 border-b-0 border-r-0 border-border h-full shadow-lg">
+    // Updated className here
+    <Card className="flex flex-col h-full rounded-none border-0 shadow-none">
       <CardHeader className="p-3 border-b border-border flex-shrink-0 h-16 flex flex-row justify-between items-center">
         <div className="flex items-center">
             {titleIcon}
@@ -3146,7 +3202,7 @@ export default TextInputNode;
 <file path="frontend/src/nodes/tframex/TFrameXAgentNode.jsx">
 // frontend/src/nodes/tframex/TFrameXAgentNode.jsx
 // builder/frontend/src/nodes/tframex/TFrameXAgentNode.jsx
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react'; // Import useMemo
 import { Handle, Position } from 'reactflow';
 import { useStore } from '../../store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -3154,14 +3210,15 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 // import { Textarea } from '@/components/ui/textarea'; // Not used directly, properties panel will handle
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox'; // Assuming you create this
+// import { Checkbox } from '@/components/ui/checkbox'; // Assuming you create this - Removed checkbox from here
+import { isEqual } from 'lodash'; // For comparing tool arrays - Import isEqual
 import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare } from 'lucide-react';
 
-const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => { 
+const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
-  const allTools = useStore((state) => state.tframexComponents.tools); 
-  
-  const agentDefinition = useStore(state => 
+  const allTools = useStore((state) => state.tframexComponents.tools);
+
+  const agentDefinition = useStore(state =>
     state.tframexComponents.agents.find(a => a.id === tframexAgentId)
   );
 
@@ -3177,13 +3234,14 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
     updateNodeData(id, { [name]: value });
   }, [id, updateNodeData]);
 
-  const handleToolSelectionChange = (toolName) => {
-    const currentSelected = data.selected_tools || [];
-    const newSelected = currentSelected.includes(toolName)
-      ? currentSelected.filter(t => t !== toolName)
-      : [...currentSelected, toolName];
-    updateNodeData(id, { selected_tools: newSelected });
-  };
+  // handleToolSelectionChange is removed - tool selection is now primarily via PropertiesPanel connection
+  // const handleToolSelectionChange = (toolName) => {
+  //   const currentSelected = data.selected_tools || [];
+  //   const newSelected = currentSelected.includes(toolName)
+  //     ? currentSelected.filter(t => t !== toolName)
+  //     : [...currentSelected, toolName];
+  //   updateNodeData(id, { selected_tools: newSelected });
+  // };
 
   const handleTemplateVarChange = (key, value) => {
     const newVars = { ...localTemplateVars, [key]: value };
@@ -3191,7 +3249,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
     // Debounce or onBlur might be better for performance if typing rapidly
     updateNodeData(id, { template_vars_config: newVars });
   };
-  
+
   const addTemplateVarField = () => {
     let newKeyBase = `var`;
     let newKey = newKeyBase;
@@ -3201,7 +3259,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
         newKey = `${newKeyBase}_${i}`;
         i++;
     }
-    handleTemplateVarChange(newKey, ""); 
+    handleTemplateVarChange(newKey, "");
   };
 
   const removeTemplateVarField = (keyToRemove) => {
@@ -3223,50 +3281,90 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
         </Card>
     );
   }
-  
+
   const canUseTools = agentDefinition.config_options?.can_use_tools;
   // Use override if present, otherwise definition's default, then false
-  const stripThink = data.strip_think_tags_override !== undefined 
-    ? data.strip_think_tags_override 
-    : (agentDefinition.config_options?.strip_think_tags !== undefined 
-        ? agentDefinition.config_options.strip_think_tags 
+  // This is still needed here to show the current state, but the *editing* is in PropertiesPanel
+  const stripThink = data.strip_think_tags_override !== undefined
+    ? data.strip_think_tags_override
+    : (agentDefinition.config_options?.strip_think_tags !== undefined
+        ? agentDefinition.config_options.strip_think_tags
         : false);
 
 
+   // --- NEW: Calculate if the node is modified from its base definition ---
+   const isModified = useMemo(() => {
+     if (!agentDefinition || !agentDefinition.config_options) return false; // Can't be modified if no base definition
+
+     const baseConfig = agentDefinition.config_options;
+     const baseSystemPrompt = baseConfig.system_prompt_template || ""; // Handle potential missing template
+     const baseStripThinkTags = baseConfig.strip_think_tags || false;
+     const baseToolsSorted = [...(baseConfig.default_tools || [])].sort();
+
+     // Get current values from node data, handling undefined/null
+     const currentSystemPrompt = (data.system_prompt_override !== undefined && data.system_prompt_override !== null && data.system_prompt_override.trim() !== '')
+                               ? data.system_prompt_override.trim()
+                               : baseSystemPrompt; // If override is empty or undefined, it means the base prompt is used
+
+     const currentStripThinkTags = (data.strip_think_tags_override !== undefined)
+                                   ? !!data.strip_think_tags_override // Ensure boolean
+                                   : baseStripThinkTags;
+
+     // Sort current tools for comparison
+     const currentToolsSorted = [...(data.selected_tools || [])].sort();
+
+     // Compare values
+     if (currentSystemPrompt !== baseSystemPrompt) return true;
+     if (currentStripThinkTags !== baseStripThinkTags) return true;
+     if (!isEqual(currentToolsSorted, baseToolsSorted)) return true; // Use isEqual for array comparison
+
+     // If none of the checked overrides differ from the base, it's not modified
+     return false;
+   }, [data, agentDefinition]);
+   // --- END NEW ---
+
+
   return (
-    <Card className="w-72 shadow-lg border-border bg-card text-card-foreground">
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id="input_message_in" 
-        style={{ background: '#3b82f6', top: '30%' }} 
-        title="Input Message" 
+    <Card className="w-72 shadow-lg border-border bg-card text-card-foreground relative"> 
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="input_message_in"
+        style={{ background: '#3b82f6', top: '30%' }}
+        title="Input Message"
       />
       {canUseTools && (
         <Handle
             type="target"
             position={Position.Left}
-            id="tool_input_handle" 
+            id="tool_input_handle"
             style={{ background: '#8b5cf6', top: '70%' }} // Purple for tool connections
             title="Connect Tool for Enabling"
         />
       )}
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        id="output_message_out" 
-        style={{ background: '#3b82f6', top: '50%' }} 
-        title="Output Message" 
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="output_message_out"
+        style={{ background: '#3b82f6', top: '50%' }}
+        title="Output Message"
       />
+
+      {/* --- NEW: Modified State Indicator Dot --- */}
+      {isModified && (
+        <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-blue-500 rounded-full ring-1 ring-offset-1 ring-offset-card ring-blue-400" title="Modified from base definition"></div>
+      )}
+      {/* --- END NEW --- */}
+
 
       <CardHeader className="p-3 border-b border-border cursor-grab active:cursor-grabbing">
         <div className="flex items-center space-x-2">
             <Cog className="h-5 w-5 text-primary flex-shrink-0" />
-            <Input 
-                name="label" 
-                value={data.label || tframexAgentId} 
-                onChange={handleChange} 
-                className="text-base font-semibold !p-0 !border-0 !bg-transparent focus:!ring-0 h-autotruncate"
+            <Input
+                name="label"
+                value={data.label || tframexAgentId}
+                onChange={handleChange}
+                className="text-base font-semibold !p-0 !border-0 !bg-transparent focus:!ring-0 h-auto truncate" 
                 placeholder="Agent Label"
             />
         </div>
@@ -3275,7 +3373,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
       <CardContent className="p-3 space-y-3 text-sm nodrag max-h-60 overflow-y-auto">
         {/* System Prompt editing is moved to PropertiesPanel */}
         {/* Selected tools display and template vars can remain for quick view/edit */}
-        
+
         {canUseTools && (
           <div>
             <Label className="text-xs font-medium block mb-1">Enabled Tools (via connection or panel):</Label>
@@ -3294,16 +3392,16 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
             </div>
           </div>
         )}
-        
+
         <div>
             <Label className="text-xs font-medium block mb-1">Template Variables (for System Prompt):</Label>
             <div className="space-y-1.5">
                 {Object.entries(localTemplateVars).map(([key, value]) => (
                     <div key={key} className="flex items-center space-x-1.5">
                         <Input value={key} readOnly className="text-xs h-7 w-2/5 bg-muted/50 border-input" title="Variable Name (Key)"/>
-                        <Input 
-                            value={value} 
-                            onChange={(e) => handleTemplateVarChange(key, e.target.value)} 
+                        <Input
+                            value={value}
+                            onChange={(e) => handleTemplateVarChange(key, e.target.value)}
                             placeholder="Value"
                             className="text-xs h-7 w-3/5 border-input"
                         />
@@ -3321,14 +3419,19 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
             </Button>
         </div>
 
-        <Checkbox
-            id={`${id}-strip_think`}
-            checked={!!stripThink} 
-            onCheckedChange={(checked) => updateNodeData(id, { strip_think_tags_override: checked })}
-            labelClassName="text-xs"
-        >
-            Strip tags from output
-        </Checkbox>
+        {/* Checkbox for strip_think_tags is now in PropertiesPanel.jsx */}
+        {/* Display current state only (read-only indication) */}
+        <div className="flex items-center mt-3">
+             {stripThink ? (
+                <MessageSquare className="h-3.5 w-3.5 mr-1 text-green-500 flex-shrink-0" />
+             ) : (
+                <MessageSquare className="h-3.5 w-3.5 mr-1 text-muted-foreground flex-shrink-0" />
+             )}
+             <span className="text-xs text-muted-foreground">
+                Output tags {stripThink ? "will be stripped" : "will be kept"}.
+             </span>
+        </div>
+
 
       </CardContent>
     </Card>
@@ -3839,33 +3942,35 @@ export const useStore = create((set, get) => ({
   nodes: savedProjects[initialProjectId]?.nodes || [...initialDefaultProjectNodes],
   edges: savedProjects[initialProjectId]?.edges || [],
   selectedNodeId: null, // For properties panel
-  isPropertiesPanelOpen: false, // For properties panel
+  // isPropertiesPanelOpen: false, // For properties panel - Removed
 
-  setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId, isPropertiesPanelOpen: !!nodeId }),
-  togglePropertiesPanel: (isOpen) => set(state => ({ 
-    isPropertiesPanelOpen: isOpen === undefined ? !state.isPropertiesPanelOpen : isOpen 
-  })),
-  
+  // When a node is selected, properties tab becomes active.
+  // When deselected (nodeId is null), properties tab becomes disabled/output tab may become active.
+  setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }), // Simplified
+  // togglePropertiesPanel: (isOpen) => set(state => ({ // Removed
+  //   isPropertiesPanelOpen: isOpen === undefined ? !state.isPropertiesPanelOpen : isOpen
+  // })),
+
   onNodesChange: (changes) => set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) })),
   onEdgesChange: (changes) => set((state) => ({ edges: applyEdgeChanges(changes, state.edges) })),
-  
+
   onConnect: (connection) => {
     const nodes = get().nodes;
     const sourceNode = nodes.find(n => n.id === connection.source);
     const targetNode = nodes.find(n => n.id === connection.target);
 
     // --- CONNECTION TYPE 1: Agent to Pattern's general config input ---
-    if (targetNode?.data?.component_category === 'pattern' && 
+    if (targetNode?.data?.component_category === 'pattern' &&
         sourceNode?.data?.component_category === 'agent' &&
         connection.targetHandle?.startsWith('pattern_agent_input_')
       ) {
-      
+
       const paramName = connection.targetHandle.substring('pattern_agent_input_'.length);
       // Use the agent's TFrameX ID if available, otherwise its ReactFlow node ID as a fallback reference
       const agentIdToAssign = sourceNode.data.tframex_component_id || sourceNode.id;
 
       get().updateNodeData(targetNode.id, { [paramName]: agentIdToAssign });
-      
+
       set((state) => ({
         edges: addEdge({
           ...connection,
@@ -3883,9 +3988,9 @@ export const useStore = create((set, get) => ({
         sourceNode?.data?.component_category === 'agent' &&
         connection.targetHandle?.startsWith('pattern_list_item_input_')
       ) {
-      
+
       const parts = connection.targetHandle.split('_'); // e.g. pattern_list_item_input_steps_0
-      const paramName = parts[4]; 
+      const paramName = parts[4];
       const index = parseInt(parts[5], 10);
       const agentIdToAssign = sourceNode.data.tframex_component_id || sourceNode.id;
 
@@ -3914,28 +4019,28 @@ export const useStore = create((set, get) => ({
     }
 
     // --- CONNECTION TYPE 3: Tool's "attachment" handle to Agent's "tool input" handle ---
-    if (sourceNode?.data?.component_category === 'tool' && 
+    if (sourceNode?.data?.component_category === 'tool' &&
         targetNode?.data?.component_category === 'agent' &&
         connection.sourceHandle === 'tool_attachment_out' &&
         connection.targetHandle === 'tool_input_handle'
       ) {
-      
+
       const toolId = sourceNode.data.tframex_component_id || sourceNode.id;
       const currentSelectedTools = targetNode.data.selected_tools || [];
-      
+
       if (!currentSelectedTools.includes(toolId)) {
         get().updateNodeData(targetNode.id, {
           selected_tools: [...currentSelectedTools, toolId]
         });
         console.log(`UI: Tool '${toolId}' enabled on Agent '${targetNode.data.label || targetNode.id}' via connection.`);
       }
-      
+
       set((state) => ({
         edges: addEdge({
           ...connection,
           type: 'smoothstep',
           animated: false,
-          style: { stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5, zIndex: 0 }, 
+          style: { stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5, zIndex: 0 },
           data: { ...connection.data, connectionType: 'toolAttachment' }
         }, state.edges),
       }));
@@ -3949,7 +4054,7 @@ export const useStore = create((set, get) => ({
         targetNode?.data?.component_category === 'agent' &&
         connection.targetHandle === 'input_message_in'
       ) {
-        
+
         const toolId = sourceNode.data.tframex_component_id || sourceNode.id;
         const currentSelectedTools = targetNode.data.selected_tools || [];
         if (!currentSelectedTools.includes(toolId)) {
@@ -3959,12 +4064,12 @@ export const useStore = create((set, get) => ({
             console.log(`UI: Tool '${toolId}' implicitly enabled on Agent '${targetNode.data.label || targetNode.id}' due to data connection.`);
         }
         set((state) => ({
-            edges: addEdge({ 
-                ...connection, 
-                type: 'smoothstep', 
-                animated: true, 
-                style: { strokeWidth: 2, stroke: '#7c3aed' }, 
-                data: {...connection.data, connectionType: 'toolDataOutputToAgent'} 
+            edges: addEdge({
+                ...connection,
+                type: 'smoothstep',
+                animated: true,
+                style: { strokeWidth: 2, stroke: '#7c3aed' },
+                data: {...connection.data, connectionType: 'toolDataOutputToAgent'}
             }, state.edges),
         }));
         return;
@@ -3989,22 +4094,22 @@ export const useStore = create((set, get) => ({
         }));
         return;
     }
-    
+
     // --- DEFAULT: Standard data flow edge ---
     set((state) => ({
-      edges: addEdge({ 
-          ...connection, 
-          type: 'smoothstep', 
-          animated: true, 
-          style: { strokeWidth: 2 } 
+      edges: addEdge({
+          ...connection,
+          type: 'smoothstep',
+          animated: true,
+          style: { strokeWidth: 2 }
         }, state.edges),
     }));
   },
 
   addNode: (nodeDataFromDrop, position) => {
     const { component_category, id: componentId, name: componentName, tframex_agent_type, config_options, constructor_params_schema } = nodeDataFromDrop;
-    
-    let defaultNodeData = { 
+
+    let defaultNodeData = {
       label: componentName || componentId,
       component_category: component_category, // Store this if it's coming from drop
       tframex_component_id: componentId, // Store the original TFrameX ID
@@ -4015,8 +4120,8 @@ export const useStore = create((set, get) => ({
     if (component_category === 'agent') {
       defaultNodeData = {
         ...defaultNodeData,
-        selected_tools: config_options?.default_tools || [], 
-        template_vars_config: {}, 
+        selected_tools: config_options?.default_tools || [],
+        template_vars_config: {},
         system_prompt_override: "", // Initialize for properties panel
         tframex_agent_type: tframex_agent_type,
         can_use_tools: config_options?.can_use_tools || false,
@@ -4031,9 +4136,9 @@ export const useStore = create((set, get) => ({
           const paramInfo = constructor_params_schema[paramName];
           // Initialize based on type hints for better UI experience in PatternNode
           if (listAgentParams.includes(paramName) && paramInfo.type_hint?.toLowerCase().includes('list')) {
-            patternParams[paramName] = []; 
+            patternParams[paramName] = [];
           } else if (paramInfo.type_hint?.toLowerCase().includes('agent') || paramName.startsWith('agent_') || paramName.endsWith('_agent_name')) {
-            patternParams[paramName] = null; 
+            patternParams[paramName] = null;
           } else if (paramName === 'routes' && paramInfo.type_hint?.toLowerCase().includes('dict')) {
             patternParams[paramName] = {}; // Initialize routes as an empty object
           } else if (paramInfo.type_hint?.toLowerCase().includes('list')) {
@@ -4053,7 +4158,7 @@ export const useStore = create((set, get) => ({
       // nodeType is componentId (Pattern class name)
     } else if (component_category === 'tool') {
         defaultNodeData.is_tool_node = true; // Mark as tool
-        defaultNodeData.has_data_output = nodeDataFromDrop.config_options?.has_data_output || 
+        defaultNodeData.has_data_output = nodeDataFromDrop.config_options?.has_data_output ||
                                           (nodeDataFromDrop.parameters_schema && Object.keys(nodeDataFromDrop.parameters_schema).length > 0 && nodeDataFromDrop.description?.toLowerCase().includes("return"));
       // nodeType is componentId (Tool name)
     } else if (component_category === 'utility' && componentId === 'textInput') { // For TextInputNode
@@ -4088,7 +4193,7 @@ export const useStore = create((set, get) => ({
   // === Project Management State ===
   projects: savedProjects,
   currentProjectId: initialProjectId,
-  
+
   saveCurrentProject: () => {
     const { nodes, edges, currentProjectId, projects } = get();
     const currentProject = projects[currentProjectId];
@@ -4107,15 +4212,15 @@ export const useStore = create((set, get) => ({
     const projectToLoad = projects[projectId];
 
     if (projectToLoad) {
-      saveCurrentProject(); 
+      saveCurrentProject();
       set({
         nodes: projectToLoad.nodes || [...initialDefaultProjectNodes],
         edges: projectToLoad.edges || [],
         currentProjectId: projectId,
-        output: "Output will appear here...", 
-        chatHistory: [], 
-        selectedNodeId: null, // Reset selection
-        isPropertiesPanelOpen: false,
+        output: "Output will appear here...",
+        chatHistory: [],
+        selectedNodeId: null, // Reset selection, implicitly handles properties tab
+        // isPropertiesPanelOpen: false, // Removed
       });
       console.log(`Project '${projectToLoad.name}' loaded.`);
     } else {
@@ -4125,12 +4230,12 @@ export const useStore = create((set, get) => ({
 
   createProject: (name) => {
     const { projects, saveCurrentProject } = get();
-    saveCurrentProject(); 
+    saveCurrentProject();
 
     const newProjectId = `project_${nanoid(8)}`;
     const newProject = {
         name: name || `New TFrameX Project ${Object.keys(projects).length + 1}`,
-        nodes: [...initialDefaultProjectNodes], 
+        nodes: [...initialDefaultProjectNodes],
         edges: []
     };
     const updatedProjects = { ...projects, [newProjectId]: newProject };
@@ -4141,8 +4246,8 @@ export const useStore = create((set, get) => ({
         currentProjectId: newProjectId,
         output: "Output will appear here...",
         chatHistory: [],
-        selectedNodeId: null,
-        isPropertiesPanelOpen: false,
+        selectedNodeId: null, // Reset selection
+        // isPropertiesPanelOpen: false, // Removed
     });
     console.log(`Project '${newProject.name}' created.`);
   },
@@ -4169,7 +4274,7 @@ export const useStore = create((set, get) => ({
       set({ projects: updatedProjects });
 
        if (currentProjectId === projectId) {
-           loadProject(nextProjectId); 
+           loadProject(nextProjectId);
        }
       console.log(`Project "${projects[projectId].name}" deleted.`);
   },
@@ -4179,7 +4284,7 @@ export const useStore = create((set, get) => ({
   isRunning: false,
   runFlow: async () => {
     const { nodes, edges, saveCurrentProject } = get();
-    saveCurrentProject(); 
+    saveCurrentProject();
 
     set({ isRunning: true, output: "Executing TFrameX flow..." });
     console.log("Sending to TFrameX backend:", { nodes, edges });
@@ -4188,7 +4293,7 @@ export const useStore = create((set, get) => ({
     let initialInputContent = "User input from Studio to start the flow."; // Default
     const textInputNode = nodes.find(n => n.type === 'textInput');
     if (textInputNode) {
-        const isConnectedAsStart = edges.some(edge => 
+        const isConnectedAsStart = edges.some(edge =>
             edge.source === textInputNode.id &&
             nodes.find(n => n.id === edge.target)?.data.component_category === 'agent' &&
             !edges.some(e => e.target === textInputNode.id) // Ensure TextInputNode itself has no inputs
@@ -4203,7 +4308,7 @@ export const useStore = create((set, get) => ({
         nodes,
         edges,
         initial_input: initialInputContent,
-        global_flow_template_vars: { "studio_user": "VisualBuilder" } 
+        global_flow_template_vars: { "studio_user": "VisualBuilder" }
     };
 
     try {
@@ -4274,7 +4379,7 @@ export const useStore = create((set, get) => ({
 
   // === Code Registration State ===
   isRegisteringCode: false,
-  registrationStatus: null, 
+  registrationStatus: null,
   registerTFrameXCode: async (pythonCode) => {
     if (get().isRegisteringCode) return;
     set({ isRegisteringCode: true, registrationStatus: null });
@@ -4282,7 +4387,7 @@ export const useStore = create((set, get) => ({
       const response = await axios.post(`${API_BASE_URL}/register_code`, { python_code: pythonCode });
       set({ registrationStatus: response.data, isRegisteringCode: false });
       if (response.data?.success) {
-        get().fetchTFrameXComponents(); 
+        get().fetchTFrameXComponents();
       }
     } catch (error) {
       const message = error.response?.data?.error || error.message || "Failed to register code.";
@@ -4291,11 +4396,11 @@ export const useStore = create((set, get) => ({
   },
 
   // === Chatbot for Flow Building State ===
-  chatHistory: [], 
+  chatHistory: [],
   isChatbotLoading: false,
   addChatMessage: (sender, message, type = 'normal') => {
     set((state) => ({
-      chatHistory: [...state.chatHistory, { sender, message, type }] 
+      chatHistory: [...state.chatHistory, { sender, message, type }]
     }));
   },
   clearChatHistory: () => set({ chatHistory: [] }),
@@ -4307,19 +4412,19 @@ export const useStore = create((set, get) => ({
     set({ isChatbotLoading: true });
 
     // Fetch latest components in case user registered new ones
-    await fetchTFrameXComponents(); 
+    await fetchTFrameXComponents();
     // The discover_tframex_components on backend will be called by the chatbot endpoint anyway,
     // but fetching here ensures UI is up-to-date if chatbot needs to refer to something.
 
     try {
       const payload = {
         message: userMessage,
-        nodes: nodes, 
+        nodes: nodes,
         edges: edges,
       };
       const response = await axios.post(`${API_BASE_URL}/chatbot_flow_builder`, payload);
       console.log("Received from chatbot flow builder:", response.data);
-      
+
       const reply = response.data?.reply || "Received no reply from chatbot flow builder.";
       const flowUpdate = response.data?.flow_update;
 
@@ -4335,7 +4440,7 @@ export const useStore = create((set, get) => ({
             ...get().tframexComponents.utility.map(u => u.id), // like 'textInput'
             'tframexAgent', 'tframexPattern', 'tframexTool' // Generic fallbacks if used
         ];
-        
+
         const allNodesValid = flowUpdate.nodes.every(node => allKnownTypes.includes(node.type));
 
         if (allNodesValid) {
@@ -4367,8 +4472,8 @@ export const useStore = create((set, get) => ({
 
 // --- Persistence Subscription ---
 useStore.subscribe(
-  (state) => ({ 
-    projects: state.projects, 
+  (state) => ({
+    projects: state.projects,
     currentProjectId: state.currentProjectId,
     // nodes: state.nodes, // Removed nodes/edges from direct save for project structure
     // edges: state.edges,
@@ -4388,7 +4493,7 @@ useStore.subscribe(
       // }
     }
   },
-  { fireImmediately: false } 
+  { fireImmediately: false }
 );
 
 // --- Initial Fetch of TFrameX Components ---

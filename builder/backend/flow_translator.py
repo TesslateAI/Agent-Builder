@@ -57,39 +57,62 @@ def translate_visual_to_tframex_flow(
                 continue
 
             base_agent_reg_info = global_app_instance._agents[original_tframex_id]
+            # Start with a deepcopy of the base agent's registered configuration
             effective_config = copy.deepcopy(base_agent_reg_info.get("config", {}))
             
-            overrides_applied = {} # For logging and unique name generation
+            # Define base values from the agent's original definition for comparison
+            # These keys match what component_manager provides to the frontend
+            base_decorator_config = base_agent_reg_info.get("config", {})
+            base_values_for_comparison = {
+                "system_prompt": base_agent_reg_info.get("config", {}).get("system_prompt_template", ""),
+                "tool_names": sorted(base_agent_reg_info.get("config", {}).get("tool_names", [])),
+                "strip_think_tags": base_agent_reg_info.get("config", {}).get("strip_think_tags", False)
+            }
+
+            config_values_for_hashing = {} # Store actual overridden values that differ from base
 
             # Apply system_prompt_override
-            if node_data.get('system_prompt_override') and node_data['system_prompt_override'].strip():
-                effective_config['system_prompt'] = node_data['system_prompt_override']
-                overrides_applied['system_prompt'] = True
+            node_system_prompt_override = node_data.get('system_prompt_override')
+            if node_system_prompt_override and node_system_prompt_override.strip():
+                # Store the override under 'system_prompt_template' for the agent's runtime config.
+                # LLMAgent likely uses 'system_prompt_template' internally for rendering.
+                effective_config['system_prompt_template'] = node_system_prompt_override
+                if node_system_prompt_override != base_values_for_comparison["system_prompt"]:
+                    config_values_for_hashing['system_prompt'] = node_system_prompt_override
+            else: # No override or empty override, ensure effective_config has the base prompt.
+                effective_config['system_prompt_template'] = base_values_for_comparison["system_prompt"]
             
+            # Remove the original 'system_prompt' key if it was just a boolean indicator from the decorator
+            if 'system_prompt' in effective_config and isinstance(effective_config['system_prompt'], bool):
+                del effective_config['system_prompt']
+
             # Apply selected_tools override
-            if node_data.get('selected_tools') and isinstance(node_data.get('selected_tools'), list):
-                # Ensure tools are valid against current_run_app_instance._tools (which should mirror global tools)
-                valid_tools = [t for t in node_data['selected_tools'] if t in current_run_app_instance._tools]
-                original_decorator_tools = set(base_agent_reg_info.get("config", {}).get("tool_names", []))
-                if set(valid_tools) != original_decorator_tools: # Only if different from base
-                    effective_config['tool_names'] = valid_tools
-                    overrides_applied['tool_names'] = valid_tools
-            
+            node_selected_tools = node_data.get('selected_tools')
+            # Check for None explicitly as an empty list [] is a valid override
+            if node_selected_tools is not None and isinstance(node_selected_tools, list):
+                valid_tools = sorted([t for t in node_selected_tools if t in current_run_app_instance._tools])
+                effective_config['tool_names'] = valid_tools # Set for runtime
+                if valid_tools != base_values_for_comparison["tool_names"]: # Compare sorted lists
+                    config_values_for_hashing['tool_names'] = valid_tools
+            else: # No 'selected_tools' in node_data, agent uses its default tools.
+                effective_config['tool_names'] = base_values_for_comparison["tool_names"]
+
             # Apply strip_think_tags_override
             if 'strip_think_tags_override' in node_data:
-                override_val = node_data['strip_think_tags_override']
-                original_strip_val = base_agent_reg_info.get("config", {}).get("strip_think_tags", False)
-                if override_val != original_strip_val:
-                    effective_config['strip_think_tags'] = override_val
-                    overrides_applied['strip_think_tags'] = override_val
+                node_strip_tags_override = node_data['strip_think_tags_override']
+                effective_config['strip_think_tags'] = node_strip_tags_override # Set for runtime
+                if node_strip_tags_override != base_values_for_comparison["strip_think_tags"]:
+                    config_values_for_hashing['strip_think_tags'] = node_strip_tags_override
+            else: # No override for strip_think_tags
+                effective_config['strip_think_tags'] = base_values_for_comparison["strip_think_tags"]
 
             effective_agent_name_for_run = original_tframex_id
-            if overrides_applied:
-                unique_suffix = _generate_unique_suffix_for_instance(overrides_applied, canvas_node_id)
+            if config_values_for_hashing: # If any actual values were different and recorded for hashing
+                unique_suffix = _generate_unique_suffix_for_instance(config_values_for_hashing, canvas_node_id)
                 effective_agent_name_for_run = f"{original_tframex_id}_run_{unique_suffix}"
-                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): Overrides detected {overrides_applied}. Effective name: '{effective_agent_name_for_run}'")
+                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): Overrides for {list(config_values_for_hashing.keys())}. Effective name: '{effective_agent_name_for_run}'")
             else:
-                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): No overrides. Effective name: '{original_tframex_id}'")
+                translation_log.append(f"  Canvas Node '{canvas_node_id}' (Base: {original_tframex_id}): Config matches base or no differing overrides. Effective name: '{original_tframex_id}'")
 
 
             # Register this configuration on the current_run_app_instance
@@ -102,7 +125,7 @@ def translate_visual_to_tframex_flow(
                 translation_log.append(f"    Registered '{effective_agent_name_for_run}' on current run app instance.")
             elif effective_agent_name_for_run != original_tframex_id : # It was an overridden agent already registered
                 translation_log.append(f"    Re-using already registered overridden agent '{effective_agent_name_for_run}' on current run app instance.")
-            
+
             canvas_node_to_effective_name_map[canvas_node_id] = effective_agent_name_for_run
     translation_log.append("--- End Agent Pre-processing ---")
 
@@ -110,7 +133,7 @@ def translate_visual_to_tframex_flow(
     node_map: Dict[str, Dict] = {node['id']: node for node in visual_nodes}
     adj: Dict[str, List[str]] = {node_id: [] for node_id in node_map}
     in_degree: Dict[str, int] = {node_id: 0 for node_id in node_map}
-    
+
     for edge in visual_edges:
         source_id = edge.get('source')
         target_id = edge.get('target')
@@ -122,14 +145,14 @@ def translate_visual_to_tframex_flow(
             if is_source_flow_element and is_target_flow_element and source_node_data.get('component_category') != 'tool':
                 adj[source_id].append(target_id)
                 in_degree[target_id] += 1
-    
+
     queue = deque()
     for node_id_in_map in node_map: # Iterate all nodes present in the map
         node_data = node_map[node_id_in_map].get('data', {})
         # Only consider agent/pattern nodes for starting points of topo sort
         if node_data.get('component_category') in ['agent', 'pattern'] and in_degree[node_id_in_map] == 0:
             queue.append(node_id_in_map)
-            
+
     sorted_canvas_node_ids_for_flow = []
     visited_for_sort = set()
     while queue:
@@ -159,7 +182,7 @@ def translate_visual_to_tframex_flow(
         node_data_from_frontend = node_config.get('data', {})
         component_category = node_data_from_frontend.get('component_category')
         # original_tframex_component_id is the 'type' from ReactFlow, e.g. "MyBaseAgent" or "SequentialPattern"
-        original_tframex_component_id = node_config.get('type') 
+        original_tframex_component_id = node_config.get('type')
 
         translation_log.append(f"\nProcessing Sorted Canvas Node: '{node_data_from_frontend.get('label', canvas_node_id_in_flow_order)}' (Base Type: {original_tframex_component_id}, Category: {component_category})")
 
@@ -172,7 +195,7 @@ def translate_visual_to_tframex_flow(
                 msg = f"  Error: Effective agent name for canvas node '{canvas_node_id_in_flow_order}' ('{effective_agent_name}') not found or not registered on current run app. Skipping step."
                 translation_log.append(msg)
                 logger.error(msg)
-        
+
         elif component_category == 'pattern':
             PatternClass = getattr(tframex_patterns_module, original_tframex_component_id, None)
             if not (PatternClass and inspect.isclass(PatternClass) and issubclass(PatternClass, BasePattern)):
@@ -185,16 +208,16 @@ def translate_visual_to_tframex_flow(
 
             for param_name_in_sig, param_obj_in_sig in sig.parameters.items():
                 if param_name_in_sig in ['self', 'pattern_name', 'args', 'kwargs']: continue
-                
+
                 if param_name_in_sig in node_data_from_frontend:
                     value = node_data_from_frontend[param_name_in_sig]
-                    
+
                     # Resolve agent/pattern names in parameters using the map
                     agent_ref_params = ["steps", "tasks", "participant_agent_names", "router_agent_name", "moderator_agent_name", "default_route"]
                     is_list_of_agents = param_name_in_sig in ["steps", "tasks", "participant_agent_names"]
                     is_single_agent_ref = param_name_in_sig in ["router_agent_name", "moderator_agent_name"]
                     is_route_target_ref = param_name_in_sig == "default_route" # Can be agent or pattern CLASS name
-                    
+
                     if is_list_of_agents and isinstance(value, list):
                         resolved_targets = []
                         for item_canvas_node_id_or_tframex_id in value:
@@ -202,11 +225,11 @@ def translate_visual_to_tframex_flow(
                             # It should be the TFrameX component ID (original or from dropdown).
                             # If it was a connection, the frontend store.js onConnect should have stored the tframex_component_id
                             # of the source agent node.
-                            
+
                             # If this `item` is an ID of a canvas agent node that might have overrides, resolve it.
                             # Otherwise, assume it's a direct TFrameX name (e.g. another pattern's class name).
                             effective_name = canvas_node_to_effective_name_map.get(item_canvas_node_id_or_tframex_id, item_canvas_node_id_or_tframex_id)
-                            
+
                             # Validate against current_run_app (for agents) or tframex_patterns_module (for pattern classes)
                             if effective_name in current_run_app_instance._agents or \
                                hasattr(tframex_patterns_module, effective_name) or \
@@ -215,7 +238,7 @@ def translate_visual_to_tframex_flow(
                             else:
                                 translation_log.append(f"  Warning: Invalid agent/pattern target '{effective_name}' (original ref: '{item_canvas_node_id_or_tframex_id}') in list '{param_name_in_sig}' for pattern '{original_tframex_component_id}'. Excluding.")
                         pattern_init_params[param_name_in_sig] = resolved_targets
-                    
+
                     elif (is_single_agent_ref or is_route_target_ref) and (value is None or isinstance(value, str)):
                         if value: # If not None or empty
                             # `value` here is expected to be a canvas node ID (if connected) or a TFrameX ID (if selected)
@@ -230,7 +253,7 @@ def translate_visual_to_tframex_flow(
                             pattern_init_params[param_name_in_sig] = effective_name if effective_name else None
                         else:
                             pattern_init_params[param_name_in_sig] = None
-                            
+
                     elif param_name_in_sig == "routes" and isinstance(value, dict):
                         resolved_routes = {}
                         for k, target_canvas_node_id_or_tframex_id in value.items():
@@ -252,7 +275,7 @@ def translate_visual_to_tframex_flow(
                         pattern_init_params[param_name_in_sig] = value
                 elif param_obj_in_sig.default == inspect.Parameter.empty:
                     missing_required_params.append(param_name_in_sig)
-            
+
             if missing_required_params:
                 translation_log.append(f"  Error: Pattern '{original_tframex_component_id}' (Node: {canvas_node_id_in_flow_order}) missing params: {missing_required_params}. Skipping.")
                 continue
@@ -267,7 +290,7 @@ def translate_visual_to_tframex_flow(
             except Exception as e:
                 translation_log.append(f"  Error instantiating Pattern '{original_tframex_component_id}': {e}")
                 logger.error(f"Error instantiating Pattern '{original_tframex_component_id}': {e}", exc_info=True)
-        
+
         # Tool nodes and utility nodes are not added as direct flow steps
         elif component_category == 'tool':
             translation_log.append(f"  Info: Tool Node '{original_tframex_component_id}' (Canvas ID: {canvas_node_id_in_flow_order}) - not a direct flow step.")
@@ -280,6 +303,6 @@ def translate_visual_to_tframex_flow(
     if not constructed_flow.steps:
         translation_log.append("\nError: No valid executable steps were translated into the TFrameX Flow.")
         return None, translation_log, canvas_node_to_effective_name_map
-        
+
     translation_log.append("--- Flow Translation End ---")
     return constructed_flow, translation_log, canvas_node_to_effective_name_map

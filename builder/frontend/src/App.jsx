@@ -16,6 +16,7 @@ import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import OutputPanel from './components/OutputPanel';
 import PropertiesPanel from './components/PropertiesPanel'; // New
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Import Tabs
 import TextInputNode from './nodes/inputs/TextInputNode'; // New
 
 import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
@@ -32,7 +33,7 @@ const staticNodeTypes = {
 
 const FlowEditor = () => {
   const reactFlowWrapper = useRef(null);
-  const { project, getViewport, setViewport } = useReactFlow(); 
+  const { project, getViewport, setViewport } = useReactFlow();
 
   const nodes = useStore((state) => state.nodes);
   const edges = useStore((state) => state.edges);
@@ -40,8 +41,8 @@ const FlowEditor = () => {
   const onEdgesChange = useStore((state) => state.onEdgesChange);
   const onConnect = useStore((state) => state.onConnect);
   const addNode = useStore((state) => state.addNode);
-  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
-  const isPropertiesPanelOpen = useStore((state) => state.isPropertiesPanelOpen);
+  const selectedNodeId = useStore((state) => state.selectedNodeId); // Get selectedNodeId
+  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId); // Keep for node deselection
 
   // Fit view logic using useNodesInitialized
   const nodesInitialized = useNodesInitialized();
@@ -55,7 +56,7 @@ const FlowEditor = () => {
             setTimeout(() => {
                 // This ensures fitView is called after nodes are definitely rendered
                 // No direct 'fitView' from useReactFlow, rely on ReactFlow's prop or manual calc
-            }, 100); 
+            }, 100);
         }
     }
   }, [nodesInitialized, nodes, getViewport, project]);
@@ -100,13 +101,13 @@ const FlowEditor = () => {
       });
       addNode(componentData, position);
     },
-    [project, addNode] 
+    [project, addNode]
   );
 
   const tframexComponents = useStore(s => s.tframexComponents);
 
   const dynamicNodeTypes = useMemo(() => {
-    const customNodes = { ...staticNodeTypes }; 
+    const customNodes = { ...staticNodeTypes };
     if (tframexComponents?.agents) {
         tframexComponents.agents.forEach(agent => {
             if (agent.id) customNodes[agent.id] = TFrameXAgentNode;
@@ -209,8 +210,25 @@ const FlowEditor = () => {
           </ReactFlow>
         </div>
       </div>
-      {isPropertiesPanelOpen && <PropertiesPanel />} {/* Conditionally render PropertiesPanel */}
-      <OutputPanel />
+      {/* NEW: Right Tabbed Panel for Output and Properties */}
+      <div className="w-[450px] flex flex-col border-l border-border h-full bg-card"> {/* Fixed width for the tabbed panel */}
+        <Tabs defaultValue="output" className="flex flex-col flex-grow h-full" value={selectedNodeId ? "properties" : "output"}>
+          <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">
+            <TabsTrigger value="output" onClick={() => setSelectedNodeId(null)} className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+              Output
+            </TabsTrigger>
+            <TabsTrigger value="properties" disabled={!selectedNodeId} className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+              Properties
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="output" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
+            <OutputPanel />
+          </TabsContent>
+          <TabsContent value="properties" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
+            {selectedNodeId && <PropertiesPanel />}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
