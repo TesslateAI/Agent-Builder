@@ -19,7 +19,7 @@
 
 ---
 
-**Tesslate Studio** is the intuitive frontend interface for [TFrameX](https://github.com/tesslate-ai/tframex) (the Extensible Task & Flow Orchestration Framework for LLMs). It empowers you to move beyond code-only agent development by providing a rich visual environment to build, experiment with, and deploy sophisticated multi-agent systems.
+**Tesslate Studio** is the intuitive frontend interface for [TframeX](https://github.com/TesslateAI/TFrameX) (the Extensible Task & Flow Orchestration Framework for LLMs). It empowers you to move beyond code-only agent development by providing a rich visual environment to build, experiment with, and deploy sophisticated multi-agent systems.
 
 ![Animation](https://github.com/user-attachments/assets/829692a1-6fa1-41e1-8c59-98f4a9cffedd)
 
