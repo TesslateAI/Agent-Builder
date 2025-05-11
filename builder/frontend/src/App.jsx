@@ -1,11 +1,13 @@
+// frontend/src/App.jsx
 // builder/frontend/src/App.jsx
-import React, { useCallback, useRef, useEffect, useMemo } from 'react'; // Added useEffect, useMemo
+import React, { useCallback, useRef, useEffect, useMemo } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   Controls,
   Background,
   MiniMap,
   useReactFlow,
+  useNodesInitialized
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -13,24 +15,24 @@ import { useStore } from './store';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import OutputPanel from './components/OutputPanel';
+import PropertiesPanel from './components/PropertiesPanel'; // New
+import TextInputNode from './nodes/inputs/TextInputNode'; // New
 
 import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
 import TFrameXPatternNode from './nodes/tframex/TFrameXPatternNode';
 import TFrameXToolNode from './nodes/tframex/TFrameXToolNode';
 
-// This was missing, but your logic for dynamicNodeTypes implies it should be here.
-// If you define these statically, ensure component IDs match.
+
 const staticNodeTypes = {
-  tframexAgent: TFrameXAgentNode,
-  tframexPattern: TFrameXPatternNode,
-  tframexTool: TFrameXToolNode,
-  // Add any other static/primitive node types here if you have them
-  // e.g. promptPrimitive: PromptPrimitiveNode,
+  tframexAgent: TFrameXAgentNode,     // Fallback if specific agent type not found
+  tframexPattern: TFrameXPatternNode, // Fallback if specific pattern type not found
+  tframexTool: TFrameXToolNode,       // Fallback if specific tool type not found
+  textInput: TextInputNode,         // For the new TextInputNode
 };
 
 const FlowEditor = () => {
   const reactFlowWrapper = useRef(null);
-  const { project } = useReactFlow(); // Ensure useReactFlow is correctly imported and used
+  const { project, getViewport, setViewport } = useReactFlow(); 
 
   const nodes = useStore((state) => state.nodes);
   const edges = useStore((state) => state.edges);
@@ -38,6 +40,26 @@ const FlowEditor = () => {
   const onEdgesChange = useStore((state) => state.onEdgesChange);
   const onConnect = useStore((state) => state.onConnect);
   const addNode = useStore((state) => state.addNode);
+  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
+  const isPropertiesPanelOpen = useStore((state) => state.isPropertiesPanelOpen);
+
+  // Fit view logic using useNodesInitialized
+  const nodesInitialized = useNodesInitialized();
+  useEffect(() => {
+    if (nodesInitialized && nodes.length > 0) {
+        // Check if viewport is default (likely first load or project switch)
+        const currentViewport = getViewport();
+        if (currentViewport.x === 0 && currentViewport.y === 0 && currentViewport.zoom === 1) {
+            // project() should ideally call fitView, but sometimes direct fitView is needed
+            // This is a bit of a workaround; React Flow's fitView on load can be tricky
+            setTimeout(() => {
+                // This ensures fitView is called after nodes are definitely rendered
+                // No direct 'fitView' from useReactFlow, rely on ReactFlow's prop or manual calc
+            }, 100); 
+        }
+    }
+  }, [nodesInitialized, nodes, getViewport, project]);
+
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -55,8 +77,6 @@ const FlowEditor = () => {
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const typeDataString = event.dataTransfer.getData('application/tframex_component');
 
-      console.log('App.jsx onDrop: typeDataString:', typeDataString);
-
       if (!typeDataString) {
         console.warn('App.jsx onDrop: No data found for application/tframex_component');
         return;
@@ -70,29 +90,23 @@ const FlowEditor = () => {
         return;
       }
 
-      console.log('App.jsx onDrop: Parsed componentData:', componentData);
-
       if (!componentData || !componentData.id) {
         console.warn('App.jsx onDrop: Invalid componentData or missing ID:', componentData);
         return;
       }
-
-      // Calculate position relative to the ReactFlow pane
       const position = project({
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
       });
-
-      console.log('App.jsx onDrop: Calculated position:', position);
       addNode(componentData, position);
     },
-    [project, addNode, reactFlowWrapper] // reactFlowWrapper added to dependencies
+    [project, addNode] 
   );
 
   const tframexComponents = useStore(s => s.tframexComponents);
 
   const dynamicNodeTypes = useMemo(() => {
-    const customNodes = { ...staticNodeTypes }; // Start with static/primitive types
+    const customNodes = { ...staticNodeTypes }; 
     if (tframexComponents?.agents) {
         tframexComponents.agents.forEach(agent => {
             if (agent.id) customNodes[agent.id] = TFrameXAgentNode;
@@ -108,63 +122,58 @@ const FlowEditor = () => {
             if (tool.id) customNodes[tool.id] = TFrameXToolNode;
         });
     }
-    console.log('App.jsx FlowEditor: Generated dynamicNodeTypes:', JSON.stringify(Object.keys(customNodes))); // Log keys for brevity
+    // Utility components like TextInputNode are already in staticNodeTypes
     return customNodes;
   }, [tframexComponents]);
 
-  useEffect(() => {
-    console.log('App.jsx FlowEditor: Nodes state updated:', nodes.map(n => ({id: n.id, type: n.type, label: n.data.label})));
-  }, [nodes]);
+
+  const onNodeClick = useCallback((event, node) => {
+    setSelectedNodeId(node.id);
+  }, [setSelectedNodeId]);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNodeId(null); // Deselect node when clicking on pane
+  }, [setSelectedNodeId]);
+
 
   const styledEdges = edges.map(edge => {
-    const sourceNode = nodes.find(n => n.id === edge.source);
-    // const targetNode = nodes.find(n => n.id === edge.target); // If needed
+    let edgeStyle = { strokeWidth: 2, stroke: 'var(--color-primary)' }; // Default
+    let animated = true;
 
     switch (edge.data?.connectionType) {
       case 'toolAttachment':
-        return {
-          ...edge,
-          style: { ...edge.style, stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5 },
-          animated: false,
-        };
-      case 'agentInstanceToPatternParam': // Agent connected to a pattern's single agent param
-        return {
-          ...edge,
-          style: { ...edge.style, stroke: '#F59E0B', strokeWidth: 2 }, // Amber
-          animated: false,
-        };
-      case 'agentToPatternListItem': // Agent connected to a pattern's list item slot
-        return {
-          ...edge,
-          style: { ...edge.style, stroke: '#4CAF50', strokeWidth: 1.8 }, // Green
-          animated: false,
-        };
-      case 'toolDataOutputToAgent': // Tool's data output connected to an agent
-        return {
-            ...edge,
-            style: { ...edge.style, stroke: '#7c3aed', strokeWidth: 2}, // Purple
-            animated: true,
-        };
+        edgeStyle = { ...edgeStyle, stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5 };
+        animated = false;
+        break;
+      case 'agentInstanceToPatternParam':
+        edgeStyle = { ...edgeStyle, stroke: '#F59E0B', strokeWidth: 2.5 };
+        animated = false;
+        break;
+      case 'agentToPatternListItem':
+        edgeStyle = { ...edgeStyle, stroke: '#4CAF50', strokeWidth: 2 };
+        animated = false;
+        break;
+      case 'toolDataOutputToAgent':
+        edgeStyle = { ...edgeStyle, stroke: '#7c3aed', strokeWidth: 2 };
+        animated = true;
+        break;
+      case 'textInputToAgent':
+        edgeStyle = { ...edgeStyle, stroke: '#0ea5e9', strokeWidth: 2 }; // Cyan for text input
+        animated = true;
+        break;
       default:
-        // General styling for data output from a tool node if not explicitly typed above
-        if (sourceNode?.data?.component_category === 'tool' && edge.sourceHandle === 'tool_output_data') {
-            return {
-                ...edge,
-                style: { ...edge.style, stroke: '#7c3aed', strokeWidth: 2 }, // Purple
-                animated: true,
-            };
-        }
-        // Fallback to default edge style or preserve existing custom style
-        return edge;
+        // Keep default style
+        break;
     }
+    return { ...edge, style: edgeStyle, animated };
   });
 
   return (
-    <div className="flex h-screen w-screen bg-background text-foreground" ref={reactFlowWrapper}>
+    <div className="flex h-screen w-screen bg-background text-foreground">
       <Sidebar />
-      <div className="flex-grow flex flex-col h-full">
+      <div className="flex-grow flex flex-col h-full" ref={reactFlowWrapper}>
         <TopBar />
-        <div className="flex-grow relative"> {/* This div will be the drop target area */}
+        <div className="flex-grow relative">
           <ReactFlow
             nodes={nodes}
             edges={styledEdges}
@@ -173,24 +182,34 @@ const FlowEditor = () => {
             onConnect={onConnect}
             onDrop={onDrop}
             onDragOver={onDragOver}
-            nodeTypes={dynamicNodeTypes} // Use the dynamically generated node types
-            fitView
-            className="bg-background" // Make sure this className matches if you rely on it for reactFlowBounds
-            defaultEdgeOptions={{ type: 'smoothstep', animated: true, style: { strokeWidth: 2, stroke: 'var(--color-primary)' } }}
+            nodeTypes={dynamicNodeTypes}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+            fitView // Let ReactFlow manage fitView on initial load/nodes change
+            fitViewOptions={{ padding: 0.15, minZoom: 0.2, maxZoom: 2 }}
+            className="bg-background"
+            defaultEdgeOptions={{ type: 'smoothstep' }} // Base style in defaultEdgeOptions
             connectionLineStyle={{ stroke: 'var(--color-primary)', strokeWidth: 2 }}
             connectionLineType="smoothstep"
+            proOptions={{ hideAttribution: true }} // If you have a pro license
           >
             <Controls className="react-flow__controls" />
             <Background variant="dots" gap={16} size={1} color="var(--color-border)" />
             <MiniMap nodeStrokeWidth={3} nodeColor={(n) => {
-                if (n.type === 'tframexAgent' || tframexComponents.agents.some(a => a.id === n.type)) return 'var(--color-primary)';
-                if (n.type === 'tframexPattern' || tframexComponents.patterns.some(p => p.id === n.type)) return 'var(--color-secondary)';
-                if (n.type === 'tframexTool' || tframexComponents.tools.some(t => t.id === n.type)) return 'var(--color-accent)';
+                if (n.type === 'textInput') return '#0ea5e9'; // Cyan for text input
+                if (n.data?.component_category === 'agent') return 'var(--color-primary)';
+                if (n.data?.component_category === 'pattern') return 'var(--color-secondary)';
+                if (n.data?.component_category === 'tool') return 'var(--color-accent)';
+                // Fallback for dynamic types not yet in component_category
+                if (tframexComponents.agents.some(a => a.id === n.type)) return 'var(--color-primary)';
+                if (tframexComponents.patterns.some(p => p.id === n.type)) return 'var(--color-secondary)';
+                if (tframexComponents.tools.some(t => t.id === n.type)) return 'var(--color-accent)';
                 return '#ddd';
             }} />
           </ReactFlow>
         </div>
       </div>
+      {isPropertiesPanelOpen && <PropertiesPanel />} {/* Conditionally render PropertiesPanel */}
       <OutputPanel />
     </div>
   );

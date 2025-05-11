@@ -1,3 +1,4 @@
+# backend/app.py
 # builder/backend/app.py
 import os
 import asyncio
@@ -10,7 +11,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 
 # TFrameX core components
-from tframex import Message # Import other TFrameX primitives/patterns as needed
+from tframex import TFrameXApp, Message # Import other TFrameX primitives/patterns as needed
 
 # Local TFrameX application setup and component management
 from tframex_config import get_tframex_app_instance
@@ -28,7 +29,7 @@ TFRAMEX_GENERATED_FILES_DIR = "tframex_generated_outputs" # Directory for files 
 os.makedirs(TFRAMEX_GENERATED_FILES_DIR, exist_ok=True)
 
 # Initialize TFrameX App on startup
-tframex_app = get_tframex_app_instance()
+global_tframex_app = get_tframex_app_instance() # Renamed for clarity
 
 # --- API Endpoints ---
 
@@ -40,7 +41,8 @@ def index():
 def list_tframex_studio_components():
     logger.info("Request received for /api/tframex/components")
     try:
-        components = discover_tframex_components()
+        # Components are discovered from the global app instance
+        components = discover_tframex_components(app_instance=global_tframex_app)
         return jsonify(components)
     except Exception as e:
         logger.error(f"Error discovering TFrameX components: {e}", exc_info=True)
@@ -48,8 +50,6 @@ def list_tframex_studio_components():
 
 @app.route('/api/tframex/register_code', methods=['POST'])
 async def handle_register_tframex_code():
-    # This endpoint assumes code is for TFrameX Agents or Tools
-    # It does not register new Patterns (Patterns are part of the tframex library itself)
     data = request.get_json()
     python_code = data.get("python_code")
 
@@ -58,7 +58,8 @@ async def handle_register_tframex_code():
 
     logger.info(f"Attempting to register new TFrameX component from user code (length: {len(python_code)}).")
     
-    result = register_code_dynamically(python_code) # This function now handles exec
+    # Code is registered on the global app instance
+    result = register_code_dynamically(python_code, app_instance_to_modify=global_tframex_app)
 
     if result["success"]:
         return jsonify({"message": result["message"]}), 200
@@ -75,7 +76,6 @@ async def handle_execute_tframex_flow():
     visual_nodes = data.get('nodes')
     visual_edges = data.get('edges')
     initial_input_content = data.get("initial_input", "Default starting message for the visual flow.")
-    # Template vars for the entire flow, if provided by a "Start Node" or global config in UI
     global_flow_template_vars = data.get("global_flow_template_vars", {})
 
     if not visual_nodes:
@@ -84,11 +84,40 @@ async def handle_execute_tframex_flow():
 
     execution_log = [f"--- TFrameX Visual Flow Execution Start (Run ID: {run_id}) ---"]
     
-    # 1. Translate visual graph to tframex.Flow
-    constructed_tframex_flow, translation_log_messages = translate_visual_to_tframex_flow(
+    # --- Create a temporary TFrameXApp instance for this specific run ---
+    temp_run_app = TFrameXApp(default_llm=global_tframex_app.default_llm)
+    execution_log.append(f"  Created temporary TFrameXApp for run_id: {run_id}")
+
+    # Re-register all globally known tools onto the temporary app instance
+    # This ensures tools added dynamically via UI are available for this run
+    if global_tframex_app._tools:
+        execution_log.append(f"  Registering {len(global_tframex_app._tools)} global tools onto temporary app...")
+        for tool_name, tool_obj in global_tframex_app._tools.items():
+            try:
+                # Assumes Tool object has these attributes, as per tframex.Tool structure
+                temp_run_app.add_tool(
+                    name=tool_name,
+                    func=tool_obj.func,
+                    description=tool_obj.description,
+                    parameters=tool_obj.parameters, # This should be the Pydantic model class
+                    enabled=tool_obj.enabled
+                )
+                execution_log.append(f"    - Tool '{tool_name}' registered on temporary app.")
+            except Exception as e_tool_reg:
+                error_msg = f"    - Failed to register tool '{tool_name}' on temporary app: {e_tool_reg}"
+                logger.error(error_msg)
+                execution_log.append(error_msg)
+    else:
+        execution_log.append("  No global tools to register on temporary app.")
+    # --- End temporary app setup ---
+
+    # 1. Translate visual graph to tframex.Flow, using the temporary app for registrations
+    constructed_tframex_flow, translation_log_messages, _ = translate_visual_to_tframex_flow(
         flow_id=run_id,
         visual_nodes=visual_nodes,
-        visual_edges=visual_edges
+        visual_edges=visual_edges,
+        global_app_instance=global_tframex_app, # Source of base agent definitions
+        current_run_app_instance=temp_run_app    # Target for this run's specific agent configs
     )
     execution_log.extend(translation_log_messages)
 
@@ -102,31 +131,29 @@ async def handle_execute_tframex_flow():
         error_msg = f"Run ID {run_id}: Translated TFrameX Flow has no steps. Nothing to execute."
         logger.warning(error_msg)
         execution_log.append(f"\nWARNING: {error_msg}")
-        return jsonify({"output": "\n".join(execution_log), "error": "No executable steps in the flow."}), 200 # Or 400 if considered an error
+        return jsonify({"output": "\n".join(execution_log), "error": "No executable steps in the flow."}), 200
 
     execution_log.append(f"\nSuccessfully translated to TFrameX Flow: {constructed_tframex_flow.flow_name} with {len(constructed_tframex_flow.steps)} steps.")
-    execution_log.append("TFrameX Flow Steps (Names/Types):")
+    execution_log.append("TFrameX Flow Steps (Effective Names/Types on Temporary App):")
     for step in constructed_tframex_flow.steps:
-        execution_log.append(f"  - {str(step)}")
+        execution_log.append(f"  - {str(step)}") # `str(step)` should show agent name or pattern instance
 
 
-    # 2. Execute the TFrameX Flow
+    # 2. Execute the TFrameX Flow using the temporary app
     final_preview_link = None
     try:
-        async with tframex_app.run_context() as rt: # Use the global app instance
+        # Use the temporary app for the run context
+        async with temp_run_app.run_context() as rt:
             start_message = Message(role="user", content=str(initial_input_content))
             
             execution_log.append(f"\nRunning TFrameX Flow with initial input: '{start_message.content[:100]}...'")
             if global_flow_template_vars:
                  execution_log.append(f"Global Flow Template Variables: {global_flow_template_vars}")
 
-            # Execute the flow.
-            # `initial_shared_data` can be used if the "Start Node" in UI sets some global context.
-            # `flow_template_vars` are passed to all agents if their prompts use matching placeholders.
             final_flow_context = await rt.run_flow(
                 constructed_tframex_flow,
                 start_message,
-                initial_shared_data={"studio_run_id": run_id}, # Pass run_id into shared_data
+                initial_shared_data={"studio_run_id": run_id},
                 flow_template_vars=global_flow_template_vars
             )
             
@@ -142,22 +169,22 @@ async def handle_execute_tframex_flow():
                  shared_data_summary = {k: (str(v)[:200] + '...' if len(str(v)) > 200 else str(v)) for k,v in final_flow_context.shared_data.items()}
                  execution_log.append(f"Final Flow Shared Data:\n{json.dumps(shared_data_summary, indent=2)}")
             
-            # Check for a conventional preview link in shared_data (e.g., set by a file generating tool/agent)
-            # The key "studio_preview_url" is a convention.
             if "studio_preview_url" in final_flow_context.shared_data:
                 final_preview_link = final_flow_context.shared_data["studio_preview_url"]
                 execution_log.append(f"\n--- Preview Link Detected ---")
-                execution_log.append(f"PREVIEW_LINK::{final_preview_link}") # Marker for frontend
+                execution_log.append(f"PREVIEW_LINK::{final_preview_link}") 
                 logger.info(f"Run ID {run_id}: Preview link found in shared_data: {final_preview_link}")
 
     except Exception as e:
         error_msg = f"Run ID {run_id}: Error during TFrameX flow execution: {e}"
         logger.error(error_msg, exc_info=True)
         execution_log.append(f"\nEXECUTION ERROR: {str(e)}")
+        # Include the full execution log for debugging
         return jsonify({"output": "\n".join(execution_log), "error": f"Flow execution runtime error: {e}"}), 500
     
     execution_log.append(f"\n--- TFrameX Visual Flow Execution End (Run ID: {run_id}) ---")
     logger.info(f"Run ID {run_id}: Flow execution finished.")
+    # The temp_run_app and its registered components will go out of scope and be garbage collected.
     return jsonify({"output": "\n".join(execution_log)})
 
 
@@ -175,14 +202,13 @@ async def handle_tframex_chatbot_flow_builder():
     logger.info(f"Chatbot flow builder request: '{user_message[:100]}...'")
 
     # 1. Prepare context for the FlowBuilderMetaAgent
-    available_components_data = discover_tframex_components() # Get fresh list
+    available_components_data = discover_tframex_components(app_instance=global_tframex_app) 
     
-    # Format context for the LLM (this needs to be concise yet informative)
     ac_context_parts = ["Available TFrameX Components:"]
-    for cat in ["agents", "patterns", "tools"]: # Tools are useful context for agent prompting
+    for cat in ["agents", "patterns", "tools"]:
         ac_context_parts.append(f"\n{cat.upper()}:")
         for comp in available_components_data.get(cat, []):
-            desc = comp.get('description', 'No description.')[:100] # Truncate
+            desc = comp.get('description', 'No description.')[:100] 
             param_info = ""
             if cat == "patterns":
                 param_info = f"(Params: {list(comp.get('constructor_params_schema', {}).keys())})"
@@ -193,26 +219,25 @@ async def handle_tframex_chatbot_flow_builder():
     
     current_flow_state_context_str = (
         f"Current Visual Flow State (Nodes: {len(current_nodes_json)}, Edges: {len(current_edges_json)}):\n"
-        f"Nodes: {json.dumps(current_nodes_json, indent=2)}\n" # Consider truncating this if too large
+        f"Nodes: {json.dumps(current_nodes_json, indent=2)}\n" 
         f"Edges: {json.dumps(current_edges_json, indent=2)}"
     )
 
-    flow_builder_agent_name = "StudioFlowBuilderMetaAgent" # Must match registration in tframex_config.py
-    if flow_builder_agent_name not in tframex_app._agents:
-         logger.error(f"Critical: Meta-agent '{flow_builder_agent_name}' for chatbot flow building is not registered.")
+    flow_builder_agent_name = "StudioFlowBuilderMetaAgent" 
+    if flow_builder_agent_name not in global_tframex_app._agents:
+         logger.error(f"Critical: Meta-agent '{flow_builder_agent_name}' for chatbot flow building is not registered on global app.")
          return jsonify({"reply": f"Error: Chatbot's meta-agent '{flow_builder_agent_name}' is not configured.", "flow_update": None}), 500
 
-    # Template variables for the FlowBuilderMetaAgent's system prompt
     template_vars = {
         "available_components_context": available_components_context_str,
-        "current_flow_state_context": current_flow_state_context_str, # This can get very large
+        "current_flow_state_context": current_flow_state_context_str,
         "user_query": user_message
     }
     
     llm_response_content = None
     try:
-        async with tframex_app.run_context() as rt:
-            # The "content" for the call_agent can be simple, as the core details are in template_vars for the system_prompt
+        # Chatbot meta-agent runs within the context of the global app
+        async with global_tframex_app.run_context() as rt:
             input_msg_for_builder = Message(role="user", content="Generate ReactFlow JSON based on my user_query and the provided context.")
             
             builder_response_message = await rt.call_agent(
@@ -228,14 +253,11 @@ async def handle_tframex_chatbot_flow_builder():
 
     if not llm_response_content:
         logger.warning("StudioFlowBuilderMetaAgent returned no content.")
-        return jsonify({"reply": "Chatbot AI returned an empty response.", "flow_update": None}), 200 # 200 as call succeeded
+        return jsonify({"reply": "Chatbot AI returned an empty response.", "flow_update": None}), 200
 
-    # Attempt to parse the JSON from the agent's response
-    # The agent should be configured with strip_think_tags=True
     try:
         flow_update_json = json.loads(llm_response_content)
         
-        # Basic validation of the returned JSON structure
         if (isinstance(flow_update_json, dict) and 
             "nodes" in flow_update_json and isinstance(flow_update_json.get("nodes"), list) and
             "edges" in flow_update_json and isinstance(flow_update_json.get("edges"), list)):
@@ -258,24 +280,21 @@ async def handle_tframex_chatbot_flow_builder():
             "reply": "I generated a response, but it wasn't in the correct JSON format for the flow. Please try again, or check server logs for my raw output.",
             "flow_update": None
         }), 200
-    except Exception as e: # Catch any other parsing/validation errors
+    except Exception as e: 
         logger.error(f"Unexpected error processing chatbot flow builder JSON response: {e}. Raw response: {llm_response_content[:500]}...", exc_info=True)
         return jsonify({"reply": f"Error processing my own JSON response: {str(e)}", "flow_update": None}), 500
 
 
-# Preview route for files generated by TFrameX (e.g., via a tool)
+# Preview route for files generated by TFrameX
 @app.route('/api/tframex/preview/<run_id>/<path:filepath>')
 def serve_generated_tframex_studio_file(run_id, filepath):
     logger.info(f"Request for TFrameX Studio preview: run_id={run_id}, filepath={filepath}")
-    # Basic security: prevent path traversal
     if '..' in run_id or '..' in filepath:
         logger.warning(f"Path traversal attempt denied: {run_id}/{filepath}")
         return "Invalid path", 403
     
-    # Files are expected to be saved by TFrameX tools/agents into a subfolder of TFRAMEX_GENERATED_FILES_DIR named with the run_id
     directory_to_serve_from = os.path.abspath(os.path.join(TFRAMEX_GENERATED_FILES_DIR, run_id))
     
-    # Security: Ensure the resolved path is still within our intended base directory
     if not directory_to_serve_from.startswith(os.path.abspath(TFRAMEX_GENERATED_FILES_DIR)):
          logger.error(f"Attempt to access directory outside allowed generated folder: {directory_to_serve_from}")
          return "Access denied", 403
@@ -297,8 +316,8 @@ def serve_generated_tframex_studio_file(run_id, filepath):
 
 if __name__ == '__main__':
     host = os.getenv('FLASK_RUN_HOST', '127.0.0.1')
-    port = int(os.getenv('FLASK_RUN_PORT', 5001)) # Keep same port
+    port = int(os.getenv('FLASK_RUN_PORT', 5001)) 
     debug_mode = os.getenv('FLASK_ENV', 'development').lower() == 'development'
 
     logger.info(f"Starting TFrameX Studio Flask server on http://{host}:{port} (Debug: {debug_mode})")
-    app.run(host=host, port=port, debug=debug_mode, use_reloader=debug_mode) # use_reloader useful for dev
+    app.run(host=host, port=port, debug=debug_mode, use_reloader=debug_mode)

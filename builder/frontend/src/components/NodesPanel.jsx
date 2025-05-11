@@ -1,12 +1,12 @@
+// frontend/src/components/NodesPanel.jsx
 // builder/frontend/src/components/NodesPanel.jsx
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Terminal, Zap, Cog, Puzzle, Wrench } from 'lucide-react'; // More icons
+import { Loader2, Terminal, Zap, Cog, Puzzle, Wrench, TextIcon } from 'lucide-react'; // Added TextIcon
 
 const DraggableNodeItem = ({ component }) => {
   const onDragStart = (event, componentData) => {
-    // Pass more component info for node creation
     event.dataTransfer.setData('application/tframex_component', JSON.stringify(componentData));
     event.dataTransfer.effectAllowed = 'move';
   };
@@ -15,11 +15,12 @@ const DraggableNodeItem = ({ component }) => {
   if (component.component_category === 'agent') Icon = Cog;
   else if (component.component_category === 'pattern') Icon = Puzzle;
   else if (component.component_category === 'tool') Icon = Wrench;
+  else if (component.component_category === 'utility' && component.id === 'textInput') Icon = TextIcon;
 
 
   return (
     <Card
-      className="mb-3 cursor-grab hover:border-primary transition-colors duration-150 ease-in-out"
+      className="mb-3 cursor-grab hover:border-primary transition-colors duration-150 ease-in-out active:shadow-lg active:border-primary"
       onDragStart={(event) => onDragStart(event, component)}
       draggable
       title={component.description || component.name}
@@ -36,7 +37,7 @@ const DraggableNodeItem = ({ component }) => {
 };
 
 const NodesPanel = ({ tframexComponents, isLoading, error }) => {
-  const { agents = [], tools = [], patterns = [] } = tframexComponents || {};
+  const { agents = [], tools = [], patterns = [], utility = [] } = tframexComponents || {};
 
   return (
     <>
@@ -51,12 +52,18 @@ const NodesPanel = ({ tframexComponents, isLoading, error }) => {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {!isLoading && !error && (agents.length === 0 && tools.length === 0 && patterns.length === 0) && (
+      {!isLoading && !error && (agents.length === 0 && tools.length === 0 && patterns.length === 0 && utility.length === 0) && (
         <div className="text-center text-muted-foreground py-4 text-sm">No TFrameX components found or registered.</div>
       )}
 
       {!isLoading && !error && (
         <>
+          {utility.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground px-1 mb-2">Utility</h3>
+              {utility.map((comp) => <DraggableNodeItem key={comp.id} component={comp} />)}
+            </div>
+          )}
           {agents.length > 0 && (
             <div className="mb-4">
               <h3 className="text-xs font-semibold uppercase text-muted-foreground px-1 mb-2">Agents</h3>
