@@ -1,0 +1,15 @@
+# Development requirements for Agent-Builder
+# Install TFrameX separately from local folder:
+# pip install -e ../TFrameX
+
+# Core dependencies
+flask>=3.1.0
+flask-cors>=5.0.0
+python-dotenv>=1.0.0
+httpx>=0.25.0
+pydantic>=2.0.0
+PyYAML>=6.0.1
+aiohttp>=3.9.0
+
+# When TFrameX 1.1.0 is published, uncomment:
+# tframex==1.1.0

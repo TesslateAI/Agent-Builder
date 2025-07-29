@@ -1,0 +1,108 @@
+# TFrameX Enterprise Configuration for Agent-Builder
+# This file demonstrates v1.1.0 enterprise features configuration
+
+enterprise:
+  # Enable enterprise features
+  enabled: false  # Set to true to enable enterprise features
+  
+  # Authentication Configuration
+  auth:
+    enabled: false
+    providers:
+      - type: "api_key"
+        config:
+          header_name: "X-API-Key"
+      - type: "jwt"
+        config:
+          secret: "${JWT_SECRET}"
+          algorithm: "HS256"
+  
+  # Authorization (RBAC)
+  rbac:
+    enabled: false
+    default_role: "user"
+    roles:
+      - name: "admin"
+        permissions: ["*"]
+      - name: "developer"
+        permissions: ["agents.create", "agents.read", "tools.create", "tools.read", "flows.execute"]
+      - name: "user"
+        permissions: ["agents.read", "tools.read", "flows.execute"]
+  
+  # Metrics Collection
+  metrics:
+    enabled: false
+    backend: "prometheus"  # Options: prometheus, statsd, opentelemetry
+    config:
+      prometheus:
+        port: 9090
+        path: "/metrics"
+      statsd:
+        host: "localhost"
+        port: 8125
+      opentelemetry:
+        endpoint: "http://localhost:4317"
+        service_name: "agent-builder"
+  
+  # Storage Configuration
+  storage:
+    backend: "sqlite"  # Options: sqlite, postgresql, s3, memory
+    config:
+      sqlite:
+        path: "./data/agent_builder.db"
+      postgresql:
+        connection_string: "${DATABASE_URL}"
+      s3:
+        bucket: "agent-builder-storage"
+        region: "us-east-1"
+  
+  # Session Management
+  sessions:
+    enabled: false
+    ttl: 3600  # seconds
+    cleanup_interval: 300  # seconds
+  
+  # Audit Logging
+  audit:
+    enabled: false
+    log_level: "INFO"
+    destinations:
+      - type: "file"
+        path: "./logs/audit.log"
+      - type: "database"
+        table: "audit_logs"
+  
+  # Performance Settings
+  performance:
+    max_concurrent_flows: 10
+    max_flow_execution_time: 300  # seconds
+    enable_caching: true
+    cache_ttl: 600  # seconds
+
+# MCP Advanced Configuration
+mcp:
+  # Roots configuration for file system access
+  roots:
+    enabled: true
+    allowed_paths:
+      - "./workspace"
+      - "./shared_resources"
+  
+  # Sampling configuration for LLM interactions
+  sampling:
+    enabled: true
+    auto_approve: false
+    max_tokens: 4096
+  
+  # Experimental features
+  experimental:
+    enabled: false
+    features:
+      - "advanced_prompting"
+      - "multi_modal_support"
+
+# Development Settings
+development:
+  debug: true
+  hot_reload: true
+  verbose_logging: true

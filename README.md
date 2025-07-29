@@ -1,53 +1,118 @@
+# Agent-Builder for TFrameX v1.1.0
 
-# Tesslate Studio: Visual Agent Builder for TframeX
-
-![image](https://github.com/user-attachments/assets/d29608da-1218-4628-bb49-ba5a943beffc)
-
+![TFrameX Agent Builder](https://github.com/user-attachments/assets/d29608da-1218-4628-bb49-ba5a943beffc)
 
 <p align="center">
-  <strong>Visually design, test, debug, and orchestrate powerful LLM agent applications with TFrameX.</strong>
+  <strong>Visual agent builder for TFrameX - Create sophisticated LLM agents and workflows with a drag-and-drop interface.</strong>
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/tframex/">
-    <img src="https://img.shields.io/pypi/v/tframex.svg" alt="PyPI version">
+    <img src="https://img.shields.io/badge/TFrameX-v1.1.0-blue.svg" alt="TFrameX version">
   </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT">
+    <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT">
+  </a>
+  <a href="https://github.com/TesslateAI/Agent-Builder">
+    <img src="https://img.shields.io/badge/github-Agent--Builder-orange.svg" alt="GitHub">
   </a>
 </p>
 
 ---
 
-**Tesslate Studio** is the intuitive frontend interface for [TframeX](https://github.com/TesslateAI/TFrameX) (the Extensible Task & Flow Orchestration Framework for LLMs). It empowers you to move beyond code-only agent development by providing a rich visual environment to build, experiment with, and deploy sophisticated multi-agent systems.
+**Agent-Builder** is a powerful visual development environment for [TFrameX v1.1.0](https://github.com/TesslateAI/TFrameX), the extensible task & flow orchestration framework for LLMs. Build, test, and deploy sophisticated multi-agent systems with enterprise-grade features.
 
 ![Animation](https://github.com/user-attachments/assets/829692a1-6fa1-41e1-8c59-98f4a9cffedd)
 
-## ✨ Why Tesslate Studio?
+## ✨ Features
 
-Tesslate Studio bridges the power and flexibility of TFrameX with a user-friendly visual interface, offering:
+### Core Features
+- 🎨 **Visual Flow Designer**: Drag-and-drop interface powered by ReactFlow
+- 🤖 **TFrameX 1.1.0 Integration**: Full support for all v1.1.0 features
+- 🔌 **MCP Support**: Model Context Protocol integration for external services
+- 🚀 **Production Ready**: Optimized build process with Docker support
+- 🛠️ **Dynamic Code Registration**: Add agents and tools on the fly
+- 📊 **Enterprise Features**: Authentication, RBAC, metrics, and audit logging ready
 
-*   🎨 **Visual Flow Design:** Construct complex agent workflows using an intuitive drag-and-drop canvas powered by ReactFlow.
-*   🧩 **Native TFrameX Integration:** Seamlessly utilizes all core TFrameX concepts:
-    *   **Agents:** `LLMAgent`, `ToolAgent` (and your custom agents).
-    *   **Tools:** Python functions your agents can call.
-    *   **Patterns:** `SequentialPattern`, `ParallelPattern`, `RouterPattern`, `DiscussionPattern`.
-    *   **Agent-as-Tool:** Visually connect agents that can call other agents.
-*   📋 **Live Component Palette:** Discovered TFrameX agents, tools, and patterns (plus utility nodes like Text Input) are readily available to drag onto your canvas.
-*   🐍 **Dynamic Code Registration:** Inject new TFrameX Python agents and tools directly through the UI without backend restarts. Your new components instantly appear in the palette!
-*   🤖 **AI-Powered Flow Building:** Leverage an integrated AI assistant to help you design or modify your visual flows through natural language chat.
-*   ⚙️ **Granular Node Configuration:** A contextual Properties Panel allows you to fine-tune:
-    *   **Agents:** Override system prompts, manage tool access, toggle `<think>` tag stripping, define template variables.
-    *   **Patterns:** Set all constructor parameters (e.g., steps for `SequentialPattern`, participant agents for `DiscussionPattern`).
-*   🐍 **Real-time Execution & Output:** Run your visual flows and get immediate, detailed logs and results, including links to preview any generated files.
-*   💾 **Project Management:** Easily save, load, and manage multiple TFrameX flow designs within the Studio.
-*   💡 **Clearer Debugging:** The visual layout, combined with execution logs, simplifies understanding and debugging agent interactions.
+### TFrameX v1.1.0 Features
+- **Enhanced Agents**: LLMAgent, ToolAgent with strip_think_tags support
+- **MCP Integration**: Connect to external services via MCP servers
+- **Improved APIs**: Modern async/await patterns throughout
+- **Multi-LLM Support**: OpenAI, Anthropic, Ollama, and more
+- **Enterprise Ready**: Metrics, storage backends, session management
+- **CLI Integration**: Compatible with `tframex` CLI tools
 
-##  workflow How It Works: The Core Loop
+### Visual Builder Features
+- **Component Palette**: All TFrameX components available to drag and drop
+- **Pattern Support**: Sequential, Parallel, Router, and Discussion patterns
+- **Agent-as-Tool**: Visual connections for agent delegation
+- **Properties Panel**: Fine-tune every aspect of agents and tools
+- **Real-time Execution**: See results and logs immediately
+- **AI Assistant**: Natural language flow building helper
+- **Project Management**: Save and load flow designs
 
-1.  **Design:** Drag TFrameX components (Agents, Patterns, Tools, Inputs) from the sidebar palette onto the main canvas.
-2.  **Connect:** Wire nodes together using their handles. Different handles represent different types of connections (e.g., message flow, tool enablement, agent assignment to patterns).
-3.  **Configure:** Click a node to open the **Properties Panel**. Here you can:
+## 🚀 Quick Start
+
+### For Local TFrameX Development
+
+If you have TFrameX cloned locally (recommended for now):
+
+```bash
+# Make sure TFrameX is in the parent directory
+cd /path/to/parent
+git clone https://github.com/TesslateAI/TFrameX.git
+git clone https://github.com/TesslateAI/Agent-Builder.git
+cd Agent-Builder
+
+# Use the development start script
+./start-dev.sh
+```
+
+### Standard Installation
+
+When TFrameX 1.1.0 is published to PyPI:
+
+```bash
+git clone https://github.com/TesslateAI/Agent-Builder.git
+cd Agent-Builder
+./start.sh
+```
+
+The application will be available at **http://localhost:5000**
+
+### Alternative Installation Methods
+
+#### Using Make
+```bash
+make install     # Install dependencies and build
+make run         # Run in production mode
+# OR
+make run-dev     # Run with hot reload for development
+```
+
+#### Using Docker
+```bash
+docker build -t agent-builder .
+docker run -p 5000:5000 -e OPENAI_API_KEY=your-key agent-builder
+```
+
+#### Manual Setup with uv
+```bash
+# Install uv package manager
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Set up environment
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+
+# Build frontend
+cd builder/frontend && npm install && npm run build
+cd ../..
+
+# Run
+cd builder/backend && python app.py
+```
     *   Customize an agent's system prompt or its list of enabled tools.
     *   Define parameters for patterns (e.g., which agent is the router in a `RouterPattern`).
     *   Set the content for a `Text Input` node.

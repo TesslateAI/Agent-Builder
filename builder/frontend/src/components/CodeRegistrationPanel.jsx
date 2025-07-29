@@ -53,28 +53,35 @@ const CodeRegistrationPanel = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 space-y-4">
       <div>
-        <Label htmlFor="pythonCode" className="text-sm font-medium">
+        <Label htmlFor="pythonCode" className="text-sm font-medium text-foreground">
           Python Code for TFrameX Agent or Tool
         </Label>
-        <p className="text-xs text-muted-foreground mb-1">
-          Use <code>@tframex_app.agent(...)</code> or <code>@tframex_app.tool(...)</code>.
+        <p className="text-xs text-muted-foreground mb-3 mt-1">
+          Use <code className="bg-muted px-1 py-0.5 rounded text-xs">@tframex_app.agent(...)</code> or <code className="bg-muted px-1 py-0.5 rounded text-xs">@tframex_app.tool(...)</code>
         </p>
-        <div className="flex space-x-2 mb-2">
-            <Button variant="outline" size="sm" onClick={() => loadExample('agent')}>Load Agent Example</Button>
-            <Button variant="outline" size="sm" onClick={() => loadExample('tool')}>Load Tool Example</Button>
+        <div className="flex space-x-2 mb-3">
+            <Button variant="secondary" size="sm" onClick={() => loadExample('agent')} className="h-8">
+              Load Agent Example
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => loadExample('tool')} className="h-8">
+              Load Tool Example
+            </Button>
         </div>
         <Textarea
           id="pythonCode"
           value={pythonCode}
           onChange={(e) => setPythonCode(e.target.value)}
           placeholder="Paste your TFrameX agent or tool definition here..."
-          className="min-h-[200px] font-mono text-xs border-border"
-          rows={15}
+          className="min-h-[280px] font-mono text-xs bg-background border-border resize-none"
         />
       </div>
-      <Button onClick={handleSubmit} disabled={isRegistering || !pythonCode.trim()} className="w-full">
+      <Button 
+        onClick={handleSubmit} 
+        disabled={isRegistering || !pythonCode.trim()} 
+        className="w-full h-10 bg-primary hover:bg-primary/90"
+      >
         {isRegistering ? (
           <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registering...</>
         ) : (

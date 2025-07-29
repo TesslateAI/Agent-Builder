@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "Bash(./start-dev.sh:*)",
+      "Bash(find:*)",
+      "Bash(chmod:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

@@ -1,17 +1,45 @@
 # backend/flow_translator.py
 import inspect
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional, Union
 from collections import deque
 import copy
 import hashlib
 
-from tframex import Flow, TFrameXApp # Import TFrameXApp for type hinting
+from tframex import Flow, TFrameXApp, FlowContext, Message, OpenAIChatLLM
 from tframex import patterns as tframex_patterns_module
-from tframex.patterns import BasePattern
-# from tframex_config import get_tframex_app_instance # Not used directly, app instances are passed
+from tframex.patterns import BasePattern, SequentialPattern, ParallelPattern, RouterPattern, DiscussionPattern
+from tframex.agents import LLMAgent
+import os
 
 logger = logging.getLogger("FlowTranslator")
+
+def _create_llm_from_model_name(model_name: str, global_app_instance: TFrameXApp) -> Optional[OpenAIChatLLM]:
+    """
+    Creates an LLM instance based on the model name.
+    Uses the same API configuration as the global app but with a different model.
+    """
+    try:
+        # Get the default LLM configuration from the global app
+        default_llm = global_app_instance.default_llm
+        if not default_llm:
+            logger.warning(f"No default LLM configured, cannot create LLM for model {model_name}")
+            return None
+            
+        # Create a new LLM instance with the same API config but different model
+        model_llm = OpenAIChatLLM(
+            model_name=model_name,
+            api_base_url=default_llm.api_base_url,
+            api_key=default_llm.api_key,
+            parse_text_tool_calls=getattr(default_llm, 'parse_text_tool_calls', True)
+        )
+        
+        logger.info(f"Created LLM instance for model: {model_name}")
+        return model_llm
+        
+    except Exception as e:
+        logger.error(f"Failed to create LLM for model {model_name}: {e}")
+        return None
 
 def _generate_unique_suffix_for_instance(config_dict, canvas_node_id):
     """Generates a short hash suffix based on a dictionary and canvas ID to make names unique."""
@@ -85,19 +113,28 @@ def translate_visual_to_tframex_flow(
             # Remove the original 'system_prompt' key if it was just a boolean indicator from the decorator
             if 'system_prompt' in effective_config and isinstance(effective_config['system_prompt'], bool):
                 del effective_config['system_prompt']
+            
+            # Apply MCP tools configuration if specified (v1.1.0)
+            node_mcp_tools = node_data.get('mcp_tools_from_servers')
+            if node_mcp_tools is not None:
+                effective_config['mcp_tools_from_servers'] = node_mcp_tools
+                if node_mcp_tools != base_decorator_config.get('mcp_tools_from_servers'):
+                    config_values_for_hashing['mcp_tools_from_servers'] = node_mcp_tools
 
             # Apply selected_tools override
             node_selected_tools = node_data.get('selected_tools')
             # Check for None explicitly as an empty list [] is a valid override
             if node_selected_tools is not None and isinstance(node_selected_tools, list):
-                valid_tools = sorted([t for t in node_selected_tools if t in current_run_app_instance._tools])
+                # In v1.1.0, validate against all tools including MCP tools
+                all_available_tools = list(current_run_app_instance._tools.keys())
+                valid_tools = sorted([t for t in node_selected_tools if t in all_available_tools])
                 effective_config['tool_names'] = valid_tools # Set for runtime
                 if valid_tools != base_values_for_comparison["tool_names"]: # Compare sorted lists
                     config_values_for_hashing['tool_names'] = valid_tools
             else: # No 'selected_tools' in node_data, agent uses its default tools.
                 effective_config['tool_names'] = base_values_for_comparison["tool_names"]
 
-            # Apply strip_think_tags_override
+            # Apply strip_think_tags_override (v1.1.0 feature)
             if 'strip_think_tags_override' in node_data:
                 node_strip_tags_override = node_data['strip_think_tags_override']
                 effective_config['strip_think_tags'] = node_strip_tags_override # Set for runtime
@@ -105,6 +142,18 @@ def translate_visual_to_tframex_flow(
                     config_values_for_hashing['strip_think_tags'] = node_strip_tags_override
             else: # No override for strip_think_tags
                 effective_config['strip_think_tags'] = base_values_for_comparison["strip_think_tags"]
+
+            # Apply model override if specified
+            node_model = node_data.get('model')
+            if node_model and node_model.strip():
+                # Create an LLM instance for this specific model
+                model_llm = _create_llm_from_model_name(node_model, global_app_instance)
+                if model_llm:
+                    effective_config['llm_instance_override'] = model_llm
+                    # We always consider model override as a change since base agents don't have model config
+                    config_values_for_hashing['model'] = node_model
+                else:
+                    translation_log.append(f"  Warning: Failed to create LLM for model '{node_model}', agent will use default LLM")
 
             effective_agent_name_for_run = original_tframex_id
             if config_values_for_hashing: # If any actual values were different and recorded for hashing
