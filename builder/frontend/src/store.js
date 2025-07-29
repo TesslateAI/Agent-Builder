@@ -36,6 +36,7 @@ const initialProjects = {
     name: "My TFrameX Flow",
     nodes: [...initialDefaultProjectNodes],
     edges: [],
+    viewport: { x: 0, y: 0, zoom: 1 },
   },
 };
 
@@ -350,13 +351,18 @@ export const useStore = create((set, get) => ({
   projects: savedProjects,
   currentProjectId: initialProjectId,
 
-  saveCurrentProject: () => {
+  saveCurrentProject: (viewport) => {
     const { nodes, edges, currentProjectId, projects } = get();
     const currentProject = projects[currentProjectId];
     if (currentProject) {
       const updatedProjects = {
         ...projects,
-        [currentProjectId]: { ...currentProject, nodes, edges }
+        [currentProjectId]: { 
+          ...currentProject, 
+          nodes, 
+          edges,
+          viewport: viewport || currentProject.viewport || { x: 0, y: 0, zoom: 1 }
+        }
       };
       set({ projects: updatedProjects });
       console.log(`Project '${currentProject.name}' saved.`);
@@ -391,7 +397,8 @@ export const useStore = create((set, get) => ({
     const newProject = {
       name: name || `New TFrameX Project ${Object.keys(projects).length + 1}`,
       nodes: [...initialDefaultProjectNodes],
-      edges: []
+      edges: [],
+      viewport: { x: 0, y: 0, zoom: 1 }
     };
     const updatedProjects = { ...projects, [newProjectId]: newProject };
     set({
@@ -438,7 +445,7 @@ export const useStore = create((set, get) => ({
   isRunning: false,
   runFlow: async () => {
     const { nodes, edges, saveCurrentProject } = get();
-    saveCurrentProject();
+    saveCurrentProject(); // This will save viewport too
 
     set({ isRunning: true, output: "Executing TFrameX flow..." });
     console.log("Sending to TFrameX backend:", { nodes, edges });

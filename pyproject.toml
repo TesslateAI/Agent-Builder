@@ -10,7 +10,7 @@ authors = [
     { name = "TesslateAI", email = "contact@tesslate.com" }
 ]
 dependencies = [
-    # "tframex==1.1.0",  # Uncomment when 1.1.0 is published to PyPI
+    "tframex==1.1.0",
     "flask>=3.1.0",
     "flask-cors>=5.0.0",
     "python-dotenv>=1.0.0",

@@ -314,7 +314,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
 
 
   return (
-    <Card className="w-[26rem] shadow-lg border-border bg-card text-card-foreground relative">
+    <Card className="w-[26rem] shadow-lg bg-card text-card-foreground relative">
       <Handle type="target" position={Position.Left} id="input_flow_in" style={{ background: '#60a5fa', top: outputHandleTop, zIndex: 1 }} title="Flow Input" />
       
       {/* Delete button */}
@@ -343,7 +343,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
         <Handle type="source" position={Position.Right} id="output_flow_out" style={{ background: '#60a5fa', top: outputHandleTop, zIndex: 1 }} title="Flow Output" />
       )}
 
-      <CardHeader className="p-3 border-b border-border cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-3 border-b cursor-grab active:cursor-grabbing">
          <div className="flex items-center space-x-2">
             <Puzzle className="h-5 w-5 text-primary flex-shrink-0" />
              <Input 
