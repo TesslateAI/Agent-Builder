@@ -14,9 +14,8 @@ import 'reactflow/dist/style.css';
 import { useStore } from './store';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
-import OutputPanel from './components/OutputPanel';
-import PropertiesPanel from './components/PropertiesPanel'; // New
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Import Tabs
+import TerminalPanel from './components/TerminalPanel';
+import PropertiesPanel from './components/PropertiesPanel';
 import TextInputNode from './nodes/inputs/TextInputNode'; // New
 
 import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
@@ -193,6 +192,15 @@ const FlowEditor = () => {
             connectionLineStyle={{ stroke: 'var(--color-primary)', strokeWidth: 2 }}
             connectionLineType="smoothstep"
             proOptions={{ hideAttribution: true }} // If you have a pro license
+            // Performance optimizations
+            nodesDraggable={true}
+            nodesConnectable={true}
+            elementsSelectable={true}
+            selectNodesOnDrag={false}
+            panOnDrag={true}
+            zoomOnScroll={true}
+            zoomOnPinch={true}
+            preventScrolling={false}
           >
             <Controls className="react-flow__controls" />
             <Background variant="dots" gap={16} size={1} color="var(--color-border)" />
@@ -208,26 +216,18 @@ const FlowEditor = () => {
                 return '#ddd';
             }} />
           </ReactFlow>
+          
+          {/* Properties Panel - overlays on the right side when a node is selected */}
+          {selectedNodeId && (
+            <div className="absolute top-0 right-0 w-80 h-full bg-card border-l border-border shadow-lg z-10">
+              <PropertiesPanel />
+            </div>
+          )}
         </div>
       </div>
-      {/* NEW: Right Tabbed Panel for Output and Properties */}
-      <div className="w-[450px] flex flex-col border-l border-border h-full bg-card"> {/* Fixed width for the tabbed panel */}
-        <Tabs defaultValue="output" className="flex flex-col flex-grow h-full" value={selectedNodeId ? "properties" : "output"}>
-          <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">
-            <TabsTrigger value="output" onClick={() => setSelectedNodeId(null)} className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
-              Output
-            </TabsTrigger>
-            <TabsTrigger value="properties" disabled={!selectedNodeId} className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
-              Properties
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="output" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
-            <OutputPanel />
-          </TabsContent>
-          <TabsContent value="properties" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
-            {selectedNodeId && <PropertiesPanel />}
-          </TabsContent>
-        </Tabs>
+      {/* Right Terminal Panel */}
+      <div className={`${selectedNodeId ? 'w-[420px]' : 'w-[500px]'} flex flex-col border-l border-border h-full bg-card transition-all duration-200`}>
+        <TerminalPanel />
       </div>
     </div>
   );

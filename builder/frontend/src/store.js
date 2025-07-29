@@ -8,7 +8,7 @@ import {
 import { nanoid } from 'nanoid';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5001/api/tframex';
+const API_BASE_URL = 'http://localhost:5000/api/tframex';
 
 const loadState = (key) => {
   try {
@@ -336,6 +336,16 @@ export const useStore = create((set, get) => ({
     }));
   },
 
+  deleteNode: (nodeId) => {
+    set((state) => ({
+      nodes: state.nodes.filter((node) => node.id !== nodeId),
+      edges: state.edges.filter(
+        (edge) => edge.source !== nodeId && edge.target !== nodeId
+      ),
+      selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
+    }));
+  },
+
   // === Project Management State ===
   projects: savedProjects,
   currentProjectId: initialProjectId,
@@ -558,13 +568,58 @@ export const useStore = create((set, get) => ({
 
     try {
       const payload = { message: userMessage, nodes, edges };
+      console.log("🚀 [FIXED VERSION] Sending to chatbot flow builder:", payload);
+      
       const response = await axios.post(`${API_BASE_URL}/chatbot_flow_builder`, payload);
-      console.log("Received from chatbot flow builder:", response.data);
+      console.log("Raw response from chatbot flow builder:", response);
+      console.log("Response data from chatbot flow builder:", response.data);
+      console.log("Response data type:", typeof response.data);
 
-      const reply = response.data?.reply || "Received no reply from chatbot flow builder.";
-      const flowUpdate = response.data?.flow_update;
+      // More defensive checks for response structure
+      if (!response) {
+        console.error("No response object received:", response);
+        addChatMessage('bot', "Error: No response received from server.", 'error');
+        return;
+      }
 
-      addChatMessage('bot', reply);
+      if (!response.data) {
+        console.error("Response object has no data field:", response);
+        addChatMessage('bot', "Error: Server response missing data field.", 'error');
+        return;
+      }
+
+      let responseData;
+      try {
+        // Handle case where response.data might be a string that needs parsing
+        if (typeof response.data === 'string') {
+          console.log("Response data is string, attempting to parse JSON:", response.data);
+          responseData = JSON.parse(response.data);
+        } else {
+          responseData = response.data;
+        }
+      } catch (parseError) {
+        console.error("Failed to parse response data:", parseError, response.data);
+        addChatMessage('bot', "Error: Could not parse server response.", 'error');
+        return;
+      }
+
+      console.log("Parsed responseData:", responseData);
+      console.log("ResponseData type:", typeof responseData);
+
+      const reply = responseData?.reply || "Received no reply from chatbot flow builder.";
+      const flowUpdate = responseData?.flow_update;
+
+      console.log("Extracted reply:", reply);
+      console.log("Extracted flowUpdate:", flowUpdate);
+
+      console.log("🔵 About to call addChatMessage with reply:", reply);
+      try {
+        addChatMessage('bot', reply);
+        console.log("✅ addChatMessage succeeded");
+      } catch (addMessageError) {
+        console.error("❌ Error in addChatMessage:", addMessageError);
+        throw addMessageError;
+      }
 
       if (flowUpdate && Array.isArray(flowUpdate.nodes) && Array.isArray(flowUpdate.edges)) {
         const allKnownTypes = [
@@ -583,13 +638,23 @@ export const useStore = create((set, get) => ({
           addChatMessage('bot', "(Chatbot proposed a flow with unknown component types. Update aborted.)", 'error');
           console.warn("Chatbot proposed invalid node types.", flowUpdate.nodes.map(n=>n.type), "Known:", allKnownTypes);
         }
-      } else if (response.data?.hasOwnProperty('flow_update') && flowUpdate !== null) {
+      } else if (responseData.hasOwnProperty('flow_update') && flowUpdate !== null) {
         addChatMessage('bot', "(Chatbot returned an invalid flow structure)", 'error');
       }
+
+      // Return the response data for TerminalPanel
+      return responseData;
     } catch (error) {
       console.error("Error sending chat message to flow builder:", error);
+      console.error("Error details:", {
+        message: error.message,
+        response: error.response,
+        request: error.request
+      });
+      
       let errorMessage = "Failed to get response from chatbot flow builder.";
       if (error.response) {
+        console.error("Backend error response:", error.response.data);
         errorMessage = `Chatbot Builder Error (${error.response.status}): ${error.response.data?.error || error.response.data?.reply || 'Unknown backend error'}`;
       } else if (error.request) {
         errorMessage = "Network Error: Could not connect to the chatbot flow builder backend.";
@@ -597,6 +662,9 @@ export const useStore = create((set, get) => ({
         errorMessage = `Request Error: ${error.message}`;
       }
       addChatMessage('bot', errorMessage, 'error');
+      
+      // Return error response for TerminalPanel
+      return { reply: errorMessage, flow_update: null };
     } finally {
       set({ isChatbotLoading: false });
     }

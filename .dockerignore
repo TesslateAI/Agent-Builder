@@ -20,42 +20,36 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Frontend build
+# Build outputs
 builder/frontend/dist/
-
-# Environment
-.env
-.env.local
-.env.*.local
+build/
+dist/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
 
-# TFrameX specific
-tframex_generated_outputs/
-example_outputs/
-generated/
-data/*.db
-data/*.db-shm
-data/*.db-wal
+# Environment
+.env
+.env.local
+.env.*.local
 
 # Logs
-logs/
 *.log
+logs/
 
-# Additional patterns
-repomix-output.xml
-test_*.py
-*.db
-*.db-shm
-*.db-wal
-pnpm-lock.yaml
-.env
-builder/backend/.env
+# Testing
+coverage/
+.nyc_output/
+
+# Documentation
+*.md
+!README.md
+docs/

@@ -1,16 +1,17 @@
 // src/components/TopBar.jsx
 import React, { useState, useCallback } from 'react';
 import { useStore } from '../store';
-import { Button } from '@/components/ui/button'; // Use shadcn Button
-import { Input } from '@/components/ui/input'; // Use shadcn Input
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select"; // Use shadcn Select
-import { Save, Play, Trash2, PlusCircle } from 'lucide-react'; // Icons
+} from "@/components/ui/select";
+import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database } from 'lucide-react';
+import ModelConfigurationPanel from './ModelConfigurationPanel';
 
 const TopBar = () => {
   const projects = useStore((state) => state.projects);
@@ -25,117 +26,134 @@ const TopBar = () => {
   const [newProjectName, setNewProjectName] = useState('');
 
   const handleCreateProject = useCallback(() => {
-    createProject(newProjectName.trim() || undefined); // Pass undefined for default name
-    setNewProjectName('');
+    if (newProjectName.trim()) {
+      createProject(newProjectName.trim());
+      setNewProjectName('');
+    }
   }, [createProject, newProjectName]);
 
   const handleProjectChange = (value) => {
-    // Shadcn Select's onValueChange provides the value directly
     if (value) {
       loadProject(value);
     }
   };
 
-   const handleDeleteClick = () => {
-        if (currentProjectId) {
-            // Optional: Add a confirmation dialog here
-            deleteProject(currentProjectId);
-        }
-    };
+  const handleDeleteClick = () => {
+    if (currentProjectId && window.confirm(`Delete project "${projects[currentProjectId]?.name}"?`)) {
+      deleteProject(currentProjectId);
+    }
+  };
 
   return (
-    <div className="h-16 bg-card border-b border-border flex items-center justify-between px-4 shadow-sm flex-shrink-0">
-      {/* Left Side: Logo & Project Controls */}
-      <div className="flex items-center space-x-4">
-         {/* Logo and Title Group */}
-         <div className="flex items-center flex-shrink-0"> {/* Grouping element */}
-             <img
-                src="/Tesslate.svg" // Path relative to public folder
-                alt="Tesslate Logo"
-                className="h-6 w-auto mr-2" // Adjust height as needed, add margin between logo and text
-             />
-             <span className="text-lg font-semibold text-foreground whitespace-nowrap">
-                Tesslate Studio
-             </span>
-         </div>
+    <div className="h-14 bg-card border-b border-border flex items-center justify-between px-6 flex-shrink-0">
+      {/* Left Side: Logo & Title */}
+      <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-3">
+          <img
+            src="/Tesslate.svg"
+            alt="Tesslate"
+            className="h-6 w-auto"
+          />
+          <div>
+            <h1 className="text-lg font-semibold text-foreground leading-none">
+              Tesslate Agent Builder
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Powered by TFrameX v1.1.0
+            </p>
+          </div>
+        </div>
 
-        {/* Project Selector */}
-        <Select
+        <div className="h-8 w-px bg-border" />
+
+        {/* Project Controls */}
+        <div className="flex items-center space-x-2">
+          <Select
             value={currentProjectId || ''}
             onValueChange={handleProjectChange}
             disabled={isRunning}
-        >
-            <SelectTrigger className="w-[180px] text-sm">
-                <SelectValue placeholder="Select Project" />
+          >
+            <SelectTrigger className="w-[200px] h-9">
+              <FolderOpen className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Select Project" />
             </SelectTrigger>
             <SelectContent>
-                {Object.entries(projects).map(([id, project]) => (
-                    <SelectItem key={id} value={id}>
-                        {project.name}
-                    </SelectItem>
-                ))}
+              {Object.entries(projects).map(([id, project]) => (
+                <SelectItem key={id} value={id}>
+                  {project.name}
+                </SelectItem>
+              ))}
             </SelectContent>
-        </Select>
+          </Select>
 
-         {/* Create New Project */}
-        <div className="flex items-center space-x-2">
+          <div className="flex items-center">
             <Input
-                type="text"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="New Project Name..."
-                className="w-40 h-9 text-sm" // Adjusted height and width
-                disabled={isRunning}
+              type="text"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleCreateProject()}
+              placeholder="New project..."
+              className="w-32 h-9 rounded-r-none border-r-0"
+              disabled={isRunning}
             />
             <Button
-                onClick={handleCreateProject}
-                variant="secondary"
-                size="sm" // Smaller button
-                disabled={isRunning}
-                title="Create New Project"
+              onClick={handleCreateProject}
+              variant="secondary"
+              size="sm"
+              className="rounded-l-none h-9"
+              disabled={isRunning || !newProjectName.trim()}
             >
-                <PlusCircle className="h-4 w-4 mr-1" /> Create
+              <Plus className="h-4 w-4" />
             </Button>
-            <Button
-                onClick={handleDeleteClick}
-                variant="destructive"
-                size="icon" // Icon button
-                title="Delete Current Project"
-                disabled={isRunning || !currentProjectId || Object.keys(projects).length <= 1}
-            >
-               <Trash2 className="h-4 w-4" />
-               <span className="sr-only">Delete Project</span> {/* Keep for accessibility */}
-            </Button>
+          </div>
+
+          <Button
+            onClick={handleDeleteClick}
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            disabled={isRunning || !currentProjectId || Object.keys(projects).length <= 1}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
       {/* Right Side: Action Buttons */}
-      <div className="flex items-center space-x-3">
-         <Button
-            onClick={saveCurrentProject}
-            variant="outline"
-            size="sm"
-            disabled={isRunning}
+      <div className="flex items-center space-x-2">
+        <ModelConfigurationPanel />
+
+        <Button
+          onClick={saveCurrentProject}
+          variant="ghost"
+          size="sm"
+          className="h-9"
+          disabled={isRunning}
         >
-            <Save className="h-4 w-4 mr-2" /> Save Project
+          <Save className="h-4 w-4 mr-2" />
+          Save
         </Button>
+
         <Button
           onClick={runFlow}
           size="sm"
-          disabled={isRunning}
-          className={`font-semibold transition-colors duration-150 ease-in-out ${
-            isRunning ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+          className={`h-9 min-w-[100px] ${
+            isRunning 
+              ? 'bg-primary/20 text-primary cursor-not-allowed' 
+              : 'bg-primary text-primary-foreground hover:bg-primary/90'
           }`}
+          disabled={isRunning}
         >
           {isRunning ? (
-             <>
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></span>
-                Running...
-             </>
+            <>
+              <div className="h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Running
+            </>
           ) : (
-             <>
-                <Play className="h-4 w-4 mr-2 fill-current" /> Run Flow
-             </>
+            <>
+              <Play className="h-4 w-4 mr-2" />
+              Run Flow
+            </>
           )}
         </Button>
       </div>

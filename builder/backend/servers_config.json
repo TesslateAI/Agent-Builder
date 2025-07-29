@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "example_stdio": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["example_mcp_server.py"],
+      "env": {},
+      "init_step_timeout": 30.0,
+      "tool_call_timeout": 60.0
+    }
+  }
+}

@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { XIcon, Cog, MessageSquare, Palette } from 'lucide-react';
+import { XIcon, Cog, MessageSquare, Palette, Bot, Settings } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox'; // Assuming created
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const PropertiesPanel = () => {
@@ -71,40 +72,125 @@ const PropertiesPanel = () => {
     : null;
 
 
-  const renderAgentProperties = () => (
-    <>
-      <div className="mb-3">
-        <Label htmlFor="prop-label" className="text-xs">Display Label</Label>
-        <Input id="prop-label" name="label" value={localData.label || ''} onChange={handleInputChange} className="text-sm h-8 border-input" />
-      </div>
-      <div className="mb-3">
-        <Label htmlFor="prop-system_prompt_override" className="text-xs">System Prompt Override</Label>
-        <Textarea
-          id="prop-system_prompt_override"
-          name="system_prompt_override"
-          value={localData.system_prompt_override || ''}
-          onChange={(e) => handleTextareaChange('system_prompt_override', e.target.value)}
-          placeholder={originalAgentDefinition?.config_options?.system_prompt_template ? "Using default system prompt from definition. Override here." : "Enter system prompt override..."}
-          className="text-sm min-h-[100px] font-mono border-input"
-          rows={5}
-        />
-        {originalAgentDefinition?.config_options?.system_prompt_template && !localData.system_prompt_override && (
-            <p className="text-xs text-muted-foreground mt-1">
-                Default: <i>"{originalAgentDefinition.config_options.system_prompt_template.substring(0, 50)}..."</i>
-            </p>
-        )}
-      </div>
-       <Checkbox
+  const renderAgentProperties = () => {
+    // Available models list - in production this should come from backend
+    const availableModels = [
+      'Llama-4-Maverick-17B-128E-Instruct-FP8',
+      'gpt-4',
+      'gpt-3.5-turbo',
+      'claude-3-opus',
+      'claude-3-sonnet',
+      'llama3',
+      'mistral-7b-instruct',
+      'mixtral-8x7b-instruct'
+    ];
+
+    // Get current system prompt (either override or default)
+    const currentSystemPrompt = localData.system_prompt_override || 
+      originalAgentDefinition?.config_options?.system_prompt_template || 
+      'No system prompt defined';
+
+    const handleModelChange = (value) => {
+      setLocalData(prev => ({ ...prev, model: value }));
+    };
+
+    const handleToolToggle = (toolId, checked) => {
+      const currentTools = localData.selected_tools || [];
+      const newTools = checked 
+        ? [...currentTools, toolId]
+        : currentTools.filter(t => t !== toolId);
+      setLocalData(prev => ({ ...prev, selected_tools: newTools }));
+    };
+
+    return (
+      <>
+        <div className="mb-3">
+          <Label htmlFor="prop-label" className="text-xs">Display Label</Label>
+          <Input id="prop-label" name="label" value={localData.label || ''} onChange={handleInputChange} className="text-sm h-8 border-input" />
+        </div>
+        
+        <div className="mb-3">
+          <Label htmlFor="prop-model" className="text-xs flex items-center">
+            <Bot className="h-3 w-3 mr-1" />
+            Model
+          </Label>
+          <Select value={localData.model || 'Llama-4-Maverick-17B-128E-Instruct-FP8'} onValueChange={handleModelChange}>
+            <SelectTrigger className="text-sm h-8">
+              <SelectValue placeholder="Select a model" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableModels.map(model => (
+                <SelectItem key={model} value={model} className="text-sm">
+                  {model}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="mb-3">
+          <Label className="text-xs flex items-center mb-2">
+            <Settings className="h-3 w-3 mr-1" />
+            Available Tools
+          </Label>
+          <div className="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2">
+            {tframexComponents.tools.map(tool => (
+              <div key={tool.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`tool-${tool.id}`}
+                  checked={localData.selected_tools?.includes(tool.id) || false}
+                  onCheckedChange={(checked) => handleToolToggle(tool.id, checked)}
+                />
+                <label 
+                  htmlFor={`tool-${tool.id}`} 
+                  className="text-xs cursor-pointer"
+                >
+                  {tool.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <Label htmlFor="prop-system_prompt" className="text-xs">Current System Prompt</Label>
+          <Textarea
+            id="prop-system_prompt"
+            value={currentSystemPrompt}
+            readOnly
+            className="text-sm min-h-[80px] font-mono border-input bg-muted/30"
+            rows={4}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            This shows the current system prompt. Edit below to override.
+          </p>
+        </div>
+
+        <div className="mb-3">
+          <Label htmlFor="prop-system_prompt_override" className="text-xs">System Prompt Override</Label>
+          <Textarea
+            id="prop-system_prompt_override"
+            name="system_prompt_override"
+            value={localData.system_prompt_override || ''}
+            onChange={(e) => handleTextareaChange('system_prompt_override', e.target.value)}
+            placeholder="Enter a custom system prompt to override the default..."
+            className="text-sm min-h-[100px] font-mono border-input"
+            rows={5}
+          />
+        </div>
+        <div className="mb-3">
+          <Checkbox
             id="prop-strip_think_tags_override"
             checked={localData.strip_think_tags_override !== undefined ? !!localData.strip_think_tags_override : (originalAgentDefinition?.config_options?.strip_think_tags || false)}
             onCheckedChange={(checked) => setLocalData(prev => ({ ...prev, strip_think_tags_override: checked }))}
-            labelClassName="text-xs"
-        >
-            Strip tags from output
-        </Checkbox>
-      {/* Add more agent-specific properties here, e.g., template_vars_config if needed */}
-    </>
-  );
+          />
+          <label htmlFor="prop-strip_think_tags_override" className="text-xs ml-2 cursor-pointer">
+            Strip think tags from output
+          </label>
+        </div>
+      </>
+    );
+  };
 
   const renderTextInputProperties = () => (
      <>

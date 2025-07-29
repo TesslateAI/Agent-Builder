@@ -1,188 +1,365 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@theme {
+  --color-background: #0a0a0b;
+  --color-foreground: #e5e5e7;
+  --color-card: #131316;
+  --color-card-foreground: #e5e5e7;
+  --color-popover: #1a1a1d;
+  --color-popover-foreground: #e5e5e7;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #27272a;
+  --color-secondary-foreground: #e5e5e7;
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+  --color-accent: #6366f1;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-input: rgba(255, 255, 255, 0.08);
+  --color-ring: #3b82f6;
+  --color-sidebar: #0f0f11;
+  --color-sidebar-foreground: #e5e5e7;
+  --color-sidebar-border: rgba(255, 255, 255, 0.06);
+  --radius: 0.375rem;
+}
+
 @custom-variant dark (&:is(.dark *));
-/* Basic dark theme styles */
+
+/* Base Styles */
 body {
-  @apply bg-gray-900 text-gray-200 font-sans;
+  @apply bg-background text-foreground font-sans antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Roboto', sans-serif;
 }
 
-/* Style React Flow */
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-md;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground;
+}
+
+/* React Flow Customization */
 .react-flow__pane {
-  background-color: #1a202c; /* Slightly lighter dark */
-}
-
-.react-flow__controls button {
-  @apply bg-gray-700 text-gray-200 border-gray-600 hover:bg-gray-600;
-}
-
-.react-flow__minimap {
-   @apply bg-gray-800 border border-gray-600;
-}
-.react-flow__minimap-node {
-   @apply fill-blue-500 stroke-blue-300;
+  background-color: var(--background);
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .react-flow__node {
-  /* Add more specific node styles in node components or here */
-  @apply bg-gray-800 border border-gray-600 rounded-lg shadow-md text-gray-200;
-  min-width: 200px; /* Ensure nodes have some minimum width */
+  @apply bg-card border border-border rounded-lg shadow-lg;
+  transition: all 0.2s ease;
+}
+
+.react-flow__node:hover {
+  @apply shadow-xl border-primary/50;
+  transform: translateY(-1px);
+}
+
+.react-flow__node.selected {
+  @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
 }
 
 .react-flow__handle {
-    @apply bg-blue-500 border-2 border-gray-900;
-    width: 10px;
-    height: 10px;
+  @apply bg-primary border-2 border-background;
+  width: 12px;
+  height: 12px;
+  transition: all 0.2s ease;
+}
+
+.react-flow__handle:hover {
+  @apply scale-125 bg-accent;
 }
 
 .react-flow__handle-connecting {
-    @apply bg-green-500;
+  @apply bg-accent scale-150;
 }
 
 .react-flow__edge-path {
-  @apply stroke-blue-400;
-   stroke-width: 2;
+  stroke-width: 2;
+  transition: stroke 0.2s ease;
 }
 
-/* Custom Scrollbar for dark theme */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  @apply bg-gray-700 rounded;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-500 rounded;
-}
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+.react-flow__edge-path:hover {
+  stroke-width: 3;
 }
 
-/* Input/Textarea Styling */
-.node-input, .node-textarea {
-    @apply block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-1 px-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
-    margin-top: 4px; /* Add some space */
+/* Controls Styling */
+.react-flow__controls {
+  @apply bg-card border border-border rounded-lg shadow-lg m-4;
+  padding: 4px;
 }
+
+.react-flow__controls button {
+  @apply bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted rounded;
+  width: 32px;
+  height: 32px;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.react-flow__controls button:hover {
+  @apply bg-muted;
+}
+
+.react-flow__controls button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Minimap Styling */
+.react-flow__minimap {
+  @apply bg-card border border-border rounded-lg shadow-lg;
+  margin: 16px;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(255, 255, 255, 0.1);
+  stroke: var(--primary);
+  stroke-width: 2px;
+}
+
+.react-flow__minimap-node {
+  fill: var(--muted);
+  stroke: var(--border);
+  stroke-width: 1px;
+}
+
+/* Node Styling */
+.node-header {
+  @apply px-4 py-3 border-b border-border flex items-center justify-between;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.node-content {
+  @apply p-4;
+}
+
+.node-input, .node-textarea, .node-select {
+  @apply w-full bg-input border border-border rounded-md px-3 py-2 text-sm;
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  @apply placeholder-muted-foreground;
+  transition: all 0.2s ease;
+}
+
 .node-textarea {
-    min-height: 60px; /* Give textareas some default height */
+  @apply resize-none;
+  min-height: 80px;
 }
+
 .node-label {
-    @apply block text-sm font-medium text-gray-300 mb-1;
+  @apply block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider;
 }
 
-@theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+/* Button Styling */
+.btn {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium;
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply transition-all duration-200;
+  height: 36px;
+  padding: 0 16px;
 }
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+.btn-primary {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+.btn-secondary {
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+}
+
+.btn-ghost {
+  @apply hover:bg-accent hover:text-accent-foreground;
+}
+
+.btn-destructive {
+  @apply bg-destructive text-white hover:bg-destructive/90;
+}
+
+/* Panel Styling */
+.panel {
+  @apply bg-card border-border;
+}
+
+.panel-header {
+  @apply px-4 py-3 border-b border-border flex items-center justify-between;
+  @apply text-sm font-semibold;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Terminal/Output Styling */
+.terminal {
+  @apply bg-background rounded-lg p-4 font-mono text-sm;
+  @apply border border-border;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.terminal-line {
+  @apply py-0.5;
+  line-height: 1.5;
+}
+
+.terminal-prompt {
+  @apply text-primary mr-2;
+}
+
+.terminal-output {
+  @apply text-muted-foreground;
+}
+
+.terminal-error {
+  @apply text-destructive;
+}
+
+.terminal-success {
+  @apply text-green-500;
+}
+
+/* Sidebar Styling */
+.sidebar {
+  @apply bg-sidebar border-r border-sidebar-border;
+  @apply flex flex-col h-full;
+}
+
+.sidebar-header {
+  @apply px-4 py-4 border-b border-sidebar-border;
+}
+
+.sidebar-content {
+  @apply flex-1 overflow-y-auto;
+}
+
+/* Tab Styling */
+.tabs-list {
+  @apply bg-muted/30 p-1 rounded-lg;
+}
+
+.tab-trigger {
+  @apply px-3 py-1.5 text-sm font-medium rounded-md;
+  @apply hover:bg-muted/50 transition-all duration-200;
+}
+
+.tab-trigger[data-state="active"] {
+  @apply bg-background shadow-sm;
+}
+
+/* Form Elements */
+.form-group {
+  @apply space-y-2 mb-4;
+}
+
+.form-label {
+  @apply text-sm font-medium;
+}
+
+.form-input {
+  @apply w-full bg-input border border-border rounded-md px-3 py-2 text-sm;
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  @apply placeholder-muted-foreground;
+}
+
+/* Card Styling */
+.card {
+  @apply bg-card rounded-lg border border-border shadow-sm;
+}
+
+.card-header {
+  @apply px-4 py-3 border-b border-border;
+}
+
+.card-content {
+  @apply p-4;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Utility Classes */
+.glass {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.gradient-border {
+  position: relative;
+  background: linear-gradient(var(--card), var(--card)) padding-box,
+              linear-gradient(135deg, var(--primary), var(--accent)) border-box;
+  border: 2px solid transparent;
+}
+
+/* Layout Utilities */
+.h-screen-safe {
+  height: 100vh;
+  height: 100dvh;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+  
+  h1 {
+    @apply text-2xl;
+  }
+  
+  h2 {
+    @apply text-xl;
+  }
+  
+  h3 {
+    @apply text-lg;
   }
 }

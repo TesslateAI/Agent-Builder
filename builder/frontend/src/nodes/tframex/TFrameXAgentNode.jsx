@@ -10,11 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 // import { Checkbox } from '@/components/ui/checkbox'; // Assuming you create this - Removed checkbox from here
 import { isEqual } from 'lodash'; // For comparing tool arrays - Import isEqual
-import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare } from 'lucide-react';
+import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare, X } from 'lucide-react';
 
 const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const allTools = useStore((state) => state.tframexComponents.tools);
+  const deleteNode = useStore((state) => state.deleteNode);
 
   const agentDefinition = useStore(state =>
     state.tframexComponents.agents.find(a => a.id === tframexAgentId)
@@ -150,9 +151,20 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
 
       {/* --- NEW: Modified State Indicator Dot --- */}
       {isModified && (
-        <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-blue-500 rounded-full ring-1 ring-offset-1 ring-offset-card ring-blue-400" title="Modified from base definition"></div>
+        <div className="absolute top-1.5 right-8 w-2.5 h-2.5 bg-blue-500 rounded-full ring-1 ring-offset-1 ring-offset-card ring-blue-400" title="Modified from base definition"></div>
       )}
       {/* --- END NEW --- */}
+      
+      {/* Delete button */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => deleteNode(id)}
+        className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-destructive/10"
+        title="Delete agent"
+      >
+        <X className="h-4 w-4 text-destructive" />
+      </Button>
 
 
       <CardHeader className="p-3 border-b border-border cursor-grab active:cursor-grabbing">

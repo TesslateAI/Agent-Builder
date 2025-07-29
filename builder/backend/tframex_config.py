@@ -2,9 +2,15 @@
 import os
 import logging
 from dotenv import load_dotenv
-from tframex import TFrameXApp, OpenAIChatLLM, Tool # Import Tool for potential pre-registration
+from tframex import TFrameXApp, OpenAIChatLLM, Tool, setup_logging
+from tframex.mcp import MCPManager
+import json
+from pathlib import Path
 
 load_dotenv()
+
+# Setup TFrameX logging
+setup_logging(level=logging.INFO, use_colors=True)
 logger = logging.getLogger("TFrameXConfig")
 
 # --- Global TFrameX App Instance ---
@@ -13,30 +19,50 @@ logger = logging.getLogger("TFrameXConfig")
 tframex_app_instance: TFrameXApp = None
 
 def init_tframex_app():
-    """Initializes and returns the global TFrameXApp instance."""
+    """Initializes and returns the global TFrameXApp instance with v1.1.0 features."""
     global tframex_app_instance
     if tframex_app_instance is not None:
         return tframex_app_instance
 
-    logger.info("Initializing global TFrameXApp instance...")
+    logger.info("Initializing global TFrameXApp instance with v1.1.0 features...")
     
     # Configure the default LLM for the TFrameXApp
-    # This LLM will be used by agents unless they have a specific override
+    # Support for multiple LLM providers as per v1.1.0
+    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("LLAMA_API_KEY")
+    api_base_url = os.getenv("OPENAI_API_BASE") or os.getenv("LLAMA_BASE_URL") or "http://localhost:11434/v1"
+    model_name = os.getenv("OPENAI_MODEL_NAME") or os.getenv("LLAMA_MODEL") or "gpt-3.5-turbo"
+    
     default_llm = OpenAIChatLLM(
-        model_name=os.getenv("OPENAI_MODEL_NAME", "gpt-3.5-turbo"),
-        api_base_url=os.getenv("OPENAI_API_BASE", "http://localhost:11434/v1"), # Default for local Ollama
-        api_key=os.getenv("OPENAI_API_KEY", "ollama") # Default for local Ollama
+        model_name=model_name,
+        api_base_url=api_base_url,
+        api_key=api_key or "ollama",  # Default for local Ollama
+        parse_text_tool_calls=True  # New in v1.1.0 for better tool parsing
     )
 
     if not default_llm.api_base_url:
-        logger.error("FATAL: Default LLM API base URL (OPENAI_API_BASE) is not configured.")
-        # In a real app, you might raise an exception or prevent startup
-    if not default_llm.api_key and default_llm.api_base_url and "api.openai.com" in default_llm.api_base_url:
-         logger.error("FATAL: OPENAI_API_KEY is not set for OpenAI default LLM.")
+        logger.error("FATAL: Default LLM API base URL is not configured.")
+    if not default_llm.api_key and "api.openai.com" in str(default_llm.api_base_url):
+        logger.error("FATAL: API key is not set for OpenAI LLM.")
 
+    # Check for MCP configuration
+    mcp_config_path = os.getenv("MCP_CONFIG_FILE", "servers_config.json")
+    if not Path(mcp_config_path).exists():
+        logger.info(f"MCP config file {mcp_config_path} not found, MCP features will be disabled")
+        mcp_config_path = None
 
-    tframex_app_instance = TFrameXApp(default_llm=default_llm)
-    logger.info(f"TFrameXApp initialized with default LLM: {default_llm.model_id if default_llm else 'None'}")
+    # Initialize TFrameXApp with v1.1.0 parameters
+    tframex_app_instance = TFrameXApp(
+        default_llm=default_llm,
+        mcp_config_file=mcp_config_path,
+        enable_mcp_roots=True,
+        enable_mcp_sampling=True,
+        enable_mcp_experimental=False,
+        mcp_roots_allowed_paths=None  # Can be configured via environment
+    )
+    
+    logger.info(f"TFrameXApp initialized with:")
+    logger.info(f"  - LLM: {model_name} via {api_base_url}")
+    logger.info(f"  - MCP: {'Enabled' if mcp_config_path else 'Disabled'}")
 
     # --- Pre-register Example/Core Studio Tools or Agents (Optional) ---
     # Example: A simple tool available by default
@@ -45,19 +71,22 @@ def init_tframex_app():
         logger.info(f"Studio Example Tool called with: {text}")
         return f"Studio Example Tool processed: '{text.upper()}'"
 
-    # Example: A default agent for the chatbot flow builder (if needed)
-    # This agent's prompt needs to be VERY carefully crafted to output ReactFlow JSON
-    studio_flow_builder_agent_prompt = """
-You are an AI assistant that helps users design visual workflows using TFrameX components by outputting ReactFlow JSON.
-Based on the user's request, the available TFrameX components, and the current flow state,
-you must generate a complete JSON object representing the new visual flow.
+    # Register example MCP meta-tools if MCP is enabled
+    if mcp_config_path and hasattr(tframex_app_instance, '_mcp_manager') and tframex_app_instance._mcp_manager:
+        logger.info("MCP is enabled, meta-tools are automatically registered")
 
-Output *only* a valid JSON object with "nodes" and "edges" keys.
-- "nodes": Array of node objects (id, type, position, data).
-  - 'type' must be a valid TFrameX component ID (e.g., an agent name, or a Pattern class name like 'SequentialPattern').
-  - 'data' for Agent nodes can include 'label', 'selected_tools' (list of tool names), 'template_vars_config' (dict).
-  - 'data' for Pattern nodes must include parameters for their constructor (e.g., for SequentialPattern: 'steps_config': ['AgentName1', 'AgentName2']). Agent names in pattern configs must be valid.
-- "edges": Array of edge objects (id, source, target, sourceHandle, targetHandle).
+    # Two-Agent Architecture: Conversational Assistant + Flow Builder
+    
+    # 1. Conversational Assistant Agent
+    assistant_agent_prompt = """
+You are a helpful AI assistant for the TFrameX Agent Builder Studio. You help users design and create visual workflows using TFrameX components.
+
+Your role:
+- Have natural conversations with users about their workflow needs
+- Ask clarifying questions when needed
+- Explain TFrameX concepts and components
+- Provide guidance on workflow design
+- When the user wants to modify the flow, send instructions to the FlowBuilderAgent
 
 Available TFrameX Components:
 {available_components_context}
@@ -65,21 +94,62 @@ Available TFrameX Components:
 Current Flow State:
 {current_flow_state_context}
 
-User's Request: {user_query}
+Communication Protocol:
+- When the user wants to modify the flow, end your response with:
+  FLOW_INSTRUCTION: [clear instruction for FlowBuilderAgent]
+- Otherwise, respond conversationally to help the user
 
-Think step-by-step using <think>...</think> tags.
-The final output MUST be ONLY the JSON object.
+Be helpful, friendly, and educational. Help users understand how to build effective workflows with TFrameX.
     """
+    
     @tframex_app_instance.agent(
-        name="StudioFlowBuilderMetaAgent",
-        description="Internal agent used by the Studio chatbot to generate ReactFlow JSON for TFrameX flows.",
-        system_prompt=studio_flow_builder_agent_prompt,
-        strip_think_tags=True # Important for clean JSON output
+        name="ConversationalAssistant",
+        description="Friendly assistant that talks to users about their workflow needs and coordinates with the FlowBuilderAgent.",
+        system_prompt=assistant_agent_prompt,
+        strip_think_tags=True
     )
-    async def _studio_flow_builder_meta_agent_placeholder():
-        pass # Logic is handled by TFrameX LLMAgent
+    async def _conversational_assistant_placeholder():
+        pass
+    
+    # 2. Flow Builder Agent (receives instructions from assistant)
+    flow_builder_agent_prompt = """
+You are a specialized agent that converts workflow instructions into ReactFlow JSON for TFrameX components.
 
-    logger.info("StudioFlowBuilderMetaAgent registered.")
+Your role:
+- Receive clear instructions from the ConversationalAssistant
+- Generate precise ReactFlow JSON based on those instructions
+- Consider the current flow state and available components
+- Output clean, valid JSON that can be parsed directly
+
+Available TFrameX Components:
+{available_components_context}
+
+Current Flow State:
+{current_flow_state_context}
+
+Instruction: {flow_instruction}
+
+CRITICAL REQUIREMENTS:
+1. Output ONLY valid JSON - no markdown, no explanations, no extra text
+2. JSON must have "nodes" and "edges" keys
+3. Node 'type' must be valid TFrameX component ID
+4. Agent nodes can have 'label', 'selected_tools', 'template_vars_config' in data
+5. Pattern nodes must have proper constructor parameters in data
+6. Generate appropriate positions for new nodes
+
+Output the JSON now:
+    """
+    
+    @tframex_app_instance.agent(
+        name="FlowBuilderAgent",
+        description="Specialized agent that generates ReactFlow JSON based on instructions from the ConversationalAssistant.",
+        system_prompt=flow_builder_agent_prompt,
+        strip_think_tags=True
+    )
+    async def _flow_builder_agent_placeholder():
+        pass
+
+    logger.info("ConversationalAssistant and FlowBuilderAgent registered.")
     return tframex_app_instance
 
 # Ensure it's initialized when this module is imported
