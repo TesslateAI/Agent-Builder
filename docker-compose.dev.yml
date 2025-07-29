@@ -1,0 +1,211 @@
+# =============================================================================
+# Docker Compose Development Configuration
+# Optimized for development workflow with hot reload and debugging
+# =============================================================================
+
+services:
+  # =============================================================================
+  # Backend Service (Flask API + TFrameX)
+  # =============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        BUILD_ENV: development
+    container_name: agent-builder-backend-dev
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - FLASK_RUN_HOST=0.0.0.0
+      - FLASK_RUN_PORT=5000
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=DEBUG
+    env_file:
+      - .env
+    volumes:
+      # Source code mounting for hot reload
+      - ./builder/backend:/app/builder/backend:rw
+      - ./builder/backend/data:/app/data:rw
+      - ./builder/backend/logs:/app/logs:rw
+      # Configuration files
+      - ./builder/backend/.env:/app/builder/backend/.env:ro
+      - ./builder/backend/servers_config.json:/app/builder/backend/servers_config.json:ro
+      - ./builder/backend/enterprise_config.yaml:/app/builder/backend/enterprise_config.yaml:ro
+    networks:
+      - agent-builder-dev
+    depends_on:
+      - redis
+      - postgres
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend-dev.rule=Host(`api.localhost`)"
+      - "traefik.http.services.backend-dev.loadbalancer.server.port=5000"
+
+  # =============================================================================
+  # Frontend Service (React + Vite with HMR)
+  # =============================================================================
+  frontend:
+    build:
+      context: ./builder/frontend
+      dockerfile: Dockerfile.dev
+    container_name: agent-builder-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_BASE_URL=http://localhost:5000
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      # Source code mounting for hot reload
+      - ./builder/frontend:/app:rw
+      - /app/node_modules
+    networks:
+      - agent-builder-dev
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend-dev.rule=Host(`localhost`)"
+      - "traefik.http.services.frontend-dev.loadbalancer.server.port=5173"
+
+  # =============================================================================
+  # Redis (for caching and session management)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: agent-builder-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - agent-builder-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # PostgreSQL (for enterprise features and data persistence)
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: agent-builder-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=agentbuilder_dev
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=devpass
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - agent-builder-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser -d agentbuilder_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # Ollama (Local LLM server for development)
+  # =============================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: agent-builder-ollama-dev
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-dev-data:/root/.ollama
+    networks:
+      - agent-builder-dev
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
+  # Development Tools & Monitoring
+  # =============================================================================
+  
+  # Traefik (Reverse proxy for easier development)
+  traefik:
+    image: traefik:v3.0
+    container_name: agent-builder-traefik-dev
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8080:8080"  # Traefik dashboard
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - agent-builder-dev
+
+  # Redis Insight (Redis GUI for development)
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    container_name: agent-builder-redisinsight-dev
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - redisinsight-dev-data:/db
+    networks:
+      - agent-builder-dev
+
+  # PgAdmin (PostgreSQL GUI for development)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: agent-builder-pgadmin-dev
+    restart: unless-stopped
+    ports:
+      - "8002:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=dev@example.com
+      - PGADMIN_DEFAULT_PASSWORD=devpass
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - pgadmin-dev-data:/var/lib/pgadmin
+    networks:
+      - agent-builder-dev
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  agent-builder-dev:
+    driver: bridge
+    name: agent-builder-dev
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  redis-dev-data:
+    name: agent-builder-redis-dev-data
+  postgres-dev-data:
+    name: agent-builder-postgres-dev-data
+  ollama-dev-data:
+    name: agent-builder-ollama-dev-data
+  redisinsight-dev-data:
+    name: agent-builder-redisinsight-dev-data
+  pgadmin-dev-data:
+    name: agent-builder-pgadmin-dev-data

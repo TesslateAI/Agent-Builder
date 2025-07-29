@@ -128,18 +128,39 @@ body {
 .react-flow__minimap {
   @apply bg-card border border-border rounded-lg shadow-lg;
   margin: 16px;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.react-flow__minimap:hover {
+  opacity: 1;
 }
 
 .react-flow__minimap-mask {
-  fill: rgba(255, 255, 255, 0.1);
-  stroke: var(--primary);
+  fill: rgba(59, 130, 246, 0.15);
+  stroke: var(--color-primary);
   stroke-width: 2px;
+  stroke-dasharray: 5 5;
+  animation: dash 20s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -100;
+  }
 }
 
 .react-flow__minimap-node {
-  fill: var(--muted);
-  stroke: var(--border);
+  fill: var(--color-muted);
+  stroke: var(--color-border);
   stroke-width: 1px;
+  transition: all 0.2s ease;
+}
+
+.react-flow__minimap-node:hover {
+  fill: var(--color-primary);
+  stroke: var(--color-primary);
+  stroke-width: 2px;
 }
 
 /* Node Styling */

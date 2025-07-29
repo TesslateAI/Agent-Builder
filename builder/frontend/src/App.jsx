@@ -16,6 +16,7 @@ import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import TerminalPanel from './components/TerminalPanel';
 import PropertiesPanel from './components/PropertiesPanel';
+import NavigationControls from './components/NavigationControls';
 import TextInputNode from './nodes/inputs/TextInputNode'; // New
 
 import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
@@ -42,23 +43,42 @@ const FlowEditor = () => {
   const addNode = useStore((state) => state.addNode);
   const selectedNodeId = useStore((state) => state.selectedNodeId); // Get selectedNodeId
   const setSelectedNodeId = useStore((state) => state.setSelectedNodeId); // Keep for node deselection
+  const saveCurrentProject = useStore((state) => state.saveCurrentProject);
+  const projects = useStore((state) => state.projects);
+  const currentProjectId = useStore((state) => state.currentProjectId);
+
+  // Save viewport changes
+  const onViewportChange = useCallback((viewport) => {
+    if (viewport) {
+      saveCurrentProject(viewport);
+    }
+  }, [saveCurrentProject]);
+
+  // Restore viewport when loading project
+  useEffect(() => {
+    const currentProject = projects[currentProjectId];
+    if (currentProject?.viewport && currentProject.viewport.x !== undefined) {
+      setViewport(currentProject.viewport, { duration: 0 });
+    }
+  }, [currentProjectId, projects, setViewport]);
 
   // Fit view logic using useNodesInitialized
   const nodesInitialized = useNodesInitialized();
   useEffect(() => {
     if (nodesInitialized && nodes.length > 0) {
-        // Check if viewport is default (likely first load or project switch)
-        const currentViewport = getViewport();
-        if (currentViewport.x === 0 && currentViewport.y === 0 && currentViewport.zoom === 1) {
-            // project() should ideally call fitView, but sometimes direct fitView is needed
-            // This is a bit of a workaround; React Flow's fitView on load can be tricky
+        const currentProject = projects[currentProjectId];
+        // Only fit view if no saved viewport
+        if (!currentProject?.viewport || 
+            (currentProject.viewport.x === 0 && 
+             currentProject.viewport.y === 0 && 
+             currentProject.viewport.zoom === 1)) {
+            // Auto-fit for new projects or projects without saved viewport
             setTimeout(() => {
                 // This ensures fitView is called after nodes are definitely rendered
-                // No direct 'fitView' from useReactFlow, rely on ReactFlow's prop or manual calc
             }, 100);
         }
     }
-  }, [nodesInitialized, nodes, getViewport, project]);
+  }, [nodesInitialized, nodes, currentProjectId, projects]);
 
 
   const onDragOver = useCallback((event) => {
@@ -185,8 +205,9 @@ const FlowEditor = () => {
             nodeTypes={dynamicNodeTypes}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
+            onViewportChange={onViewportChange}
             fitView // Let ReactFlow manage fitView on initial load/nodes change
-            fitViewOptions={{ padding: 0.15, minZoom: 0.2, maxZoom: 2 }}
+            fitViewOptions={{ padding: 0.15, minZoom: 0.1, maxZoom: 4 }}
             className="bg-background"
             defaultEdgeOptions={{ type: 'smoothstep' }} // Base style in defaultEdgeOptions
             connectionLineStyle={{ stroke: 'var(--color-primary)', strokeWidth: 2 }}
@@ -200,11 +221,15 @@ const FlowEditor = () => {
             panOnDrag={true}
             zoomOnScroll={true}
             zoomOnPinch={true}
-            preventScrolling={false}
+            zoomOnDoubleClick={true}
+            preventScrolling={true}
           >
-            <Controls className="react-flow__controls" />
+            <NavigationControls />
             <Background variant="dots" gap={16} size={1} color="var(--color-border)" />
-            <MiniMap nodeStrokeWidth={3} nodeColor={(n) => {
+            <MiniMap 
+              nodeStrokeWidth={3} 
+              className="!m-4 !bg-card !border-border" 
+              nodeColor={(n) => {
                 if (n.type === 'textInput') return '#0ea5e9'; // Cyan for text input
                 if (n.data?.component_category === 'agent') return 'var(--color-primary)';
                 if (n.data?.component_category === 'pattern') return 'var(--color-secondary)';

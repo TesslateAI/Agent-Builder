@@ -33,7 +33,7 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
     (toolDefinition.parameters_schema && Object.keys(toolDefinition.parameters_schema).length > 0 && toolDefinition.description?.toLowerCase().includes("return"));
 
   return (
-    <Card className="w-64 shadow-md border-border bg-card text-card-foreground opacity-90 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing relative">
+    <Card className="w-64 shadow-md bg-card text-card-foreground opacity-90 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing relative">
       <Handle 
         type="source"
         position={Position.Right}
@@ -62,7 +62,7 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
         <X className="h-4 w-4 text-destructive" />
       </Button>
 
-      <CardHeader className="p-2.5 border-b border-border">
+      <CardHeader className="p-2.5 border-b">
          <div className="flex items-center space-x-2">
             <Wrench className="h-4 w-4 text-indigo-400 flex-shrink-0" />
             <CardTitle className="text-sm font-semibold truncate" title={data.label || tframexToolId}>{data.label || tframexToolId}</CardTitle>

@@ -124,7 +124,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
 
 
   return (
-    <Card className="w-72 shadow-lg border-border bg-card text-card-foreground relative"> 
+    <Card className="w-72 shadow-lg bg-card text-card-foreground relative"> 
       <Handle
         type="target"
         position={Position.Left}
@@ -167,7 +167,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
       </Button>
 
 
-      <CardHeader className="p-3 border-b border-border cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-3 border-b cursor-grab active:cursor-grabbing">
         <div className="flex items-center space-x-2">
             <Cog className="h-5 w-5 text-primary flex-shrink-0" />
             <Input
