@@ -4,39 +4,93 @@ __pycache__/
 *$py.class
 *.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
 .venv/
 venv/
 ENV/
 env/
-*.egg-info/
+.env/
+
+# Testing
 .pytest_cache/
 .coverage
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+htmlcov/
+
+# Code quality and formatting
 .mypy_cache/
 .ruff_cache/
+.black
+.flake8
 
-# Node
+# Node.js
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Frontend build
+# Frontend build artifacts
 builder/frontend/dist/
+builder/frontend/build/
+*.tsbuildinfo
 
-# Environment
+# Environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+builder/backend/.env
+builder/backend/.env.*
+!builder/backend/.env.example
 
-# IDE
+# IDE and editors
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+.vimrc.local
 
-# OS
+# GitHub and Claude directories  
+.github/
+.claude/
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+
+# Docker
+.dockerignore
+docker-compose.override.yml
 
 # TFrameX specific
 tframex_generated_outputs/
@@ -49,6 +103,15 @@ data/*.db-wal
 # Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
 
 # Additional patterns
 repomix-output.xml
@@ -56,6 +119,8 @@ test_*.py
 *.db
 *.db-shm
 *.db-wal
-pnpm-lock.yaml
-.env
-builder/backend/.env
+
+# Backup files
+*.bak
+*.backup
+*~

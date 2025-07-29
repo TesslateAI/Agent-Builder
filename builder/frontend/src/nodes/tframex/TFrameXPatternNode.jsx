@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Puzzle, PlusCircle, Trash2, Users, Settings2, Route, GitBranch, Link2 } from 'lucide-react';
+import { Puzzle, PlusCircle, Trash2, Users, Settings2, Route, GitBranch, Link2, X } from 'lucide-react';
 
 const PatternListItem = ({ parentNodeId, paramName, agentIdInSlot, index, onRemove, getAgentNameById }) => {
     // console.log(`[PatternListItem] Rendering for ${paramName}[${index}] on node ${parentNodeId}. Agent ID: ${agentIdInSlot}`); // DEBUG: Uncomment to see if item renders
@@ -58,7 +58,8 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const allAgents = useStore((state) => state.tframexComponents.agents);
   const allPatternsFromStore = useStore((state) => state.tframexComponents.patterns);
-  const nodes = useStore((state) => state.nodes); 
+  const nodes = useStore((state) => state.nodes);
+  const deleteNode = useStore((state) => state.deleteNode); 
 
   const patternDefinition = useStore(state => 
     state.tframexComponents.patterns.find(p => p.id === tframexPatternId)
@@ -313,8 +314,19 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
 
 
   return (
-    <Card className="w-[26rem] shadow-lg border-border bg-card text-card-foreground">
+    <Card className="w-[26rem] shadow-lg border-border bg-card text-card-foreground relative">
       <Handle type="target" position={Position.Left} id="input_flow_in" style={{ background: '#60a5fa', top: outputHandleTop, zIndex: 1 }} title="Flow Input" />
+      
+      {/* Delete button */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => deleteNode(id)}
+        className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-destructive/10 z-10"
+        title="Delete pattern"
+      >
+        <X className="h-4 w-4 text-destructive" />
+      </Button>
       
       {routeOutputHandles.map(handleProps => (
           <Handle
