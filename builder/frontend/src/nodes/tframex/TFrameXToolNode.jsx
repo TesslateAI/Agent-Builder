@@ -3,7 +3,8 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Wrench, Zap } from 'lucide-react'; 
+import { Button } from '@/components/ui/button';
+import { Wrench, Zap, X } from 'lucide-react'; 
 import { useStore } from '../../store';
 
 
@@ -11,6 +12,7 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
   const toolDefinition = useStore(state => 
     state.tframexComponents.tools.find(t => t.id === tframexToolId)
   );
+  const deleteNode = useStore((state) => state.deleteNode);
 
   if (!toolDefinition) {
     return (
@@ -31,7 +33,7 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
     (toolDefinition.parameters_schema && Object.keys(toolDefinition.parameters_schema).length > 0 && toolDefinition.description?.toLowerCase().includes("return"));
 
   return (
-    <Card className="w-64 shadow-md border-border bg-card text-card-foreground opacity-90 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+    <Card className="w-64 shadow-md border-border bg-card text-card-foreground opacity-90 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing relative">
       <Handle 
         type="source"
         position={Position.Right}
@@ -48,6 +50,17 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
           title="Tool Data Output (Connect to Agent Input)"
         />
       )}
+
+      {/* Delete button */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => deleteNode(id)}
+        className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-destructive/10 z-10"
+        title="Delete tool"
+      >
+        <X className="h-4 w-4 text-destructive" />
+      </Button>
 
       <CardHeader className="p-2.5 border-b border-border">
          <div className="flex items-center space-x-2">
