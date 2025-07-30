@@ -52,6 +52,11 @@ global_tframex_app = get_tframex_app_instance() # Renamed for clarity
 
 # --- API Endpoints ---
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint for Docker"""
+    return jsonify({"status": "healthy", "timestamp": time.time()}), 200
+
 @app.route('/')
 def index():
     """Serve the frontend in production, or API status in development"""
@@ -213,7 +218,7 @@ def get_mcp_status():
         return jsonify({"error": "Failed to get MCP status"}), 500
 
 @app.route('/api/tframex/register_code', methods=['POST'])
-async def handle_register_tframex_code():
+def handle_register_tframex_code():
     data = request.get_json()
     python_code = data.get("python_code")
 
@@ -226,13 +231,13 @@ async def handle_register_tframex_code():
     result = register_code_dynamically(python_code, app_instance_to_modify=global_tframex_app)
 
     if result["success"]:
-        return jsonify({"message": result["message"]}), 200
+        return jsonify({"success": True, "message": result["message"]}), 200
     else:
-        return jsonify({"error": result["message"]}), 500
+        return jsonify({"success": False, "error": result["message"]}), 500
 
 
 @app.route('/api/tframex/flow/execute', methods=['POST'])
-async def handle_execute_tframex_flow():
+def handle_execute_tframex_flow():
     run_id = f"sflw_{int(time.time())}_{os.urandom(3).hex()}"
     logger.info(f"--- API Call: /api/tframex/flow/execute (Run ID: {run_id}) ---")
 
@@ -322,52 +327,56 @@ async def handle_execute_tframex_flow():
     
     try:
         # v1.1.0: Use the temporary app for the run context
-        async with temp_run_app.run_context() as rt:
-            # Register the flow with the runtime context
-            rt.engine._app.register_flow(constructed_tframex_flow)
-            
-            start_message = Message(role="user", content=str(initial_input_content))
-
-            execution_log.append(f"\nRunning TFrameX Flow with initial input: '{start_message.content[:100]}...'")
-            if global_flow_template_vars:
-                 execution_log.append(f"Global Flow Template Variables: {global_flow_template_vars}")
-
-            # Run the flow
-            final_flow_context = await rt.run_flow(
-                constructed_tframex_flow,
-                start_message,
-                initial_shared_data={"studio_run_id": run_id},
-                flow_template_vars=global_flow_template_vars
-            )
-
-            execution_log.append(f"\n--- TFrameX Flow Result (Run ID: {run_id}) ---")
-            execution_log.append(f"Final Message Role: {final_flow_context.current_message.role}")
-            execution_log.append(f"Final Message Content:\n{final_flow_context.current_message.content}")
-
-            if final_flow_context.current_message.tool_calls:
-                tool_calls_summary = json.dumps([tc.model_dump(exclude_none=True) for tc in final_flow_context.current_message.tool_calls], indent=2)
-                execution_log.append(f"Final Message Tool Calls (if any, unhandled at flow end):\n{tool_calls_summary}")
-
-            if final_flow_context.shared_data:
-                 shared_data_summary = {k: (str(v)[:200] + '...' if len(str(v)) > 200 else str(v)) for k,v in final_flow_context.shared_data.items()}
-                 execution_log.append(f"Final Flow Shared Data:\n{json.dumps(shared_data_summary, indent=2)}")
-
-            if "studio_preview_url" in final_flow_context.shared_data:
-                final_preview_link = final_flow_context.shared_data["studio_preview_url"]
-                execution_log.append(f"\n--- Preview Link Detected ---")
-                execution_log.append(f"PREVIEW_LINK::{final_preview_link}")
-                logger.info(f"Run ID {run_id}: Preview link found in shared_data: {final_preview_link}")
-            
-            # Update execution status in database
-            if execution_id:
-                update_flow_execution(
-                    execution_id,
-                    status='completed',
-                    output_data={
-                        'final_message': final_flow_context.current_message.content,
-                        'shared_data': final_flow_context.shared_data
-                    }
+        async def execute_flow():
+            async with temp_run_app.run_context() as rt:
+                # Register the flow with the runtime context
+                rt.engine._app.register_flow(constructed_tframex_flow)
+                
+                start_message = Message(role="user", content=str(initial_input_content))
+                
+                execution_log.append(f"\nRunning TFrameX Flow with initial input: '{start_message.content[:100]}...'")
+                if global_flow_template_vars:
+                     execution_log.append(f"Global Flow Template Variables: {global_flow_template_vars}")
+                
+                # Run the flow
+                final_flow_context = await rt.run_flow(
+                    constructed_tframex_flow,
+                    start_message,
+                    initial_shared_data={"studio_run_id": run_id},
+                    flow_template_vars=global_flow_template_vars
                 )
+                return final_flow_context
+        
+        final_flow_context = asyncio.run(execute_flow())
+        
+        execution_log.append(f"\n--- TFrameX Flow Result (Run ID: {run_id}) ---")
+        execution_log.append(f"Final Message Role: {final_flow_context.current_message.role}")
+        execution_log.append(f"Final Message Content:\n{final_flow_context.current_message.content}")
+
+        if final_flow_context.current_message.tool_calls:
+            tool_calls_summary = json.dumps([tc.model_dump(exclude_none=True) for tc in final_flow_context.current_message.tool_calls], indent=2)
+            execution_log.append(f"Final Message Tool Calls (if any, unhandled at flow end):\n{tool_calls_summary}")
+
+        if final_flow_context.shared_data:
+             shared_data_summary = {k: (str(v)[:200] + '...' if len(str(v)) > 200 else str(v)) for k,v in final_flow_context.shared_data.items()}
+             execution_log.append(f"Final Flow Shared Data:\n{json.dumps(shared_data_summary, indent=2)}")
+
+        if "studio_preview_url" in final_flow_context.shared_data:
+            final_preview_link = final_flow_context.shared_data["studio_preview_url"]
+            execution_log.append(f"\n--- Preview Link Detected ---")
+            execution_log.append(f"PREVIEW_LINK::{final_preview_link}")
+            logger.info(f"Run ID {run_id}: Preview link found in shared_data: {final_preview_link}")
+        
+        # Update execution status in database
+        if execution_id:
+            update_flow_execution(
+                execution_id,
+                status='completed',
+                output_data={
+                    'final_message': final_flow_context.current_message.content,
+                    'shared_data': final_flow_context.shared_data
+                }
+            )
 
     except Exception as e:
         error_msg = f"Run ID {run_id}: Error during TFrameX flow execution: {e}"
@@ -393,7 +402,7 @@ async def handle_execute_tframex_flow():
 
 # Chatbot for building flows (using two-agent architecture)
 @app.route('/api/tframex/chatbot_flow_builder', methods=['POST'])
-async def handle_tframex_chatbot_flow_builder():
+def handle_tframex_chatbot_flow_builder():
     data = request.get_json()
     user_message = data.get('message')
     current_nodes_json = data.get('nodes', [])
@@ -442,101 +451,13 @@ async def handle_tframex_chatbot_flow_builder():
 
     try:
         # Two-agent architecture: Assistant -> FlowBuilder
-        async with global_tframex_app.run_context() as rt:
-            
-            # Step 1: ConversationalAssistant handles user message
-            assistant_input = Message(role="user", content=user_message)
-            assistant_response = await rt.call_agent(
-                "ConversationalAssistant",
-                assistant_input,
-                template_vars=template_vars
-            )
-            
-            # Ensure we have a valid response
-            if not assistant_response or not assistant_response.content:
-                logger.error("ConversationalAssistant returned empty response")
-                return jsonify({
-                    "reply": "Sorry, I couldn't process your request. The assistant didn't respond.",
-                    "flow_update": None
-                }), 200
-            
-            assistant_reply = assistant_response.content.strip()
-            logger.info(f"ConversationalAssistant response: {assistant_reply[:200]}...")
-
-            # Step 2: Check if assistant wants to modify the flow
-            if "FLOW_INSTRUCTION:" in assistant_reply:
-                # Extract the flow instruction
-                instruction_part = assistant_reply.split("FLOW_INSTRUCTION:")[-1].strip()
-                
-                # Remove the flow instruction from the user-facing reply
-                user_reply = assistant_reply.split("FLOW_INSTRUCTION:")[0].strip()
-                
-                logger.info(f"Flow instruction detected: {instruction_part[:100]}...")
-                
-                # Step 3: FlowBuilderAgent generates the flow JSON
-                flow_template_vars = {
-                    **template_vars,
-                    "flow_instruction": instruction_part
-                }
-                
-                flow_builder_input = Message(role="user", content="Generate ReactFlow JSON based on the instruction.")
-                flow_builder_response = await rt.call_agent(
-                    "FlowBuilderAgent",
-                    flow_builder_input,
-                    template_vars=flow_template_vars
-                )
-                
-                flow_json_content = flow_builder_response.content.strip()
-                logger.info(f"FlowBuilderAgent response: {flow_json_content[:200]}...")
-                
-                # Step 4: Parse and validate the JSON
-                flow_update_json = None
-                try:
-                    # Handle markdown-wrapped JSON
-                    if flow_json_content.startswith("```json"):
-                        # Extract JSON from markdown code block
-                        start_idx = flow_json_content.find("```json") + 7
-                        end_idx = flow_json_content.find("```", start_idx)
-                        if end_idx != -1:
-                            flow_json_content = flow_json_content[start_idx:end_idx].strip()
-                    elif flow_json_content.startswith("```"):
-                        # Extract JSON from generic code block
-                        start_idx = flow_json_content.find("```") + 3
-                        end_idx = flow_json_content.find("```", start_idx)
-                        if end_idx != -1:
-                            flow_json_content = flow_json_content[start_idx:end_idx].strip()
-                    
-                    flow_update_json = json.loads(flow_json_content)
-                    
-                    if (isinstance(flow_update_json, dict) and
-                        "nodes" in flow_update_json and isinstance(flow_update_json.get("nodes"), list) and
-                        "edges" in flow_update_json and isinstance(flow_update_json.get("edges"), list)):
-                        
-                        logger.info("Successfully generated valid ReactFlow JSON structure.")
-                        return jsonify({
-                            "reply": user_reply or "I've updated the flow based on your request. Please review the canvas.",
-                            "flow_update": flow_update_json
-                        }), 200
-                    else:
-                        logger.warning(f"Flow builder returned JSON with invalid structure: {flow_json_content[:500]}...")
-                        return jsonify({
-                            "reply": user_reply + "\n\nI tried to update the flow, but the structure wasn't quite right. Could you try rephrasing your request?",
-                            "flow_update": None
-                        }), 200
-                        
-                except json.JSONDecodeError as e:
-                    logger.error(f"Flow builder response was not valid JSON: {e}. Raw response: {flow_json_content[:1000]}...")
-                    return jsonify({
-                        "reply": user_reply + "\n\nI had trouble generating the flow update. Could you try rephrasing your request?",
-                        "flow_update": None
-                    }), 200
-            else:
-                # No flow modification requested, just return the conversational response
-                return jsonify({
-                    "reply": assistant_reply,
-                    "flow_update": None
-                }), 200
-
+        async def run_chatbot():
+            async with global_tframex_app.run_context() as rt:
+                return await execute_chatbot_logic(rt, user_message, template_vars)
+        
+        result_data, status_code = asyncio.run(run_chatbot())
+        return jsonify(result_data), status_code
+        
     except Exception as e:
         logger.error(f"Error in two-agent chatbot flow builder: {e}", exc_info=True)
         # Always return a valid JSON response structure
@@ -544,6 +465,100 @@ async def handle_tframex_chatbot_flow_builder():
             "reply": f"Error processing your request: {str(e)}",
             "flow_update": None
         }), 200  # Use 200 to avoid triggering error handlers on frontend
+
+async def execute_chatbot_logic(rt, user_message, template_vars):
+    # Step 1: ConversationalAssistant handles user message
+    assistant_input = Message(role="user", content=user_message)
+    assistant_response = await rt.call_agent(
+        "ConversationalAssistant",
+        assistant_input,
+        template_vars=template_vars
+    )
+    
+    # Ensure we have a valid response
+    if not assistant_response or not assistant_response.content:
+        logger.error("ConversationalAssistant returned empty response")
+        return {
+            "reply": "Sorry, I couldn't process your request. The assistant didn't respond.",
+            "flow_update": None
+        }, 200
+    
+    assistant_reply = assistant_response.content.strip()
+    logger.info(f"ConversationalAssistant response: {assistant_reply[:200]}...")
+
+    # Step 2: Check if assistant wants to modify the flow
+    if "FLOW_INSTRUCTION:" in assistant_reply:
+        # Extract the flow instruction
+        instruction_part = assistant_reply.split("FLOW_INSTRUCTION:")[-1].strip()
+        
+        # Remove the flow instruction from the user-facing reply
+        user_reply = assistant_reply.split("FLOW_INSTRUCTION:")[0].strip()
+        
+        logger.info(f"Flow instruction detected: {instruction_part[:100]}...")
+        
+        # Step 3: FlowBuilderAgent generates the flow JSON
+        flow_template_vars = {
+            **template_vars,
+            "flow_instruction": instruction_part
+        }
+        
+        flow_builder_input = Message(role="user", content="Generate ReactFlow JSON based on the instruction.")
+        flow_builder_response = await rt.call_agent(
+            "FlowBuilderAgent",
+            flow_builder_input,
+            template_vars=flow_template_vars
+        )
+        
+        flow_json_content = flow_builder_response.content.strip()
+        logger.info(f"FlowBuilderAgent response: {flow_json_content[:200]}...")
+        
+        # Step 4: Parse and validate the JSON
+        flow_update_json = None
+        try:
+            # Handle markdown-wrapped JSON
+            if flow_json_content.startswith("```json"):
+                # Extract JSON from markdown code block
+                start_idx = flow_json_content.find("```json") + 7
+                end_idx = flow_json_content.find("```", start_idx)
+                if end_idx != -1:
+                    flow_json_content = flow_json_content[start_idx:end_idx].strip()
+            elif flow_json_content.startswith("```"):
+                # Extract JSON from generic code block
+                start_idx = flow_json_content.find("```") + 3
+                end_idx = flow_json_content.find("```", start_idx)
+                if end_idx != -1:
+                    flow_json_content = flow_json_content[start_idx:end_idx].strip()
+            
+            flow_update_json = json.loads(flow_json_content)
+            
+            if (isinstance(flow_update_json, dict) and
+                "nodes" in flow_update_json and isinstance(flow_update_json.get("nodes"), list) and
+                "edges" in flow_update_json and isinstance(flow_update_json.get("edges"), list)):
+                
+                logger.info("Successfully generated valid ReactFlow JSON structure.")
+                return {
+                    "reply": user_reply or "I've updated the flow based on your request. Please review the canvas.",
+                    "flow_update": flow_update_json
+                }, 200
+            else:
+                logger.warning(f"Flow builder returned JSON with invalid structure: {flow_json_content[:500]}...")
+                return {
+                    "reply": user_reply + "\n\nI tried to update the flow, but the structure wasn't quite right. Could you try rephrasing your request?",
+                    "flow_update": None
+                }, 200
+                
+        except json.JSONDecodeError as e:
+            logger.error(f"Flow builder response was not valid JSON: {e}. Raw response: {flow_json_content[:1000]}...")
+            return {
+                "reply": user_reply + "\n\nI had trouble generating the flow update. Could you try rephrasing your request?",
+                "flow_update": None
+            }, 200
+    else:
+        # No flow modification requested, just return the conversational response
+        return {
+            "reply": assistant_reply,
+            "flow_update": None
+        }, 200
 
 
 # Preview route for files generated by TFrameX

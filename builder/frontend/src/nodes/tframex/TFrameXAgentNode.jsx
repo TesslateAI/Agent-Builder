@@ -16,6 +16,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const allTools = useStore((state) => state.tframexComponents.tools);
   const deleteNode = useStore((state) => state.deleteNode);
+  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
 
   const agentDefinition = useStore(state =>
     state.tframexComponents.agents.find(a => a.id === tframexAgentId)
@@ -124,7 +125,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
 
 
   return (
-    <Card className="w-72 shadow-lg bg-card text-card-foreground relative"> 
+    <Card className="w-72 shadow-lg bg-card text-card-foreground relative border-0"> 
       <Handle
         type="target"
         position={Position.Left}
@@ -159,7 +160,10 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
       <Button 
         variant="ghost" 
         size="icon" 
-        onClick={() => deleteNode(id)}
+        onClick={() => {
+          setSelectedNodeId(null);
+          deleteNode(id);
+        }}
         className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-destructive/10"
         title="Delete agent"
       >
@@ -167,7 +171,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
       </Button>
 
 
-      <CardHeader className="p-3 border-b cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-3 cursor-grab active:cursor-grabbing">
         <div className="flex items-center space-x-2">
             <Cog className="h-5 w-5 text-primary flex-shrink-0" />
             <Input

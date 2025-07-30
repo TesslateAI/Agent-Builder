@@ -60,11 +60,8 @@ builder/frontend/build/
 
 # Environment files
 .env
-.env.*
-!.env.example
+.env.prod
 builder/backend/.env
-builder/backend/.env.*
-!builder/backend/.env.example
 
 # IDE and editors
 .vscode/

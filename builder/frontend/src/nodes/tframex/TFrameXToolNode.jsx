@@ -13,6 +13,7 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
     state.tframexComponents.tools.find(t => t.id === tframexToolId)
   );
   const deleteNode = useStore((state) => state.deleteNode);
+  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
 
   if (!toolDefinition) {
     return (
@@ -33,7 +34,7 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
     (toolDefinition.parameters_schema && Object.keys(toolDefinition.parameters_schema).length > 0 && toolDefinition.description?.toLowerCase().includes("return"));
 
   return (
-    <Card className="w-64 shadow-md bg-card text-card-foreground opacity-90 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing relative">
+    <Card className="w-64 shadow-md bg-card text-card-foreground opacity-90 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing relative border-0">
       <Handle 
         type="source"
         position={Position.Right}
@@ -55,14 +56,17 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
       <Button 
         variant="ghost" 
         size="icon" 
-        onClick={() => deleteNode(id)}
+        onClick={() => {
+          setSelectedNodeId(null);
+          deleteNode(id);
+        }}
         className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-destructive/10 z-10"
         title="Delete tool"
       >
         <X className="h-4 w-4 text-destructive" />
       </Button>
 
-      <CardHeader className="p-2.5 border-b">
+      <CardHeader className="p-2.5">
          <div className="flex items-center space-x-2">
             <Wrench className="h-4 w-4 text-indigo-400 flex-shrink-0" />
             <CardTitle className="text-sm font-semibold truncate" title={data.label || tframexToolId}>{data.label || tframexToolId}</CardTitle>

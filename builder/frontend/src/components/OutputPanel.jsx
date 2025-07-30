@@ -26,7 +26,7 @@ const OutputPanel = () => {
           const linkMatch = linkLine.match(/(\/api\/preview\/.*)/);
           if (linkMatch && linkMatch[1]) {
                const relativePreviewLink = linkMatch[1].trim();
-               previewLink = `http://localhost:5001${relativePreviewLink}`; // Prepend the base URL
+               previewLink = `http://localhost:5000${relativePreviewLink}`; // Prepend the base URL
                // Remove the marker line and potentially the user-friendly message line below it from the displayed output
                const lines = output.split('\n');
                cleanedOutput = lines.filter(line => !line.startsWith(linkMarker) && !line.includes("(Link to preview generated content:")).join('\n');

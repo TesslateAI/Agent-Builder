@@ -28,6 +28,7 @@ dist/
 # IDE
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
@@ -49,7 +50,11 @@ logs/
 coverage/
 .nyc_output/
 
-# Documentation
-*.md
+# Documentation (keep important project docs)
 !README.md
+!CLAUDE.md
+!LICENSE
+# Exclude other markdown files
+*_UPDATE.md
+*_MIGRATION*.md
 docs/

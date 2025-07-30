@@ -59,7 +59,8 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
   const allAgents = useStore((state) => state.tframexComponents.agents);
   const allPatternsFromStore = useStore((state) => state.tframexComponents.patterns);
   const nodes = useStore((state) => state.nodes);
-  const deleteNode = useStore((state) => state.deleteNode); 
+  const deleteNode = useStore((state) => state.deleteNode);
+  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId); 
 
   const patternDefinition = useStore(state => 
     state.tframexComponents.patterns.find(p => p.id === tframexPatternId)
@@ -314,14 +315,17 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
 
 
   return (
-    <Card className="w-[26rem] shadow-lg bg-card text-card-foreground relative">
+    <Card className="w-[26rem] shadow-lg bg-card text-card-foreground relative border-0">
       <Handle type="target" position={Position.Left} id="input_flow_in" style={{ background: '#60a5fa', top: outputHandleTop, zIndex: 1 }} title="Flow Input" />
       
       {/* Delete button */}
       <Button 
         variant="ghost" 
         size="icon" 
-        onClick={() => deleteNode(id)}
+        onClick={() => {
+          setSelectedNodeId(null);
+          deleteNode(id);
+        }}
         className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-destructive/10 z-10"
         title="Delete pattern"
       >
@@ -343,7 +347,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
         <Handle type="source" position={Position.Right} id="output_flow_out" style={{ background: '#60a5fa', top: outputHandleTop, zIndex: 1 }} title="Flow Output" />
       )}
 
-      <CardHeader className="p-3 border-b cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-3 cursor-grab active:cursor-grabbing">
          <div className="flex items-center space-x-2">
             <Puzzle className="h-5 w-5 text-primary flex-shrink-0" />
              <Input 
