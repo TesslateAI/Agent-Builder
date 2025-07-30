@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Terminal, Zap, Cog, Puzzle, Wrench, TextIcon } from 'lucide-react'; // Added TextIcon
+import { Loader2, Terminal, Zap, Cog, Puzzle, Wrench, TextIcon, Server } from 'lucide-react'; // Added TextIcon and Server
 
 const DraggableNodeItem = ({ component }) => {
   const onDragStart = (event, componentData) => {
@@ -16,6 +16,7 @@ const DraggableNodeItem = ({ component }) => {
   else if (component.component_category === 'pattern') Icon = Puzzle;
   else if (component.component_category === 'tool') Icon = Wrench;
   else if (component.component_category === 'utility' && component.id === 'textInput') Icon = TextIcon;
+  else if (component.component_category === 'mcp_server') Icon = Server;
 
 
   return (
@@ -37,7 +38,7 @@ const DraggableNodeItem = ({ component }) => {
 };
 
 const NodesPanel = ({ tframexComponents, isLoading, error }) => {
-  const { agents = [], tools = [], patterns = [], utility = [] } = tframexComponents || {};
+  const { agents = [], tools = [], patterns = [], utility = [], mcp_servers = [] } = tframexComponents || {};
 
   return (
     <div className="p-4">
@@ -52,7 +53,7 @@ const NodesPanel = ({ tframexComponents, isLoading, error }) => {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {!isLoading && !error && (agents.length === 0 && tools.length === 0 && patterns.length === 0 && utility.length === 0) && (
+      {!isLoading && !error && (agents.length === 0 && tools.length === 0 && patterns.length === 0 && utility.length === 0 && mcp_servers.length === 0) && (
         <div className="text-center text-muted-foreground py-4 text-sm">No TFrameX components found or registered.</div>
       )}
 
@@ -62,6 +63,12 @@ const NodesPanel = ({ tframexComponents, isLoading, error }) => {
             <div className="mb-4">
               <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Utility</h3>
               {utility.map((comp) => <DraggableNodeItem key={comp.id} component={comp} />)}
+            </div>
+          )}
+          {mcp_servers.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">MCP Servers</h3>
+              {mcp_servers.map((comp) => <DraggableNodeItem key={comp.id} component={comp} />)}
             </div>
           )}
           {agents.length > 0 && (

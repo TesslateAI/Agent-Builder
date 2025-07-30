@@ -142,6 +142,21 @@ def translate_visual_to_tframex_flow(
                 effective_config['mcp_tools_from_servers'] = node_mcp_tools
                 if node_mcp_tools != base_decorator_config.get('mcp_tools_from_servers'):
                     config_values_for_hashing['mcp_tools_from_servers'] = node_mcp_tools
+            
+            # Apply connected MCP servers configuration (Agent-Builder v1.1.0)
+            node_connected_mcp_servers = node_data.get('connected_mcp_servers')
+            if node_connected_mcp_servers is not None and isinstance(node_connected_mcp_servers, list):
+                # Enable tools from connected MCP servers
+                if len(node_connected_mcp_servers) > 0:
+                    # Set MCP server aliases for the agent to use during execution
+                    effective_config['mcp_tools_from_servers'] = node_connected_mcp_servers
+                    if node_connected_mcp_servers != base_decorator_config.get('mcp_tools_from_servers', []):
+                        config_values_for_hashing['connected_mcp_servers'] = node_connected_mcp_servers
+                    translation_log.append(f"    Agent '{canvas_node_id}' configured to use MCP servers: {node_connected_mcp_servers}")
+                else:
+                    # No MCP servers connected, ensure it's cleared
+                    if 'mcp_tools_from_servers' in effective_config:
+                        del effective_config['mcp_tools_from_servers']
 
             # Apply selected_tools override
             node_selected_tools = node_data.get('selected_tools')
