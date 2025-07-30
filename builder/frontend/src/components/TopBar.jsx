@@ -62,27 +62,9 @@ const TopBar = () => {
   }, [saveStatus]);
 
   return (
-    <div className="h-14 bg-card border-b border-border flex items-center justify-between px-6 flex-shrink-0">
-      {/* Left Side: Logo & Title */}
+    <div className="h-14 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-6 flex-shrink-0">
+      {/* Left Side: Project Controls */}
       <div className="flex items-center space-x-6">
-        <div className="flex items-center space-x-3">
-          <img
-            src="/Tesslate.svg"
-            alt="Tesslate"
-            className="h-6 w-auto"
-          />
-          <div>
-            <h1 className="text-lg font-semibold text-foreground leading-none">
-              Tesslate Agent Builder
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Powered by TFrameX v1.1.0
-            </p>
-          </div>
-        </div>
-
-        <div className="h-8 w-px bg-border" />
-
         {/* Project Controls */}
         <div className="flex items-center space-x-2">
           <Select

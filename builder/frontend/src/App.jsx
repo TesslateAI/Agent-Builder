@@ -120,6 +120,13 @@ const FlowEditor = () => {
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
       });
+      
+      // Adjust position to center the node at cursor position
+      // Assuming average node width/height for better placement
+      const nodeWidth = 280; // Approximate width of most nodes
+      const nodeHeight = 120; // Approximate height of most nodes
+      position.x -= nodeWidth / 2;
+      position.y -= nodeHeight / 2;
       addNode(componentData, position);
     },
     [project, addNode]
@@ -200,7 +207,7 @@ const FlowEditor = () => {
   });
 
   return (
-    <div className="flex h-screen w-screen bg-background text-foreground">
+    <div className="flex h-screen w-screen bg-sidebar text-foreground">
       <Sidebar />
       <div className="flex-grow flex flex-col h-full" ref={reactFlowWrapper}>
         <TopBar />
@@ -217,7 +224,6 @@ const FlowEditor = () => {
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
             onViewportChange={onViewportChange}
-            fitView // Let ReactFlow manage fitView on initial load/nodes change
             fitViewOptions={{ padding: 0.15, minZoom: 0.1, maxZoom: 4 }}
             defaultEdgeOptions={{ type: 'smoothstep' }} // Base style in defaultEdgeOptions
             connectionLineStyle={{ stroke: 'var(--color-primary)', strokeWidth: 2 }}
@@ -261,14 +267,14 @@ const FlowEditor = () => {
           
           {/* Properties Panel - overlays on the right side when a node is selected */}
           {selectedNodeId && (
-            <div className="absolute top-0 right-0 w-80 h-full bg-card border-l border-border shadow-lg z-10">
+            <div className="absolute top-0 right-0 w-80 h-full bg-sidebar border-l border-sidebar-border shadow-lg z-10">
               <PropertiesPanel />
             </div>
           )}
         </div>
       </div>
       {/* Right Terminal Panel */}
-      <div className={`${selectedNodeId ? 'w-[420px]' : 'w-[500px]'} flex flex-col border-l border-border h-full bg-card transition-all duration-200`}>
+      <div className={`${selectedNodeId ? 'w-[420px]' : 'w-[500px]'} flex flex-col border-l border-sidebar-border h-full bg-sidebar transition-all duration-200`}>
         <TerminalPanel />
       </div>
     </div>

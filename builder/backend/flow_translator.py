@@ -21,8 +21,9 @@ def _create_llm_from_model_name(model_name: str, global_app_instance: TFrameXApp
     then falls back to default LLM configuration.
     """
     try:
-        # Import MODEL_CONFIGS from app module
-        from app import MODEL_CONFIGS
+        # Import MODEL_CONFIGS from models module
+        from routes.models import get_model_configs
+        MODEL_CONFIGS = get_model_configs()
         
         # Check if model_name is a model ID from our configurations
         model_config = None

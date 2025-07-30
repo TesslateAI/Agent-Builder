@@ -7,10 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input'; // For label editing
-import { MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MessageSquare, X } from 'lucide-react';
 
 const TextInputNode = ({ id, data }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
+  const deleteNode = useStore((state) => state.deleteNode);
+  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
 
   const handleChange = useCallback((evt) => {
     const { name, value } = evt.target;
@@ -22,7 +25,7 @@ const TextInputNode = ({ id, data }) => {
   },[id, updateNodeData, data]);
 
   return (
-    <Card className="w-64 shadow-md bg-card text-card-foreground border-0">
+    <Card className="w-64 shadow-md bg-card text-card-foreground relative border-0">
       <Handle 
         type="source" 
         position={Position.Right} 
@@ -30,6 +33,18 @@ const TextInputNode = ({ id, data }) => {
         style={{ background: '#0ea5e9', top: '50%' }}  // Cyan color
         title="Text Output"
       />
+      
+      {/* Delete button */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => deleteNode(id)}
+        className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-destructive/10"
+        title="Delete text input"
+      >
+        <X className="h-4 w-4 text-destructive" />
+      </Button>
+
       <CardHeader className="p-2 cursor-grab active:cursor-grabbing">
         <div className="flex items-center space-x-1.5">
           <MessageSquare className="h-4 w-4 text-cyan-500 flex-shrink-0" />

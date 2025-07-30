@@ -133,9 +133,9 @@ const TerminalPanel = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-sidebar">
       {/* Header */}
-      <div className="h-14 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
+      <div className="h-14 flex items-center justify-between px-4 border-b border-sidebar-border flex-shrink-0">
         <div className="flex items-center space-x-2">
           <Terminal className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Terminal & AI Assistant</span>
@@ -151,9 +151,10 @@ const TerminalPanel = () => {
       </div>
 
       {/* Messages - Fixed height with proper scrolling */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="p-4 space-y-3">
+      <div className="flex-1 overflow-hidden p-3">
+        <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-3">
             {messages.map((message, index) => (
               <div key={index} className="group animate-fade-in">
                 <div className="flex items-start space-x-3">
@@ -204,12 +205,13 @@ const TerminalPanel = () => {
               </div>
             )}
             <div ref={scrollRef} />
-          </div>
-        </ScrollArea>
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-3 flex-shrink-0">
+      <div className="border-t border-sidebar-border p-3 flex-shrink-0">
         <div className="flex space-x-2">
           <Input
             value={input}
