@@ -17,25 +17,47 @@ logger = logging.getLogger("FlowTranslator")
 def _create_llm_from_model_name(model_name: str, global_app_instance: TFrameXApp) -> Optional[OpenAIChatLLM]:
     """
     Creates an LLM instance based on the model name.
-    Uses the same API configuration as the global app but with a different model.
+    First checks MODEL_CONFIGS for specific model configuration,
+    then falls back to default LLM configuration.
     """
     try:
-        # Get the default LLM configuration from the global app
-        default_llm = global_app_instance.default_llm
-        if not default_llm:
-            logger.warning(f"No default LLM configured, cannot create LLM for model {model_name}")
-            return None
-            
-        # Create a new LLM instance with the same API config but different model
-        model_llm = OpenAIChatLLM(
-            model_name=model_name,
-            api_base_url=default_llm.api_base_url,
-            api_key=default_llm.api_key,
-            parse_text_tool_calls=getattr(default_llm, 'parse_text_tool_calls', True)
-        )
+        # Import MODEL_CONFIGS from app module
+        from app import MODEL_CONFIGS
         
-        logger.info(f"Created LLM instance for model: {model_name}")
-        return model_llm
+        # Check if model_name is a model ID from our configurations
+        model_config = None
+        for config in MODEL_CONFIGS.values():
+            if config['model_name'] == model_name or config['id'] == model_name:
+                model_config = config
+                break
+        
+        if model_config:
+            # Use specific model configuration
+            model_llm = OpenAIChatLLM(
+                model_name=model_config['model_name'],
+                api_base_url=model_config['base_url'],
+                api_key=model_config['api_key'],
+                parse_text_tool_calls=True,
+                default_temperature=model_config.get('temperature', 0.7),
+                default_max_tokens=model_config.get('max_tokens', 2000)
+            )
+            logger.info(f"Created LLM instance for configured model: {model_config['name']} ({model_config['model_name']})")
+            return model_llm
+        else:
+            # Fall back to creating with default config but different model name
+            default_llm = global_app_instance.default_llm
+            if not default_llm:
+                logger.warning(f"No default LLM configured, cannot create LLM for model {model_name}")
+                return None
+                
+            model_llm = OpenAIChatLLM(
+                model_name=model_name,
+                api_base_url=default_llm.api_base_url,
+                api_key=default_llm.api_key,
+                parse_text_tool_calls=getattr(default_llm, 'parse_text_tool_calls', True)
+            )
+            logger.info(f"Created LLM instance for model: {model_name}")
+            return model_llm
         
     except Exception as e:
         logger.error(f"Failed to create LLM for model {model_name}: {e}")

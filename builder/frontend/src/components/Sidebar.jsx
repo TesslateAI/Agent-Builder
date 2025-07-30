@@ -23,40 +23,46 @@ const Sidebar = () => {
 
   return (
     <aside className="w-80 flex flex-col bg-sidebar border-r border-sidebar-border h-full">
-      <Tabs defaultValue="nodes" className="flex flex-col flex-grow h-full">
-        <div className="px-4 py-3 border-b border-sidebar-border">
-          <h2 className="text-sm font-semibold text-sidebar-foreground">Workspace</h2>
-        </div>
-        
-        <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-sidebar-border rounded-none p-0 h-auto">
-          <TabsTrigger 
-            value="nodes" 
-            className="rounded-none py-2.5 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground"
-          >
-            <Layers className="h-4 w-4 mr-2" />
-            Components
-          </TabsTrigger>
-          <TabsTrigger 
-            value="register" 
-            className="rounded-none py-2.5 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=inactive]:text-muted-foreground"
-          >
-            <Code2 className="h-4 w-4 mr-2" />
-            Register Code
-          </TabsTrigger>
-        </TabsList>
+      <div className="h-14 px-4 border-b border-sidebar-border flex items-center flex-shrink-0">
+        <h2 className="text-sm font-semibold text-sidebar-foreground">Workspace</h2>
+      </div>
+      
+      <div className="flex-grow flex flex-col px-4 pt-3 pb-4 min-h-0">
+        <Tabs defaultValue="nodes" className="flex flex-col h-full">
+          <TabsList className="flex w-full justify-center bg-card/50 rounded-t-lg border-x border-t border-border/50 p-2 flex-shrink-0 gap-1">
+            <TabsTrigger 
+              value="nodes" 
+              className="py-2.5 px-1.5 transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-card text-xs font-medium rounded-md mt-0.5"
+            >
+              <Layers className="h-3 w-3 mr-1" />
+              <span>Components</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="register" 
+              className="py-2.5 px-1.5 transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-card text-xs font-medium rounded-md mt-0.5"
+            >
+              <Code2 className="h-3 w-3 mr-1" />
+              <span>Add Code</span>
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="nodes" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
-          <div className="h-full overflow-y-auto">
-            <NodesPanel tframexComponents={tframexComponents} isLoading={isLoading} error={error} />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="register" className="flex-grow overflow-hidden mt-0 data-[state=inactive]:hidden">
-          <div className="h-full overflow-y-auto">
-            <CodeRegistrationPanel />
-          </div>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="nodes" className="flex-1 min-h-0 data-[state=inactive]:hidden -mt-px">
+            <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-hidden">
+              <div className="h-full overflow-y-auto">
+                <NodesPanel tframexComponents={tframexComponents} isLoading={isLoading} error={error} />
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="register" className="flex-1 min-h-0 data-[state=inactive]:hidden -mt-px">
+            <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-hidden">
+              <div className="h-full overflow-y-auto">
+                <CodeRegistrationPanel />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </aside>
   );
 };

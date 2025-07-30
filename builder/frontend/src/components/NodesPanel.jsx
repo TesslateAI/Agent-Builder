@@ -40,14 +40,14 @@ const NodesPanel = ({ tframexComponents, isLoading, error }) => {
   const { agents = [], tools = [], patterns = [], utility = [] } = tframexComponents || {};
 
   return (
-    <>
+    <div className="p-4">
       {isLoading && (
         <div className="flex items-center justify-center text-muted-foreground py-4">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading TFrameX Components...
         </div>
       )}
       {error && (
-        <Alert variant="destructive" className="mx-1">
+        <Alert variant="destructive" className="mb-4">
           <Terminal className="h-4 w-4" /> <AlertTitle>Error Loading Components</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -60,31 +60,31 @@ const NodesPanel = ({ tframexComponents, isLoading, error }) => {
         <>
           {utility.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground px-1 mb-2">Utility</h3>
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Utility</h3>
               {utility.map((comp) => <DraggableNodeItem key={comp.id} component={comp} />)}
             </div>
           )}
           {agents.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground px-1 mb-2">Agents</h3>
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Agents</h3>
               {agents.map((comp) => <DraggableNodeItem key={comp.id} component={comp} />)}
             </div>
           )}
           {patterns.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground px-1 mb-2">Patterns</h3>
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Patterns</h3>
               {patterns.map((comp) => <DraggableNodeItem key={comp.id} component={comp} />)}
             </div>
           )}
           {tools.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-xs font-semibold uppercase text-muted-foreground px-1 mb-2">Tools</h3>
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Tools</h3>
               {tools.map((comp) => <DraggableNodeItem key={comp.id} component={comp} />)}
             </div>
           )}
         </>
       )}
-    </>
+    </div>
   );
 };
 
