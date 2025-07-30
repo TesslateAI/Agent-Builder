@@ -11,5 +11,11 @@ pydantic>=2.0.0
 PyYAML>=6.0.1
 aiohttp>=3.9.0
 
-# When TFrameX 1.1.0 is published, uncomment:
-# tframex==1.1.0
+# TFrameX dependency (matches production)
+tframex==1.1.0
+
+# Development tools
+pytest>=7.0.0
+black>=22.0.0
+ruff>=0.1.0
+mypy>=1.0.0

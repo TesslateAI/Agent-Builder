@@ -57,10 +57,7 @@ body {
 
 /* React Flow Customization */
 .react-flow__pane {
-  background-color: var(--background);
-  background-image: 
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 24px 24px;
+  /* Background color removed to allow ReactFlow Background component to show */
 }
 
 .react-flow__node {

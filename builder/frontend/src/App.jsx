@@ -208,7 +208,6 @@ const FlowEditor = () => {
             onViewportChange={onViewportChange}
             fitView // Let ReactFlow manage fitView on initial load/nodes change
             fitViewOptions={{ padding: 0.15, minZoom: 0.1, maxZoom: 4 }}
-            className="bg-background"
             defaultEdgeOptions={{ type: 'smoothstep' }} // Base style in defaultEdgeOptions
             connectionLineStyle={{ stroke: 'var(--color-primary)', strokeWidth: 2 }}
             connectionLineType="smoothstep"
@@ -224,8 +223,13 @@ const FlowEditor = () => {
             zoomOnDoubleClick={true}
             preventScrolling={true}
           >
+            <Background 
+              color="rgba(255, 255, 255, 0.15)" 
+              gap={24} 
+              size={1} 
+              variant="dots" 
+            />
             <NavigationControls />
-            <Background variant="dots" gap={16} size={1} color="var(--color-border)" />
             <MiniMap 
               nodeStrokeWidth={3} 
               className="!m-4 !bg-card !border-border" 

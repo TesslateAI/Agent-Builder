@@ -1,9 +1,25 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useReactFlow } from 'reactflow';
 import { Plus, Minus, Maximize2, Home } from 'lucide-react';
 
 const NavigationControls = () => {
   const { zoomIn, zoomOut, fitView, setViewport, getViewport } = useReactFlow();
+  const [currentZoom, setCurrentZoom] = useState(100);
+
+  // Update zoom percentage when viewport changes
+  useEffect(() => {
+    const updateZoom = () => {
+      const viewport = getViewport();
+      setCurrentZoom(Math.round(viewport.zoom * 100));
+    };
+
+    // Initial update
+    updateZoom();
+
+    // Listen for viewport changes (this is a simple polling approach)
+    const interval = setInterval(updateZoom, 100);
+    return () => clearInterval(interval);
+  }, [getViewport]);
 
   const handleZoomIn = useCallback(() => {
     zoomIn({ duration: 200 });
@@ -17,7 +33,7 @@ const NavigationControls = () => {
     fitView({ 
       duration: 300, 
       padding: 0.15,
-      maxZoom: 1.5,
+      maxZoom: 1.0,
       minZoom: 0.1
     });
   }, [fitView]);
@@ -26,12 +42,10 @@ const NavigationControls = () => {
     setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 300 });
   }, [setViewport]);
 
-  const currentZoom = Math.round(getViewport().zoom * 100);
-
   return (
     <div className="absolute bottom-4 left-4 flex flex-col gap-2 z-10">
       {/* Zoom Controls Container */}
-      <div className="bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-card border border-border rounded-lg shadow-lg overflow-hidden w-fit">
         {/* Zoom In */}
         <button
           onClick={handleZoomIn}
@@ -42,8 +56,8 @@ const NavigationControls = () => {
         </button>
         
         {/* Zoom Level Display */}
-        <div className="px-3 py-2 text-xs font-medium text-muted-foreground text-center border-y border-border bg-background/50">
-          {currentZoom}%
+        <div className="px-1 py-2 text-xs font-medium text-muted-foreground text-center border-y border-border bg-background/50 w-10">
+          <span className="block">{currentZoom}%</span>
         </div>
         
         {/* Zoom Out */}
@@ -57,7 +71,7 @@ const NavigationControls = () => {
       </div>
 
       {/* Additional Controls */}
-      <div className="bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-card border border-border rounded-lg shadow-lg overflow-hidden w-fit">
         {/* Fit to Screen */}
         <button
           onClick={handleFitView}

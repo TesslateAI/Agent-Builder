@@ -140,8 +140,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install development Python dependencies
-COPY requirements-dev.txt ./
-RUN /opt/venv/bin/pip install --no-cache-dir -r requirements-dev.txt
+RUN /opt/venv/bin/pip install --no-cache-dir pytest black ruff mypy
 
 # Create development directories
 RUN mkdir -p /app/dev-data && \

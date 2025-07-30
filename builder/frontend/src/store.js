@@ -8,7 +8,7 @@ import {
 import { nanoid } from 'nanoid';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api/tframex';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000') + '/api/tframex';
 
 const loadState = (key) => {
   try {
@@ -530,7 +530,7 @@ export const useStore = create((set, get) => ({
     } catch (err) {
       console.error("Failed to fetch TFrameX components:", err);
       set({
-        componentError: `Could not load TFrameX components. Backend error: ${err.message}. Is the backend running on port 5001?`,
+        componentError: `Could not load TFrameX components. Backend error: ${err.message}. Is the backend running and accessible?`,
         tframexComponents: { agents: [], tools: [], patterns: [], utility: [] },
         isComponentLoading: false,
       });

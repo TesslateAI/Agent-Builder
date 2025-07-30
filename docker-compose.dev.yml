@@ -32,8 +32,7 @@ services:
       - ./builder/backend:/app/builder/backend:rw
       - ./builder/backend/data:/app/data:rw
       - ./builder/backend/logs:/app/logs:rw
-      # Configuration files
-      - ./builder/backend/.env:/app/builder/backend/.env:ro
+      # Configuration files (backend .env not needed - using root .env via env_file)
       - ./builder/backend/servers_config.json:/app/builder/backend/servers_config.json:ro
       - ./builder/backend/enterprise_config.yaml:/app/builder/backend/enterprise_config.yaml:ro
     networks:

@@ -22,7 +22,7 @@ const TextInputNode = ({ id, data }) => {
   },[id, updateNodeData, data]);
 
   return (
-    <Card className="w-80 shadow-md border-border bg-card text-card-foreground">
+    <Card className="w-80 shadow-md bg-card text-card-foreground border-0">
       <Handle 
         type="source" 
         position={Position.Right} 
@@ -30,7 +30,7 @@ const TextInputNode = ({ id, data }) => {
         style={{ background: '#0ea5e9', top: '50%' }}  // Cyan color
         title="Text Output"
       />
-      <CardHeader className="p-3 border-b border-border cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-3 cursor-grab active:cursor-grabbing">
         <div className="flex items-center space-x-2">
           <MessageSquare className="h-5 w-5 text-cyan-500 flex-shrink-0" />
           <Input 
