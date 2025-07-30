@@ -53,6 +53,19 @@ def discover_tframex_components(app_instance): # app_instance is now a required 
     Returns a dictionary structured for the frontend.
     """
     components = {"agents": [], "tools": [], "patterns": [], "mcp_servers": []}
+    
+    # Add static MCP Server component for users to create new servers
+    components["mcp_servers"].append({
+        "id": "mcp_server_new",
+        "name": "MCP Server",
+        "description": "Model Context Protocol server connection. Configure and connect to external data sources.",
+        "component_category": "mcp_server",
+        "config_options": {
+            "supports_stdio": True,
+            "supports_http": True,
+            "requires_configuration": True
+        }
+    })
 
     # Discover Agents registered with the TFrameXApp instance
     for agent_name, reg_info in app_instance._agents.items():
@@ -124,13 +137,33 @@ def discover_tframex_components(app_instance): # app_instance is now a required 
             # Access the connected servers from MCP manager
             if hasattr(app_instance._mcp_manager, '_connected_servers'):
                 for server_alias, server_info in app_instance._mcp_manager._connected_servers.items():
+                    # Extract capabilities
+                    available_tools = []
+                    available_resources = []
+                    available_prompts = []
+                    
+                    if hasattr(server_info, 'tools') and server_info.tools:
+                        available_tools = [{"name": tool.name, "description": getattr(tool, 'description', '')} 
+                                         for tool in server_info.tools]
+                    
+                    if hasattr(server_info, 'resources') and server_info.resources:
+                        available_resources = [{"name": resource.name} 
+                                             for resource in server_info.resources]
+                    
+                    if hasattr(server_info, 'prompts') and server_info.prompts:
+                        available_prompts = [{"name": prompt.name} 
+                                           for prompt in server_info.prompts]
+                    
                     components["mcp_servers"].append({
-                        "id": server_alias,
-                        "name": server_alias,
-                        "description": f"MCP Server: {server_alias}",
+                        "id": f"mcp_server_{server_alias}",
+                        "name": f"MCP Server: {server_alias}",
+                        "description": f"Connected MCP server '{server_alias}' with {len(available_tools)} tools, {len(available_resources)} resources, {len(available_prompts)} prompts",
                         "component_category": "mcp_server",
+                        "server_alias": server_alias,
                         "status": "connected",
-                        "available_tools": [tool.name for tool in getattr(server_info, 'tools', [])]
+                        "available_tools": available_tools,
+                        "available_resources": available_resources,
+                        "available_prompts": available_prompts
                     })
         except Exception as e:
             logger.warning(f"Could not discover MCP servers: {e}")

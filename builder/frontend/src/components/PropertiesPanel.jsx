@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { XIcon, Cog, MessageSquare, Palette, Bot, Settings } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox'; // Assuming created
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import MCPServerPropertiesPanel from './MCPServerPropertiesPanel';
 
 
 const PropertiesPanel = () => {
@@ -272,6 +273,9 @@ const PropertiesPanel = () => {
     content = renderToolProperties();
     titleIcon = <Cog className="h-5 w-5 mr-2 text-indigo-500" />; // Example icon for tools
     titleText = "Tool Properties";
+  } else if (selectedNode.data.component_category === 'mcp_server' || selectedNode.type === 'MCPServerNode') {
+    // Use the specialized MCP Server Properties Panel
+    return <MCPServerPropertiesPanel nodeId={selectedNodeId} nodeData={selectedNode.data} />;
   } else {
     content = <p className="text-sm text-muted-foreground">No editable properties for this node type.</p>;
   }

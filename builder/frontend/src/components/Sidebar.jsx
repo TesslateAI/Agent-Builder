@@ -15,7 +15,8 @@ const Sidebar = () => {
   useEffect(() => {
     const hasComponents = tframexComponents.agents.length > 0 || 
                          tframexComponents.tools.length > 0 || 
-                         tframexComponents.patterns.length > 0;
+                         tframexComponents.patterns.length > 0 ||
+                         tframexComponents.mcp_servers?.length > 0;
     if (!hasComponents && !isLoading && !error) {
       fetchTFrameXComponents();
     }

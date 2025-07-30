@@ -155,6 +155,35 @@ export const useStore = create((set, get) => ({
       return;
     }
 
+    // --- CONNECTION TYPE 3B: MCP Server's "attachment" handle to Agent's "tool input" handle ---
+    if (
+      sourceNode?.data?.component_category === 'mcp_server' &&
+      targetNode?.data?.component_category === 'agent' &&
+      connection.sourceHandle === 'mcp_server_attachment_out' &&
+      connection.targetHandle === 'tool_input_handle'
+    ) {
+      const serverAlias = sourceNode.data.server_alias || sourceNode.id;
+      const currentConnectedServers = targetNode.data.connected_mcp_servers || [];
+
+      if (!currentConnectedServers.includes(serverAlias)) {
+        get().updateNodeData(targetNode.id, {
+          connected_mcp_servers: [...currentConnectedServers, serverAlias]
+        });
+        console.log(`UI: MCP Server '${serverAlias}' connected to Agent '${targetNode.data.label || targetNode.id}' via connection.`);
+      }
+
+      set((state) => ({
+        edges: addEdge({
+          ...connection,
+          type: 'smoothstep',
+          animated: false,
+          style: { stroke: '#10b981', strokeDasharray: '3 7', strokeWidth: 2, zIndex: 0 },
+          data: { ...connection.data, connectionType: 'mcpServerAttachment' }
+        }, state.edges),
+      }));
+      return;
+    }
+
     // --- CONNECTION TYPE 4: Tool's "data output" handle to an Agent's "message input" handle ---
     if (
       sourceNode?.data?.component_category === 'tool' &&
@@ -238,6 +267,7 @@ export const useStore = create((set, get) => ({
         tframex_agent_type,
         can_use_tools: config_options?.can_use_tools || false,
         strip_think_tags_override: config_options?.strip_think_tags || false,
+        connected_mcp_servers: [],
       };
     } else if (component_category === 'pattern') {
       const patternParams = {};
@@ -303,6 +333,17 @@ export const useStore = create((set, get) => ({
           nodeDataFromDrop.description
             ?.toLowerCase()
             .includes("return"));
+    } else if (component_category === 'mcp_server') {
+      nodeType = 'MCPServerNode';
+      defaultNodeData = {
+        ...defaultNodeData,
+        server_alias: '',
+        command: '',
+        args: [],
+        env: {},
+        status: 'disconnected',
+        available_tools: [],
+      };
     } else if (
       component_category === 'utility' &&
       componentId === 'textInput'
@@ -496,7 +537,7 @@ export const useStore = create((set, get) => ({
   clearOutput: () => set({ output: "" }),
 
   // === TFrameX Components State ===
-  tframexComponents: { agents: [], tools: [], patterns: [], utility: [] },
+  tframexComponents: { agents: [], tools: [], patterns: [], utility: [], mcp_servers: [] },
   isComponentLoading: false,
   componentError: null,
   fetchTFrameXComponents: async () => {
@@ -520,6 +561,7 @@ export const useStore = create((set, get) => ({
             tools: response.data.tools || [],
             patterns: response.data.patterns || [],
             utility: utilityComponents,
+            mcp_servers: response.data.mcp_servers || [],
           },
           isComponentLoading: false,
         });
@@ -531,7 +573,7 @@ export const useStore = create((set, get) => ({
       console.error("Failed to fetch TFrameX components:", err);
       set({
         componentError: `Could not load TFrameX components. Backend error: ${err.message}. Is the backend running and accessible?`,
-        tframexComponents: { agents: [], tools: [], patterns: [], utility: [] },
+        tframexComponents: { agents: [], tools: [], patterns: [], utility: [], mcp_servers: [] },
         isComponentLoading: false,
       });
     }
@@ -634,7 +676,9 @@ export const useStore = create((set, get) => ({
           ...get().tframexComponents.patterns.map(p => p.id),
           ...get().tframexComponents.tools.map(t => t.id),
           ...get().tframexComponents.utility.map(u => u.id),
-          'textInput'
+          ...get().tframexComponents.mcp_servers.map(m => m.id),
+          'textInput',
+          'MCPServerNode'
         ];
         const allNodesValid = flowUpdate.nodes.every(node => allKnownTypes.includes(node.type));
 

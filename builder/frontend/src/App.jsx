@@ -22,6 +22,7 @@ import TextInputNode from './nodes/inputs/TextInputNode'; // New
 import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
 import TFrameXPatternNode from './nodes/tframex/TFrameXPatternNode';
 import TFrameXToolNode from './nodes/tframex/TFrameXToolNode';
+import MCPServerNode from './nodes/tframex/MCPServerNode';
 
 
 const staticNodeTypes = {
@@ -29,6 +30,7 @@ const staticNodeTypes = {
   tframexPattern: TFrameXPatternNode, // Fallback if specific pattern type not found
   tframexTool: TFrameXToolNode,       // Fallback if specific tool type not found
   textInput: TextInputNode,         // For the new TextInputNode
+  MCPServerNode: MCPServerNode,     // For MCP server nodes
 };
 
 const FlowEditor = () => {
@@ -142,6 +144,11 @@ const FlowEditor = () => {
             if (tool.id) customNodes[tool.id] = TFrameXToolNode;
         });
     }
+    if (tframexComponents?.mcp_servers) {
+        tframexComponents.mcp_servers.forEach(server => {
+            if (server.id) customNodes[server.id] = MCPServerNode;
+        });
+    }
     // Utility components like TextInputNode are already in staticNodeTypes
     return customNodes;
   }, [tframexComponents]);
@@ -163,6 +170,10 @@ const FlowEditor = () => {
     switch (edge.data?.connectionType) {
       case 'toolAttachment':
         edgeStyle = { ...edgeStyle, stroke: '#a5b4fc', strokeDasharray: '5 5', strokeWidth: 1.5 };
+        animated = false;
+        break;
+      case 'mcpServerAttachment':
+        edgeStyle = { ...edgeStyle, stroke: '#10b981', strokeDasharray: '3 7', strokeWidth: 2 };
         animated = false;
         break;
       case 'agentInstanceToPatternParam':
@@ -235,6 +246,7 @@ const FlowEditor = () => {
               className="!m-4 !bg-card !border-border" 
               nodeColor={(n) => {
                 if (n.type === 'textInput') return '#0ea5e9'; // Cyan for text input
+                if (n.type === 'MCPServerNode' || n.data?.component_category === 'mcp_server') return '#10b981'; // Green for MCP servers
                 if (n.data?.component_category === 'agent') return 'var(--color-primary)';
                 if (n.data?.component_category === 'pattern') return 'var(--color-secondary)';
                 if (n.data?.component_category === 'tool') return 'var(--color-accent)';
@@ -242,6 +254,7 @@ const FlowEditor = () => {
                 if (tframexComponents.agents.some(a => a.id === n.type)) return 'var(--color-primary)';
                 if (tframexComponents.patterns.some(p => p.id === n.type)) return 'var(--color-secondary)';
                 if (tframexComponents.tools.some(t => t.id === n.type)) return 'var(--color-accent)';
+                if (tframexComponents.mcp_servers?.some(m => m.id === n.type)) return '#10b981';
                 return '#ddd';
             }} />
           </ReactFlow>

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 // import { Checkbox } from '@/components/ui/checkbox'; // Assuming you create this - Removed checkbox from here
 import { isEqual } from 'lodash'; // For comparing tool arrays - Import isEqual
-import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare, X, Bot } from 'lucide-react';
+import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare, X, Bot, Server } from 'lucide-react';
 
 const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
@@ -208,6 +208,21 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
             </div>
           </div>
         )}
+
+        {/* Connected MCP Servers Display */}
+        <div>
+          <Label className="text-xs font-medium block mb-1">Connected MCP Servers:</Label>
+          <div className="max-h-28 overflow-y-auto space-y-1 border border-input p-2 rounded-md bg-background/50">
+            {(data.connected_mcp_servers && data.connected_mcp_servers.length > 0) ? data.connected_mcp_servers.map(serverAlias => (
+              <div key={serverAlias} className="flex items-center text-xs">
+                <Server className="h-3 w-3 mr-1.5 text-green-500 flex-shrink-0" />
+                <span className="truncate" title={`MCP Server: ${serverAlias}`}>
+                  {serverAlias}
+                </span>
+              </div>
+            )) : <p className="text-xs text-muted-foreground italic">No MCP servers connected. Connect MCP servers to the <Zap className="inline h-3 w-3 text-indigo-400" /> handle.</p>}
+          </div>
+        </div>
 
         <div>
             <Label className="text-xs font-medium block mb-1">Template Variables (for System Prompt):</Label>
