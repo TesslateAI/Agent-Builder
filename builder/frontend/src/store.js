@@ -310,7 +310,7 @@ export const useStore = create((set, get) => ({
       nodeType = 'textInput';
       defaultNodeData = {
         label: "Text Input",
-        text_content: "Enter your prompt or text here...",
+        text_content: "",
         component_category: 'utility',
       };
     }
@@ -676,6 +676,60 @@ export const useStore = create((set, get) => ({
       set({ isChatbotLoading: false });
     }
   },
+
+  // === Model Configuration Management ===
+  models: [],
+  defaultModelId: 'default',
+  
+  fetchModels: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/models`);
+      set({ 
+        models: response.data.models,
+        defaultModelId: response.data.models.find(m => m.is_default)?.id || 'default'
+      });
+    } catch (error) {
+      console.error("Error fetching models:", error);
+    }
+  },
+
+  addModel: async (modelConfig) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/models`, modelConfig);
+      const newModel = response.data.model;
+      set((state) => ({ models: [...state.models, newModel] }));
+      return newModel;
+    } catch (error) {
+      console.error("Error adding model:", error);
+      throw error;
+    }
+  },
+
+  deleteModel: async (modelId) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/models/${modelId}`);
+      set((state) => ({ 
+        models: state.models.filter(m => m.id !== modelId) 
+      }));
+    } catch (error) {
+      console.error("Error deleting model:", error);
+      throw error;
+    }
+  },
+
+  setDefaultModel: async (modelId) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/models/${modelId}/default`);
+      set((state) => ({
+        models: state.models.map(m => ({ ...m, is_default: m.id === modelId })),
+        defaultModelId: modelId
+      }));
+      return response.data.model;
+    } catch (error) {
+      console.error("Error setting default model:", error);
+      throw error;
+    }
+  },
 }));
 
 // Persist projects & currentProjectId
@@ -693,5 +747,6 @@ useStore.subscribe(
   { fireImmediately: false }
 );
 
-// Initial load of components
+// Initial load of components and models
 useStore.getState().fetchTFrameXComponents();
+useStore.getState().fetchModels();

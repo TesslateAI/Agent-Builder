@@ -135,7 +135,7 @@ const TerminalPanel = () => {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border flex-shrink-0">
+      <div className="h-14 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
         <div className="flex items-center space-x-2">
           <Terminal className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Terminal & AI Assistant</span>

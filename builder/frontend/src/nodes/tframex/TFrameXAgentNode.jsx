@@ -10,13 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 // import { Checkbox } from '@/components/ui/checkbox'; // Assuming you create this - Removed checkbox from here
 import { isEqual } from 'lodash'; // For comparing tool arrays - Import isEqual
-import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare, X } from 'lucide-react';
+import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare, X, Bot } from 'lucide-react';
 
 const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const allTools = useStore((state) => state.tframexComponents.tools);
   const deleteNode = useStore((state) => state.deleteNode);
   const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
+  const models = useStore((state) => state.models);
 
   const agentDefinition = useStore(state =>
     state.tframexComponents.agents.find(a => a.id === tframexAgentId)
@@ -117,6 +118,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
      if (currentSystemPrompt !== baseSystemPrompt) return true;
      if (currentStripThinkTags !== baseStripThinkTags) return true;
      if (!isEqual(currentToolsSorted, baseToolsSorted)) return true; // Use isEqual for array comparison
+     if (data.model && data.model !== 'default') return true; // Model override is always a modification
 
      // If none of the checked overrides differ from the base, it's not modified
      return false;
@@ -233,9 +235,19 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
             </Button>
         </div>
 
+        {/* Model indicator */}
+        {data.model && data.model !== 'default' && (
+          <div className="flex items-center mt-2">
+            <Bot className="h-3.5 w-3.5 mr-1 text-blue-500 flex-shrink-0" />
+            <span className="text-xs text-muted-foreground truncate">
+              {models.find(m => m.model_name === data.model)?.name || data.model}
+            </span>
+          </div>
+        )}
+
         {/* Checkbox for strip_think_tags is now in PropertiesPanel.jsx */}
         {/* Display current state only (read-only indication) */}
-        <div className="flex items-center mt-3">
+        <div className="flex items-center mt-2">
              {stripThink ? (
                 <MessageSquare className="h-3.5 w-3.5 mr-1 text-green-500 flex-shrink-0" />
              ) : (

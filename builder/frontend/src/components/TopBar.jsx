@@ -1,5 +1,5 @@
 // src/components/TopBar.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useStore } from '../store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database } from 'lucide-react';
+import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database, Check } from 'lucide-react';
 import ModelConfigurationPanel from './ModelConfigurationPanel';
 
 const TopBar = () => {
@@ -24,6 +24,7 @@ const TopBar = () => {
   const isRunning = useStore((state) => state.isRunning);
 
   const [newProjectName, setNewProjectName] = useState('');
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved'
 
   const handleCreateProject = useCallback(() => {
     if (newProjectName.trim()) {
@@ -43,6 +44,22 @@ const TopBar = () => {
       deleteProject(currentProjectId);
     }
   };
+
+  const handleSaveClick = useCallback(() => {
+    setSaveStatus('saving');
+    saveCurrentProject();
+    setSaveStatus('saved');
+  }, [saveCurrentProject]);
+
+  // Reset save status after showing success feedback
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      const timer = setTimeout(() => {
+        setSaveStatus('idle');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus]);
 
   return (
     <div className="h-14 bg-card border-b border-border flex items-center justify-between px-6 flex-shrink-0">
@@ -124,14 +141,27 @@ const TopBar = () => {
         <ModelConfigurationPanel />
 
         <Button
-          onClick={saveCurrentProject}
+          onClick={handleSaveClick}
           variant="ghost"
           size="sm"
-          className="h-9"
-          disabled={isRunning}
+          className={`h-9 transition-colors ${
+            saveStatus === 'saved' 
+              ? 'bg-green-100 text-green-700 hover:bg-green-100' 
+              : ''
+          }`}
+          disabled={isRunning || saveStatus === 'saving'}
         >
-          <Save className="h-4 w-4 mr-2" />
-          Save
+          {saveStatus === 'saved' ? (
+            <>
+              <Check className="h-4 w-4 mr-2" />
+              Saved!
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              {saveStatus === 'saving' ? 'Saving...' : 'Save'}
+            </>
+          )}
         </Button>
 
         <Button

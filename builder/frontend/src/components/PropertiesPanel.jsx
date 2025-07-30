@@ -18,6 +18,8 @@ const PropertiesPanel = () => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const setSelectedNodeId = useStore((state) => state.setSelectedNodeId); // To close panel
   const tframexComponents = useStore((state) => state.tframexComponents);
+  const models = useStore((state) => state.models);
+  const defaultModelId = useStore((state) => state.defaultModelId);
 
 
   const [localData, setLocalData] = useState({});
@@ -73,18 +75,6 @@ const PropertiesPanel = () => {
 
 
   const renderAgentProperties = () => {
-    // Available models list - in production this should come from backend
-    const availableModels = [
-      'Llama-4-Maverick-17B-128E-Instruct-FP8',
-      'gpt-4',
-      'gpt-3.5-turbo',
-      'claude-3-opus',
-      'claude-3-sonnet',
-      'llama3',
-      'mistral-7b-instruct',
-      'mixtral-8x7b-instruct'
-    ];
-
     // Get current system prompt (either override or default)
     const currentSystemPrompt = localData.system_prompt_override || 
       originalAgentDefinition?.config_options?.system_prompt_template || 
@@ -114,18 +104,26 @@ const PropertiesPanel = () => {
             <Bot className="h-3 w-3 mr-1" />
             Model
           </Label>
-          <Select value={localData.model || 'Llama-4-Maverick-17B-128E-Instruct-FP8'} onValueChange={handleModelChange}>
+          <Select value={localData.model || 'default'} onValueChange={handleModelChange}>
             <SelectTrigger className="text-sm h-8">
               <SelectValue placeholder="Select a model" />
             </SelectTrigger>
             <SelectContent>
-              {availableModels.map(model => (
-                <SelectItem key={model} value={model} className="text-sm">
-                  {model}
+              <SelectItem value="default" className="text-sm">
+                Default ({models.find(m => m.is_default)?.name || 'System Default'})
+              </SelectItem>
+              {models.filter(m => !m.is_default).map(model => (
+                <SelectItem key={model.id} value={model.model_name} className="text-sm">
+                  {model.name} ({model.provider})
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {localData.model && localData.model !== 'default' && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Using: {models.find(m => m.model_name === localData.model)?.model_name || localData.model}
+            </p>
+          )}
         </div>
 
         <div className="mb-3">

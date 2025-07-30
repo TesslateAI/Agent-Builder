@@ -22,7 +22,7 @@ const TextInputNode = ({ id, data }) => {
   },[id, updateNodeData, data]);
 
   return (
-    <Card className="w-80 shadow-md bg-card text-card-foreground border-0">
+    <Card className="w-64 shadow-md bg-card text-card-foreground border-0">
       <Handle 
         type="source" 
         position={Position.Right} 
@@ -30,19 +30,19 @@ const TextInputNode = ({ id, data }) => {
         style={{ background: '#0ea5e9', top: '50%' }}  // Cyan color
         title="Text Output"
       />
-      <CardHeader className="p-3 cursor-grab active:cursor-grabbing">
-        <div className="flex items-center space-x-2">
-          <MessageSquare className="h-5 w-5 text-cyan-500 flex-shrink-0" />
+      <CardHeader className="p-2 cursor-grab active:cursor-grabbing">
+        <div className="flex items-center space-x-1.5">
+          <MessageSquare className="h-4 w-4 text-cyan-500 flex-shrink-0" />
           <Input 
                 name="label" 
                 value={data.label || "Text Input"} 
                 onChange={handleChange} 
-                className="text-base font-semibold !p-0 !border-0 !bg-transparent focus:!ring-0 h-auto truncate"
+                className="text-sm font-semibold !p-0 !border-0 !bg-transparent focus:!ring-0 h-auto truncate"
                 placeholder="Node Label"
             />
         </div>
       </CardHeader>
-      <CardContent className="p-3 nodrag">
+      <CardContent className="p-2 pt-0 nodrag">
         <Label htmlFor={`${id}-text_content`} className="text-xs sr-only">Text Content</Label>
         <Textarea
           id={`${id}-text_content`}
@@ -50,8 +50,9 @@ const TextInputNode = ({ id, data }) => {
           value={data.text_content || ''}
           onChange={(e) => handleTextContentChange(e.target.value)}
           placeholder="Enter your prompt or text here..."
-          className="text-sm min-h-[120px] font-mono border-input nodrag nowheel" // nowheel to prevent zoom interference
-          rows={6}
+          className="text-xs font-mono border-input nodrag nowheel resize-none" // nowheel to prevent zoom interference
+          rows={3}
+          style={{ minHeight: 'auto' }}
         />
       </CardContent>
     </Card>
