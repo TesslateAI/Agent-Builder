@@ -61,8 +61,9 @@ body {
 }
 
 .react-flow__node {
-  @apply bg-card border border-border rounded-lg shadow-lg;
+  @apply bg-card/95 border border-border/50 rounded-lg shadow-lg;
   transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
 }
 
 .react-flow__node:hover {
@@ -98,10 +99,11 @@ body {
   stroke-width: 3;
 }
 
-/* Controls Styling */
+/* Controls Styling - Unified Design */
 .react-flow__controls {
-  @apply bg-card border border-border rounded-lg shadow-lg m-4;
+  @apply bg-card/50 border border-border/50 rounded-lg shadow-lg m-4;
   padding: 4px;
+  backdrop-filter: blur(10px);
 }
 
 .react-flow__controls button {
@@ -121,12 +123,13 @@ body {
   height: 16px;
 }
 
-/* Minimap Styling */
+/* Minimap Styling - Unified Design */
 .react-flow__minimap {
-  @apply bg-card border border-border rounded-lg shadow-lg;
+  @apply bg-card/50 border border-border/50 rounded-lg shadow-lg;
   margin: 16px;
   opacity: 0.9;
   transition: opacity 0.2s ease;
+  backdrop-filter: blur(10px);
 }
 
 .react-flow__minimap:hover {
@@ -212,22 +215,26 @@ body {
   @apply bg-destructive text-white hover:bg-destructive/90;
 }
 
-/* Panel Styling */
+/* Panel Styling - Unified with Sidebar Design */
 .panel {
-  @apply bg-card border-border;
+  @apply bg-sidebar border-sidebar-border;
 }
 
 .panel-header {
-  @apply px-4 py-3 border-b border-border flex items-center justify-between;
-  @apply text-sm font-semibold;
+  @apply px-4 py-3 border-b border-sidebar-border flex items-center justify-between;
+  @apply text-sm font-semibold text-sidebar-foreground;
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* Terminal/Output Styling */
+.panel-content {
+  @apply bg-card/50 rounded-lg border border-border/50;
+}
+
+/* Terminal/Output Styling - Unified with Sidebar Design */
 .terminal {
-  @apply bg-background rounded-lg p-4 font-mono text-sm;
-  @apply border border-border;
-  background: rgba(0, 0, 0, 0.3);
+  @apply bg-card/50 rounded-lg p-4 font-mono text-sm;
+  @apply border border-border/50;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .terminal-line {

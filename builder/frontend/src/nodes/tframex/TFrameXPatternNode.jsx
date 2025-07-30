@@ -322,10 +322,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
       <Button 
         variant="ghost" 
         size="icon" 
-        onClick={() => {
-          setSelectedNodeId(null);
-          deleteNode(id);
-        }}
+        onClick={() => deleteNode(id)}
         className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-destructive/10 z-10"
         title="Delete pattern"
       >

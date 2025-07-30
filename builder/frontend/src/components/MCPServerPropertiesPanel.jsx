@@ -1,6 +1,5 @@
 // frontend/src/components/MCPServerPropertiesPanel.jsx  
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -293,24 +292,24 @@ const MCPServerPropertiesPanel = ({ nodeId, nodeData }) => {
 
   try {
     return (
-      <Card className="flex flex-col h-full rounded-none border-0 shadow-none">
-        <CardHeader className="p-3 border-b border-border flex-shrink-0 h-16 flex flex-row justify-between items-center">
+      <div className="flex flex-col h-full bg-sidebar">
+        <div className="p-3 border-b border-sidebar-border flex-shrink-0 h-16 flex flex-row justify-between items-center">
           <div className="flex items-center">
             <Server className="h-5 w-5 mr-2 text-green-500" />
             <div>
-              <CardTitle className="text-base font-semibold">MCP Server Properties</CardTitle>
-              <CardDescription className="text-xs mt-0.5 truncate max-w-[250px]">
+              <div className="text-base font-semibold text-sidebar-foreground">MCP Server Properties</div>
+              <div className="text-xs mt-0.5 truncate max-w-[250px] text-muted-foreground">
                 Editing: {localData.server_alias || nodeId}
-              </CardDescription>
+              </div>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={handleClosePanel} className="text-muted-foreground hover:text-foreground">
             <XIcon className="h-5 w-5" />
             <span className="sr-only">Close Properties</span>
           </Button>
-        </CardHeader>
-        
-        <CardContent className="flex-grow p-4 space-y-4 overflow-y-auto">
+        </div>
+        <div className="flex-grow p-3 overflow-hidden">
+          <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-y-auto p-4 space-y-4">
           {/* Server Alias */}
           <div className="mb-3">
             <Label htmlFor="prop-server_alias" className="text-xs">Server Alias</Label>
@@ -496,37 +495,39 @@ const MCPServerPropertiesPanel = ({ nodeId, nodeData }) => {
               </div>
             </>
           )}
-        </CardContent>
-
-        <div className="p-3 border-t border-border flex-shrink-0">
+          </div>
+        </div>
+        <div className="p-3 border-t border-sidebar-border flex-shrink-0">
           <Button onClick={handleApplyChanges} className="w-full" size="sm">
             Apply Changes
           </Button>
         </div>
-      </Card>
+      </div>
     );
   } catch (error) {
     console.error('Error rendering MCPServerPropertiesPanel:', error);
     return (
-      <Card className="flex flex-col h-full rounded-none border-0 shadow-none">
-        <CardHeader className="p-3 border-b border-border flex-shrink-0 h-16 flex flex-row justify-between items-center">
+      <div className="flex flex-col h-full bg-sidebar">
+        <div className="p-3 border-b border-sidebar-border flex-shrink-0 h-16 flex flex-row justify-between items-center">
           <div className="flex items-center">
             <Server className="h-5 w-5 mr-2 text-red-500" />
             <div>
-              <CardTitle className="text-base font-semibold">MCP Server Properties - Error</CardTitle>
-              <CardDescription className="text-xs mt-0.5 truncate max-w-[250px]">
+              <div className="text-base font-semibold text-sidebar-foreground">MCP Server Properties - Error</div>
+              <div className="text-xs mt-0.5 truncate max-w-[250px] text-muted-foreground">
                 Error loading panel
-              </CardDescription>
+              </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="flex-grow p-4 space-y-4 overflow-y-auto">
-          <div className="p-4 border border-red-200 rounded-md bg-red-50/30">
-            <p className="text-sm font-medium text-red-800">Rendering Error</p>
-            <p className="text-xs text-red-600 mt-1">{error.message}</p>
+        </div>
+        <div className="flex-grow p-3 overflow-hidden">
+          <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-y-auto p-4 space-y-4">
+            <div className="p-4 border border-red-200 rounded-md bg-red-50/30">
+              <p className="text-sm font-medium text-red-800">Rendering Error</p>
+              <p className="text-xs text-red-600 mt-1">{error.message}</p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 };

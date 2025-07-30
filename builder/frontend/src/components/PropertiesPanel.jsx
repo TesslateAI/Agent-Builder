@@ -281,30 +281,32 @@ const PropertiesPanel = () => {
   }
 
   return (
-    // Updated className here
-    <Card className="flex flex-col h-full rounded-none border-0 shadow-none">
-      <CardHeader className="p-3 border-b border-border flex-shrink-0 h-16 flex flex-row justify-between items-center">
+    // Updated className here with unified styling
+    <div className="flex flex-col h-full bg-sidebar">
+      <div className="p-3 border-b border-sidebar-border flex-shrink-0 h-16 flex flex-row justify-between items-center">
         <div className="flex items-center">
             {titleIcon}
             <div>
-                <CardTitle className="text-base font-semibold">{titleText}</CardTitle>
-                <CardDescription className="text-xs mt-0.5 truncate max-w-[250px]">{descriptionText}</CardDescription>
+                <div className="text-base font-semibold text-sidebar-foreground">{titleText}</div>
+                <div className="text-xs mt-0.5 truncate max-w-[250px] text-muted-foreground">{descriptionText}</div>
             </div>
         </div>
         <Button variant="ghost" size="icon" onClick={handleClosePanel} className="text-muted-foreground hover:text-foreground">
           <XIcon className="h-5 w-5" />
           <span className="sr-only">Close Properties</span>
         </Button>
-      </CardHeader>
-      <CardContent className="flex-grow p-4 space-y-4 overflow-y-auto">
-        {content}
-      </CardContent>
-      <div className="p-3 border-t border-border flex-shrink-0">
+      </div>
+      <div className="flex-grow p-3 overflow-hidden">
+        <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-y-auto p-4 space-y-4">
+          {content}
+        </div>
+      </div>
+      <div className="p-3 border-t border-sidebar-border flex-shrink-0">
         <Button onClick={handleApplyChanges} className="w-full" size="sm">
           Apply Changes
         </Button>
       </div>
-    </Card>
+    </div>
   );
 };
 

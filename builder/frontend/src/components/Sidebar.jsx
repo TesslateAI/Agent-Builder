@@ -25,7 +25,21 @@ const Sidebar = () => {
   return (
     <aside className="w-80 flex flex-col bg-sidebar border-r border-sidebar-border h-full">
       <div className="h-14 px-4 border-b border-sidebar-border flex items-center flex-shrink-0">
-        <h2 className="text-sm font-semibold text-sidebar-foreground">Workspace</h2>
+        <div className="flex items-center space-x-3">
+          <img
+            src="/Tesslate.svg"
+            alt="Tesslate"
+            className="h-6 w-auto"
+          />
+          <div>
+            <h2 className="text-sm font-semibold text-sidebar-foreground leading-none">
+              Tesslate Agent Builder
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Powered by TFrameX v1.1.0
+            </p>
+          </div>
+        </div>
       </div>
       
       <div className="flex-grow flex flex-col px-4 pt-3 pb-4 min-h-0">
