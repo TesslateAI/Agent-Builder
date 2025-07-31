@@ -12,12 +12,14 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { debounce } from 'lodash';
 
+import { useAuth } from './contexts/AuthContext';
 import { useStore } from './store';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import TerminalPanel from './components/TerminalPanel';
 import PropertiesPanel from './components/PropertiesPanel';
 import NavigationControls from './components/NavigationControls';
+import LoginPage from './components/auth/LoginPage';
 import TextInputNode from './nodes/inputs/TextInputNode'; // New
 
 import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
@@ -287,6 +289,26 @@ const FlowEditor = () => {
 };
 
 function App() {
+  const { isAuthenticated, isLoading, status } = useAuth();
+
+  // Show loading spinner while checking authentication
+  if (isLoading || status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  // Show main application if authenticated
   return (
     <ReactFlowProvider>
       <FlowEditor />

@@ -18,6 +18,10 @@ from routes.mcp_servers import mcp_servers_bp
 from routes.flows import flows_bp
 from routes.chatbot import chatbot_bp
 from routes.files import files_bp, init_generated_files_dir
+from routes.auth import auth_bp
+
+# Import authentication middleware
+from middleware.auth import JWTMiddleware
 
 # Initialize TFrameX App on startup
 from tframex_config import get_tframex_app_instance
@@ -25,7 +29,7 @@ from tframex_config import get_tframex_app_instance
 load_dotenv()
 
 # Use TFrameX's setup_logging for consistency
-setup_logging(level=logging.INFO, use_colors=True)
+setup_logging(level=logging.DEBUG, use_colors=True)
 logger = logging.getLogger("FlaskTFrameXStudio")
 
 def create_app():
@@ -40,7 +44,10 @@ def create_app():
                 "http://127.0.0.1:5173",
                 "http://localhost:5000",  # Production
                 "http://127.0.0.1:5000"
-            ]
+            ],
+            "supports_credentials": True,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
         }
     })
 
@@ -48,10 +55,40 @@ def create_app():
     init_default_model()
     init_generated_files_dir()
     
+    # Initialize JWT middleware
+    jwt_middleware = JWTMiddleware()
+    jwt_middleware.init_app(app)
+    
     # Initialize TFrameX App (this ensures it's created before blueprints use it)
     global_tframex_app = get_tframex_app_instance()
+    
+    # Initialize MCP in async context if it was deferred
+    import asyncio
+    from tframex_config import init_deferred_mcp
+    
+    async def setup_mcp():
+        """Initialize MCP in async context."""
+        try:
+            mcp_success = await init_deferred_mcp()
+            if mcp_success:
+                logger.info("MCP initialization completed successfully")
+            else:
+                logger.info("MCP initialization skipped or failed")
+        except Exception as e:
+            logger.error(f"Error during MCP setup: {e}")
+    
+    # Run MCP setup in new event loop if needed
+    try:
+        # Try to get existing loop
+        loop = asyncio.get_running_loop()
+        # If we have a loop, schedule MCP init
+        asyncio.ensure_future(setup_mcp())
+    except RuntimeError:
+        # No loop running, create one for MCP init
+        asyncio.run(setup_mcp())
 
     # Register blueprints
+    app.register_blueprint(auth_bp)
     app.register_blueprint(models_bp)
     app.register_blueprint(mcp_servers_bp)
     app.register_blueprint(flows_bp)

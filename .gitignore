@@ -71,10 +71,8 @@ builder/backend/.env
 *~
 .vimrc.local
 
-# GitHub and Claude directories  
+# GitHub directories  
 .github/
-.claude/
-CLAUDE.md
 
 # OS generated files
 .DS_Store

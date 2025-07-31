@@ -60,8 +60,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY pyproject.toml ./
 COPY builder/backend/requirements.txt ./builder/backend/
 
-# Install Python dependencies including TFrameX
-RUN uv pip install --no-cache-dir flask flask-cors python-dotenv httpx pydantic PyYAML aiohttp tframex==1.1.0
+# Install Python dependencies including TFrameX and auth dependencies
+RUN uv pip install --no-cache-dir flask flask-cors python-dotenv httpx pydantic PyYAML aiohttp tframex==1.1.0 PyJWT==2.8.0 redis==5.0.1 requests==2.32.3
 
 # =============================================================================
 # Stage 3: Production Runtime
