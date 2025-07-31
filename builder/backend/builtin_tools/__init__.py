@@ -13,6 +13,7 @@ from .data_processing import register_data_processing_tools
 from .text_processing import register_text_processing_tools
 from .file_system import register_file_system_tools
 from .utilities import register_utility_tools
+from .flow_analysis import register_flow_analysis_tools
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,8 @@ def register_builtin_tools(tframex_app):
         ("Data Processing", register_data_processing_tools),
         ("Text Processing", register_text_processing_tools),
         ("File System", register_file_system_tools),
-        ("Utilities", register_utility_tools)
+        ("Utilities", register_utility_tools),
+        ("Flow Analysis", register_flow_analysis_tools)
     ]
     
     for category_name, register_func in tool_categories:
