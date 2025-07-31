@@ -6,6 +6,7 @@ from tframex import TFrameXApp, OpenAIChatLLM, Tool, setup_logging
 from tframex.mcp import MCPManager
 import json
 from pathlib import Path
+from builtin_tools import register_builtin_tools
 
 load_dotenv()
 
@@ -30,7 +31,7 @@ def init_tframex_app():
     # Support for multiple LLM providers as per v1.1.0
     api_key = os.getenv("OPENAI_API_KEY") or os.getenv("LLAMA_API_KEY")
     api_base_url = os.getenv("OPENAI_API_BASE") or os.getenv("LLAMA_BASE_URL") or "http://localhost:11434/v1"
-    model_name = os.getenv("OPENAI_MODEL_NAME") or os.getenv("LLAMA_MODEL") or "gpt-3.5-turbo"
+    model_name = os.getenv("OPENAI_MODEL_NAME") or os.getenv("LLAMA_MODEL") or "llama3.2:1b"
     
     default_llm = OpenAIChatLLM(
         model_name=model_name,
@@ -50,10 +51,23 @@ def init_tframex_app():
         logger.info(f"MCP config file {mcp_config_path} not found, MCP features will be disabled")
         mcp_config_path = None
 
+    # Try to detect if we're in an async context for MCP initialization
+    try:
+        import asyncio
+        loop = asyncio.get_running_loop()
+        logger.info("Event loop detected, initializing with MCP support")
+        use_mcp = mcp_config_path is not None
+    except RuntimeError:
+        logger.info("No event loop running, deferring MCP initialization")
+        use_mcp = False
+        # Store MCP config for later initialization
+        if mcp_config_path:
+            os.environ["TFRAMEX_DEFERRED_MCP_CONFIG"] = mcp_config_path
+
     # Initialize TFrameXApp with v1.1.0 parameters
     tframex_app_instance = TFrameXApp(
         default_llm=default_llm,
-        mcp_config_file=mcp_config_path,
+        mcp_config_file=mcp_config_path if use_mcp else None,
         enable_mcp_roots=True,
         enable_mcp_sampling=True,
         enable_mcp_experimental=False,
@@ -65,11 +79,7 @@ def init_tframex_app():
     logger.info(f"  - MCP: {'Enabled' if mcp_config_path else 'Disabled'}")
 
     # --- Pre-register Example/Core Studio Tools or Agents (Optional) ---
-    # Example: A simple tool available by default
-    @tframex_app_instance.tool(name="studio_example_tool", description="A sample tool provided by the Studio.")
-    async def _studio_example_tool(text: str) -> str:
-        logger.info(f"Studio Example Tool called with: {text}")
-        return f"Studio Example Tool processed: '{text.upper()}'"
+    # Built-in tools are now registered via builtin_tools.py
 
     # Register example MCP meta-tools if MCP is enabled
     if mcp_config_path and hasattr(tframex_app_instance, '_mcp_manager') and tframex_app_instance._mcp_manager:
@@ -150,16 +160,63 @@ Output the JSON now:
         pass
 
     logger.info("ConversationalAssistant and FlowBuilderAgent registered.")
+    
+    # Register built-in tools
+    try:
+        register_builtin_tools(tframex_app_instance)
+        logger.info("Built-in tools registered successfully.")
+    except Exception as e:
+        logger.error(f"Failed to register built-in tools: {e}")
+    
     return tframex_app_instance
 
-# Ensure it's initialized when this module is imported
-if tframex_app_instance is None:
-    tframex_app_instance = init_tframex_app()
+async def init_deferred_mcp() -> bool:
+    """Initialize MCP if it was deferred due to missing event loop."""
+    global tframex_app_instance
+    
+    if tframex_app_instance is None:
+        logger.warning("Cannot initialize MCP: TFrameX app not initialized")
+        return False
+    
+    # Check if MCP is already initialized
+    if hasattr(tframex_app_instance, '_mcp_manager') and tframex_app_instance._mcp_manager:
+        logger.info("MCP already initialized")
+        return True
+    
+    # Check for deferred MCP config
+    deferred_config = os.getenv("TFRAMEX_DEFERRED_MCP_CONFIG")
+    if not deferred_config:
+        logger.info("No deferred MCP config found")
+        return False
+    
+    if not Path(deferred_config).exists():
+        logger.warning(f"Deferred MCP config file not found: {deferred_config}")
+        return False
+    
+    try:
+        from tframex.mcp import MCPManager
+        logger.info(f"Initializing deferred MCP with config: {deferred_config}")
+        
+        tframex_app_instance._mcp_manager = MCPManager(
+            mcp_config_file_path=deferred_config,
+            default_llm=tframex_app_instance.default_llm,
+            enable_roots=True,
+            enable_sampling=True,
+            enable_experimental=False,
+            roots_allowed_paths=None
+        )
+        
+        logger.info("Deferred MCP initialization successful")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize deferred MCP: {e}")
+        return False
 
 def get_tframex_app_instance() -> TFrameXApp:
-    """Returns the initialized global TFrameXApp instance."""
+    """Returns the initialized global TFrameX App instance with lazy initialization."""
+    global tframex_app_instance
     if tframex_app_instance is None:
-        # This case should ideally not be hit if init_tframex_app() is called on module load
-        logger.warning("get_tframex_app_instance called before initialization. Initializing now.")
-        return init_tframex_app()
+        logger.info("Lazy initializing TFrameX app instance...")
+        tframex_app_instance = init_tframex_app()
     return tframex_app_instance

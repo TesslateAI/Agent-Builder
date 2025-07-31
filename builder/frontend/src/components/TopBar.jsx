@@ -1,6 +1,7 @@
 // src/components/TopBar.jsx
 import React, { useState, useCallback, useEffect } from 'react';
 import { useStore } from '../store';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,8 +11,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database, Check } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database, Check, User, ChevronDown } from 'lucide-react';
 import ModelConfigurationPanel from './ModelConfigurationPanel';
+import UserProfile from './auth/UserProfile';
 
 const TopBar = () => {
   const projects = useStore((state) => state.projects);
@@ -23,8 +30,13 @@ const TopBar = () => {
   const runFlow = useStore((state) => state.runFlow);
   const isRunning = useStore((state) => state.isRunning);
 
+  // Auth state
+  const { user, logout, isAuthenticated } = useAuth();
+
   const [newProjectName, setNewProjectName] = useState('');
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved'
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleCreateProject = useCallback(() => {
     if (newProjectName.trim()) {
@@ -51,6 +63,16 @@ const TopBar = () => {
     setSaveStatus('saved');
   }, [saveCurrentProject]);
 
+  const handleLogout = useCallback(async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+      setIsLoggingOut(false);
+    }
+  }, [logout]);
+
   // Reset save status after showing success feedback
   useEffect(() => {
     if (saveStatus === 'saved') {
@@ -65,6 +87,30 @@ const TopBar = () => {
     <div className="h-14 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-6 flex-shrink-0">
       {/* Left Side: Project Controls */}
       <div className="flex items-center space-x-6">
+        {/* User Profile - Only show if authenticated */}
+        {isAuthenticated && (
+          <Dialog open={showUserProfile} onOpenChange={setShowUserProfile}>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-2 hover:bg-sidebar-border"
+              >
+                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2">
+                  <User className="w-3 h-3 text-blue-600" />
+                </div>
+                <span className="text-sm font-medium max-w-24 truncate">
+                  {user?.first_name || user?.username || 'User'}
+                </span>
+                <ChevronDown className="w-3 h-3 ml-1 text-muted-foreground" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <UserProfile onClose={() => setShowUserProfile(false)} />
+            </DialogContent>
+          </Dialog>
+        )}
+
         {/* Project Controls */}
         <div className="flex items-center space-x-2">
           <Select
@@ -168,6 +214,7 @@ const TopBar = () => {
             </>
           )}
         </Button>
+
       </div>
     </div>
   );

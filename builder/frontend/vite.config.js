@@ -16,8 +16,8 @@ export default defineConfig({
     strictPort: true,
     cors: true,
     hmr: {
-      host: "studio.tesslate.com",
+      host: "localhost",
     },
-    allowedHosts: ["studio.tesslate.com"],
+    allowedHosts: ["localhost", "127.0.0.1", "studio.tesslate.com"],
   },
 })

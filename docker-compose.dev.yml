@@ -25,6 +25,12 @@ services:
       - FLASK_RUN_PORT=5000
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=DEBUG
+      - KEYCLOAK_SERVER_URL=http://keycloak:8080
+      - KEYCLOAK_PUBLIC_URL=http://localhost:8081
+      - KEYCLOAK_REDIRECT_URI=http://localhost:5000/api/auth/callback
+      - FRONTEND_URL=http://localhost:5173
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://devuser:devpass@postgres:5432/agentbuilder_dev
     env_file:
       - .env
     volumes:
@@ -107,6 +113,7 @@ services:
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
+      - ./scripts/init-keycloak-db.sql:/docker-entrypoint-initdb.d/init-keycloak-db.sql:ro
     networks:
       - agent-builder-dev
     healthcheck:
@@ -135,6 +142,46 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # =============================================================================
+  # Keycloak (Authentication & Authorization)
+  # =============================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: agent-builder-keycloak-dev
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/keycloak_dev
+      - KC_DB_USERNAME=devuser
+      - KC_DB_PASSWORD=devpass
+      - KC_HOSTNAME_URL=http://localhost:8081
+      - KC_HOSTNAME_ADMIN_URL=http://localhost:8081
+      - KC_HTTP_ENABLED=true
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_LOG_LEVEL=INFO
+    volumes:
+      - keycloak-dev-data:/opt/keycloak/data
+      - ./keycloak/dev-realm.json:/opt/keycloak/data/import/dev-realm.json:ro
+    networks:
+      - agent-builder-dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: 
+      - start-dev
+      - --import-realm
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # =============================================================================
   # Development Tools & Monitoring
@@ -208,3 +255,5 @@ volumes:
     name: agent-builder-redisinsight-dev-data
   pgadmin-dev-data:
     name: agent-builder-pgadmin-dev-data
+  keycloak-dev-data:
+    name: agent-builder-keycloak-dev-data

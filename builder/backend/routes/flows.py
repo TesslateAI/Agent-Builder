@@ -4,16 +4,19 @@ import asyncio
 import json
 import logging
 import time
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from tframex import TFrameXApp, Message
 
 from database import (
     create_project, get_project, list_projects,
     save_flow, get_flow, list_flows, delete_flow,
-    create_flow_execution, update_flow_execution, get_flow_executions
+    create_flow_execution, update_flow_execution, get_flow_executions,
+    create_audit_log
 )
 from component_manager import discover_tframex_components, register_code_dynamically
 from flow_translator import translate_visual_to_tframex_flow
+from middleware.auth import require_auth, get_current_user_id, get_current_organization_id
+from auth.rbac import require_permission, require_project_access
 
 logger = logging.getLogger("FlowsAPI")
 
@@ -27,24 +30,60 @@ def get_global_tframex_app():
 # --- Project Management ---
 
 @flows_bp.route('/projects', methods=['GET', 'POST'])
+@require_auth
 def handle_projects():
     """List projects or create a new one"""
+    user_id = get_current_user_id()
+    organization_id = get_current_organization_id()
+    
     if request.method == 'GET':
-        projects = list_projects()
+        # Apply organization filter for projects
+        projects = list_projects()  # TODO: Filter by organization in database layer
+        
+        # Create audit log for project listing
+        create_audit_log(
+            user_id=user_id,
+            organization_id=organization_id,
+            action='list',
+            resource_type='projects',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+        
         return jsonify(projects)
     
     elif request.method == 'POST':
+        # Check permission to create projects
+        from auth.rbac import RBACManager
+        user_permissions = getattr(g, 'permissions', [])
+        if not RBACManager.check_permission(user_permissions, 'projects.create'):
+            return jsonify({
+                'error': 'Insufficient permissions',
+                'message': 'Permission "projects.create" required'
+            }), 403
+        
         data = request.get_json()
         project_id = data.get('id', f"project_{int(time.time())}")
         name = data.get('name', 'Untitled Project')
         description = data.get('description', '')
         
         try:
-            # Ensure default project exists
-            if project_id == 'default_project' and not get_project('default_project'):
-                create_project('default_project', 'Default Project', 'Default workspace')
-            else:
-                project = create_project(project_id, name, description)
+            # Note: create_project needs to be updated to include organization_id and owner_id
+            # For now, we'll use the existing function but this should be enhanced
+            project = create_project(project_id, name, description)
+            
+            # Create audit log
+            create_audit_log(
+                user_id=user_id,
+                organization_id=organization_id,
+                action='create',
+                resource_type='projects',
+                resource_id=project_id,
+                details={'name': name, 'description': description},
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+            
             return jsonify(project), 201
         except Exception as e:
             logger.error(f"Error creating project: {e}")
@@ -120,6 +159,7 @@ def list_tframex_studio_components():
         return jsonify({"error": "Failed to load TFrameX components from backend"}), 500
 
 @flows_bp.route('/register_code', methods=['POST'])
+@require_permission('flows.create')
 def handle_register_tframex_code():
     global_tframex_app = get_global_tframex_app()
     data = request.get_json()
@@ -141,6 +181,7 @@ def handle_register_tframex_code():
 # --- Flow Execution ---
 
 @flows_bp.route('/flow/execute', methods=['POST'])
+@require_permission('flows.execute')
 def handle_execute_tframex_flow():
     global_tframex_app = get_global_tframex_app()
     run_id = f"sflw_{int(time.time())}_{os.urandom(3).hex()}"

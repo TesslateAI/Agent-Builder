@@ -17,7 +17,7 @@ def init_default_model():
         'id': 'default',
         'name': 'Default Model',
         'provider': 'openai',
-        'model_name': os.getenv("OPENAI_MODEL_NAME") or os.getenv("LLAMA_MODEL") or "gpt-3.5-turbo",
+        'model_name': os.getenv("OPENAI_MODEL_NAME") or os.getenv("LLAMA_MODEL") or "llama3.2:1b",
         'api_key': os.getenv("OPENAI_API_KEY") or os.getenv("LLAMA_API_KEY") or "ollama",
         'base_url': os.getenv("OPENAI_API_BASE") or os.getenv("LLAMA_BASE_URL") or "http://localhost:11434/v1",
         'is_default': True

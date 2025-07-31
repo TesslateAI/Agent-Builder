@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "*",
+      "Bash(python:*)",
+      "Bash(./start-dev.sh:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(npm:*)",
+      "Bash(pkill:*)",
+      "Bash(taskkill:*)",
+      "Bash(chmod:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(curl:*)",
+      "Bash(winpty docker exec -it agent-builder-backend-test bash)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(make:*)",
+      "Bash(/dev/null)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(winpty docker exec -it agent-builder-backend-dev /opt/venv/bin/pip install \"flask[async]\")",
+      "Bash(git checkout:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(claude config get installMethod)",
+      "Bash(claude config list)",
+      "Bash(claude update)",
+      "Bash(code:*)",
+      "Bash(claude config reset)",
+      "Bash(timeout:*)",
+      "Bash(echo:*)"
+    ],
+    "deny": []
+  }
+}
