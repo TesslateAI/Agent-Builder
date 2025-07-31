@@ -1,5 +1,5 @@
 // frontend/src/nodes/tframex/MCPServerNode.jsx
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Server, Link, AlertCircle, CheckCircle, X, Settings } from 'lucide-react';
 import { useStore } from '../../store';
 
-const MCPServerNode = ({ id, data }) => {
+const MCPServerNode = memo(({ id, data }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const deleteNode = useStore((state) => state.deleteNode);
   const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
@@ -104,7 +104,7 @@ const MCPServerNode = ({ id, data }) => {
         <X className="h-4 w-4 text-destructive" />
       </Button>
 
-      <CardHeader className="p-3 cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-3">
         <div className="flex items-center space-x-2">
           <div className={`flex items-center space-x-2 ${getStatusColor()}`}>
             {getStatusIcon()}
@@ -195,6 +195,8 @@ const MCPServerNode = ({ id, data }) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+MCPServerNode.displayName = 'MCPServerNode';
 
 export default MCPServerNode;

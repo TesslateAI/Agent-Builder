@@ -1,6 +1,6 @@
 // frontend/src/nodes/tframex/TFrameXAgentNode.jsx
 // builder/frontend/src/nodes/tframex/TFrameXAgentNode.jsx
-import React, { useCallback, useState, useEffect, useMemo } from 'react'; // Import useMemo
+import React, { useCallback, useState, useEffect, useMemo, memo } from 'react'; // Import memo for optimization
 import { Handle, Position } from 'reactflow';
 import { useStore } from '../../store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { isEqual } from 'lodash'; // For comparing tool arrays - Import isEqual
 import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare, X, Bot, Server } from 'lucide-react';
 
-const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
+const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const allTools = useStore((state) => state.tframexComponents.tools);
   const deleteNode = useStore((state) => state.deleteNode);
@@ -170,7 +170,7 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
       </Button>
 
 
-      <CardHeader className="p-3 cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-3">
         <div className="flex items-center space-x-2">
             <Cog className="h-5 w-5 text-primary flex-shrink-0" />
             <Input
@@ -274,6 +274,8 @@ const TFrameXAgentNode = ({ id, data, type: tframexAgentId }) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+TFrameXAgentNode.displayName = 'TFrameXAgentNode';
 
 export default TFrameXAgentNode;

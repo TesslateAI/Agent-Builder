@@ -10,6 +10,7 @@ import ReactFlow, {
   useNodesInitialized
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { debounce } from 'lodash';
 
 import { useStore } from './store';
 import Sidebar from './components/Sidebar';
@@ -49,12 +50,20 @@ const FlowEditor = () => {
   const projects = useStore((state) => state.projects);
   const currentProjectId = useStore((state) => state.currentProjectId);
 
+  // Debounced save to prevent interference with dragging
+  const debouncedSaveProject = useMemo(
+    () => debounce((viewport) => {
+      saveCurrentProject(viewport);
+    }, 300),
+    [saveCurrentProject]
+  );
+
   // Save viewport changes
   const onViewportChange = useCallback((viewport) => {
     if (viewport) {
-      saveCurrentProject(viewport);
+      debouncedSaveProject(viewport);
     }
-  }, [saveCurrentProject]);
+  }, [debouncedSaveProject]);
 
   // Restore viewport when loading project
   useEffect(() => {
@@ -121,12 +130,8 @@ const FlowEditor = () => {
         y: event.clientY - reactFlowBounds.top,
       });
       
-      // Adjust position to center the node at cursor position
-      // Assuming average node width/height for better placement
-      const nodeWidth = 280; // Approximate width of most nodes
-      const nodeHeight = 120; // Approximate height of most nodes
-      position.x -= nodeWidth / 2;
-      position.y -= nodeHeight / 2;
+      // ReactFlow expects nodes to be positioned by their top-left corner
+      // No adjustment needed - let ReactFlow handle the positioning
       addNode(componentData, position);
     },
     [project, addNode]
@@ -211,7 +216,7 @@ const FlowEditor = () => {
       <Sidebar />
       <div className="flex-grow flex flex-col h-full" ref={reactFlowWrapper}>
         <TopBar />
-        <div className="flex-grow relative">
+        <div className="flex-grow relative overflow-hidden">
           <ReactFlow
             nodes={nodes}
             edges={styledEdges}
@@ -233,12 +238,12 @@ const FlowEditor = () => {
             nodesDraggable={true}
             nodesConnectable={true}
             elementsSelectable={true}
-            selectNodesOnDrag={false}
             panOnDrag={true}
             zoomOnScroll={true}
             zoomOnPinch={true}
             zoomOnDoubleClick={true}
             preventScrolling={true}
+            snapToGrid={false}
           >
             <Background 
               color="rgba(255, 255, 255, 0.15)" 
@@ -274,7 +279,7 @@ const FlowEditor = () => {
         </div>
       </div>
       {/* Right Terminal Panel */}
-      <div className={`${selectedNodeId ? 'w-[420px]' : 'w-[500px]'} flex flex-col border-l border-sidebar-border h-full bg-sidebar transition-all duration-200`}>
+      <div className="w-[500px] flex flex-col border-l border-sidebar-border h-full bg-sidebar">
         <TerminalPanel />
       </div>
     </div>
