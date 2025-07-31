@@ -7,6 +7,7 @@ import {
 } from 'reactflow';
 import { nanoid } from 'nanoid';
 import axios from 'axios';
+import { debounce } from 'lodash';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000') + '/api/tframex';
 
@@ -42,6 +43,11 @@ const initialProjects = {
 
 const savedProjects = loadState('tframexStudioProjects') || initialProjects;
 const initialProjectId = loadState('tframexStudioCurrentProject') || 'default_project';
+
+// Debounced save function for performance during dragging
+const debouncedSaveProjects = debounce((projects) => {
+  saveState('tframexStudioProjects', projects);
+}, 500);
 
 export const useStore = create((set, get) => ({
   // === React Flow State ===
@@ -776,7 +782,7 @@ export const useStore = create((set, get) => ({
   },
 }));
 
-// Persist projects & currentProjectId
+// Persist projects & currentProjectId with debouncing
 useStore.subscribe(
   (state) => ({
     projects: state.projects,
@@ -784,7 +790,7 @@ useStore.subscribe(
   }),
   (currentState) => {
     if (currentState.projects && currentState.currentProjectId) {
-      saveState('tframexStudioProjects', currentState.projects);
+      debouncedSaveProjects(currentState.projects);
       saveState('tframexStudioCurrentProject', currentState.currentProjectId);
     }
   },

@@ -1,6 +1,6 @@
 // frontend/src/nodes/tframex/TFrameXPatternNode.jsx
 // builder/frontend/src/nodes/tframex/TFrameXPatternNode.jsx
-import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useRef, useEffect, useState, useMemo, memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { useStore } from '../../store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -54,7 +54,7 @@ const PatternListItem = ({ parentNodeId, paramName, agentIdInSlot, index, onRemo
 };
 
 
-const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
+const TFrameXPatternNode = memo(({ id, data, type: tframexPatternId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const allAgents = useStore((state) => state.tframexComponents.agents);
   const allPatternsFromStore = useStore((state) => state.tframexComponents.patterns);
@@ -344,7 +344,7 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
         <Handle type="source" position={Position.Right} id="output_flow_out" style={{ background: '#60a5fa', top: outputHandleTop, zIndex: 1 }} title="Flow Output" />
       )}
 
-      <CardHeader className="p-3 cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-3">
          <div className="flex items-center space-x-2">
             <Puzzle className="h-5 w-5 text-primary flex-shrink-0" />
              <Input 
@@ -375,6 +375,8 @@ const TFrameXPatternNode = ({ id, data, type: tframexPatternId }) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+TFrameXPatternNode.displayName = 'TFrameXPatternNode';
 
 export default TFrameXPatternNode;

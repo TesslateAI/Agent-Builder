@@ -1,6 +1,6 @@
 // frontend/src/nodes/inputs/TextInputNode.jsx
 // NEW FILE
-import React, { useCallback } from 'react';
+import React, { useCallback, memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { useStore } from '../../store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'; // For label editing
 import { Button } from '@/components/ui/button';
 import { MessageSquare, X } from 'lucide-react';
 
-const TextInputNode = ({ id, data }) => {
+const TextInputNode = memo(({ id, data }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const deleteNode = useStore((state) => state.deleteNode);
   const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
@@ -45,7 +45,7 @@ const TextInputNode = ({ id, data }) => {
         <X className="h-4 w-4 text-destructive" />
       </Button>
 
-      <CardHeader className="p-2 cursor-grab active:cursor-grabbing">
+      <CardHeader className="p-2">
         <div className="flex items-center space-x-1.5">
           <MessageSquare className="h-4 w-4 text-cyan-500 flex-shrink-0" />
           <Input 
@@ -72,6 +72,8 @@ const TextInputNode = ({ id, data }) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+TextInputNode.displayName = 'TextInputNode';
 
 export default TextInputNode;

@@ -266,10 +266,10 @@ const MCPServerPropertiesPanel = ({ nodeId, nodeData }) => {
 
   const getStatusColor = () => {
     switch (localData.status) {
-      case 'connected': return 'text-green-500 bg-green-50 border-green-200';
-      case 'connecting': return 'text-yellow-500 bg-yellow-50 border-yellow-200';
-      case 'error': return 'text-red-500 bg-red-50 border-red-200';
-      default: return 'text-gray-500 bg-gray-50 border-gray-200';
+      case 'connected': return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800';
+      case 'connecting': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800';
+      case 'error': return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800';
+      default: return 'text-muted-foreground bg-muted/50 border-border';
     }
   };
 

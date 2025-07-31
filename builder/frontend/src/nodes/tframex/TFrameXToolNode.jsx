@@ -1,6 +1,6 @@
 // frontend/src/nodes/tframex/TFrameXToolNode.jsx
 // builder/frontend/src/nodes/tframex/TFrameXToolNode.jsx
-import React from 'react';
+import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Wrench, Zap, X } from 'lucide-react';
 import { useStore } from '../../store';
 
 
-const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
+const TFrameXToolNode = memo(({ id, data, type: tframexToolId }) => {
   const toolDefinition = useStore(state => 
     state.tframexComponents.tools.find(t => t.id === tframexToolId)
   );
@@ -34,7 +34,7 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
     (toolDefinition.parameters_schema && Object.keys(toolDefinition.parameters_schema).length > 0 && toolDefinition.description?.toLowerCase().includes("return"));
 
   return (
-    <Card className="w-64 shadow-md bg-card text-card-foreground opacity-90 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing relative border-0">
+    <Card className="w-64 shadow-md bg-card text-card-foreground opacity-90 hover:opacity-100 transition-opacity relative border-0">
       <Handle 
         type="source"
         position={Position.Right}
@@ -82,6 +82,8 @@ const TFrameXToolNode = ({ id, data, type: tframexToolId }) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+TFrameXToolNode.displayName = 'TFrameXToolNode';
 
 export default TFrameXToolNode;
