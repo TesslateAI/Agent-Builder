@@ -25,7 +25,7 @@ def register_data_processing_tools(tframex_app):
     tools_registered = 0
     
     @tframex_app.tool(
-        name="JSON Processor",
+        name="json_processor",
         description="Parse, manipulate, and query JSON data with JSONPath-like operations"
     )
     async def process_json(
@@ -104,7 +104,7 @@ def register_data_processing_tools(tframex_app):
     # CSV processing tool (requires pandas)
     if HAS_PANDAS:
         @tframex_app.tool(
-            name="CSV Data Processor",
+            name="csv_data_processor",
             description="Read, write, and manipulate CSV data with pandas-like operations"
         )
         async def process_csv(

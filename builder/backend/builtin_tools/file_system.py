@@ -13,7 +13,7 @@ def register_file_system_tools(tframex_app):
     """Register file system tools with the TFrameXApp instance."""
     
     @tframex_app.tool(
-        name="File Reader",
+        name="file_reader",
         description="Safely read files with encoding detection and size limits"
     )
     async def read_file(
@@ -63,7 +63,7 @@ def register_file_system_tools(tframex_app):
             }
     
     @tframex_app.tool(
-        name="File Writer",
+        name="file_writer",
         description="Safely write content to files with backup options"
     )
     async def write_file(

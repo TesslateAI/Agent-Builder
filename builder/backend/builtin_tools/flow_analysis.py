@@ -13,7 +13,7 @@ def register_flow_analysis_tools(tframex_app):
     """Register flow analysis tools with the TFrameXApp instance."""
     
     @tframex_app.tool(
-        name="Flow Structure Analyzer",
+        name="flow_structure_analyzer",
         description="Analyze visual flow structure for patterns, issues, and optimization opportunities"
     )
     async def analyze_flow_structure(
@@ -149,7 +149,7 @@ def register_flow_analysis_tools(tframex_app):
             }
     
     @tframex_app.tool(
-        name="Drag-Drop Predictor", 
+        name="drag_drop_predictor", 
         description="Predict optimal next components to add to a flow based on current state"
     )
     async def predict_next_components(
@@ -279,7 +279,7 @@ def register_flow_analysis_tools(tframex_app):
             }
     
     @tframex_app.tool(
-        name="Flow Optimizer",
+        name="flow_optimizer",
         description="Suggest optimizations and improvements for existing flows"
     )
     async def optimize_flow(

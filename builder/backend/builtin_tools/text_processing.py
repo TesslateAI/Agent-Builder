@@ -12,7 +12,7 @@ def register_text_processing_tools(tframex_app):
     """Register text processing tools with the TFrameXApp instance."""
     
     @tframex_app.tool(
-        name="Text Pattern Matcher",
+        name="text_pattern_matcher",
         description="Perform regex operations on text including search, replace, and extraction"
     )
     async def text_regex(
@@ -78,7 +78,7 @@ def register_text_processing_tools(tframex_app):
             }
     
     @tframex_app.tool(
-        name="Text Transformer",
+        name="text_transformer",
         description="Transform text with various operations like case changes, formatting, and cleaning"
     )
     async def text_transform(
