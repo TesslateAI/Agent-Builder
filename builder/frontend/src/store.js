@@ -8,6 +8,7 @@ import {
 import { nanoid } from 'nanoid';
 import axios from 'axios';
 import { debounce } from 'lodash';
+import { getLayoutedElements, LAYOUT_DIRECTIONS } from './utils/autoLayout';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000') + '/api/tframex';
 
@@ -716,9 +717,7 @@ export const useStore = create((set, get) => ({
         // Create mapping from component names to IDs for validation
         const componentTypeMap = new Map();
         
-        console.log("🗺️ Building component type mapping...");
-        
-        // Add all component types to the map (both ID and name as keys)
+        // Build component type mapping
         [...currentState.tframexComponents.agents, 
          ...currentState.tframexComponents.patterns, 
          ...currentState.tframexComponents.tools,
@@ -726,26 +725,21 @@ export const useStore = create((set, get) => ({
          ...currentState.tframexComponents.mcp_servers].forEach(comp => {
           componentTypeMap.set(comp.id, comp.id);
           componentTypeMap.set(comp.name, comp.id);
-          console.log(`🔗 Mapped: "${comp.name}" → "${comp.id}"`);
         });
         
         // Add special node types
         componentTypeMap.set('textInput', 'textInput');
         componentTypeMap.set('MCPServerNode', 'MCPServerNode');
         
-        console.log("🗺️ Final component type mapping:", Array.from(componentTypeMap.entries()));
-        console.log("📥 Incoming node types:", flowUpdate.nodes.map(n => ({ id: n.id, type: n.type, label: n.data?.label })));
+        console.log("🗺️ Component mapping ready:", componentTypeMap.size, "types");
         
         // Process and validate new nodes
         const processedNodes = [];
         let allNodesValid = true;
         
-        console.log("🔄 Processing nodes...");
+        // Process and validate nodes
         for (const newNode of flowUpdate.nodes) {
-          console.log(`🔍 Processing node: ${newNode.id} (type: ${newNode.type})`);
-          
           const mappedType = componentTypeMap.get(newNode.type);
-          console.log(`🔗 Type mapping result: "${newNode.type}" → "${mappedType}"`);
           
           if (!mappedType) {
             console.error(`❌ Unknown node type: ${newNode.type}`);
@@ -826,23 +820,28 @@ export const useStore = create((set, get) => ({
           const mergedNodes = [...existingNodes, ...processedNodes];
           const mergedEdges = [...existingEdges, ...processedEdges];
           
-          console.log("🔄 MERGING NODES AND EDGES");
-          console.log(`📊 Merging ${processedNodes.length} new nodes with ${existingNodes.length} existing nodes`);
-          console.log(`📊 Merging ${processedEdges.length} new edges with ${existingEdges.length} existing edges`);
-          console.log("🎯 Final merged nodes:", mergedNodes.map(n => ({ id: n.id, type: n.type, position: n.position })));
-          console.log("🎯 Final merged edges:", mergedEdges.map(e => ({ id: e.id, source: e.source, target: e.target })));
+          // Merge nodes and edges
+          console.log("🎯 Merged flow:", `+${processedNodes.length} nodes, +${processedEdges.length} edges`);
           
-          console.log("🚀 CALLING SET STATE...");
           set({ nodes: mergedNodes, edges: mergedEdges });
-          console.log("✅ SET STATE CALLED SUCCESSFULLY");
           
-          // Verify state was actually updated
+          // Apply auto-layout to newly added nodes
+          setTimeout(() => {
+            console.log("🎯 Applying auto-layout...");
+            
+            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+              mergedNodes, 
+              mergedEdges, 
+              LAYOUT_DIRECTIONS.LEFT_TO_RIGHT
+            );
+            
+            set({ nodes: layoutedNodes, edges: layoutedEdges });
+            console.log("✅ Auto-layout applied successfully");
+          }, 100);
+          
+          // Verify state update
           const stateAfterSet = get();
-          console.log("📊 State after set:", {
-            nodesCount: stateAfterSet.nodes.length,
-            edgesCount: stateAfterSet.edges.length,
-            lastNodeIds: stateAfterSet.nodes.slice(-3).map(n => n.id)
-          });
+          console.log("📊 Flow state:", `${stateAfterSet.nodes.length} nodes, ${stateAfterSet.edges.length} edges`);
           
           addChatMessage('bot', `✅ Added ${processedNodes.length} nodes and ${processedEdges.length} edges to canvas!`, 'info');
           console.log("✅ SUCCESS MESSAGE ADDED TO CHAT");

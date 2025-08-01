@@ -61,9 +61,11 @@ async def execute_chatbot_logic(rt, user_message, template_vars):
         )
         
         flow_json_content = flow_builder_response.content.strip()
-        logger.info(f"FlowBuilderAgent complete response:")
-        logger.info(f"{flow_json_content}")
-        logger.info(f"FlowBuilderAgent response length: {len(flow_json_content)} characters")
+        logger.info(f"=== FlowBuilderAgent Output ===")
+        logger.info(f"Instruction: {instruction_part[:100]}...")
+        logger.info(f"Response length: {len(flow_json_content)} characters")
+        logger.info(f"Raw output: {flow_json_content}")
+        logger.info(f"=== End FlowBuilderAgent Output ===")
         
         # Step 4: Parse and validate the JSON
         flow_update_json = None
@@ -99,6 +101,7 @@ async def execute_chatbot_logic(rt, user_message, template_vars):
                 # Log each edge for debugging  
                 for i, edge in enumerate(flow_update_json.get('edges', [])):
                     logger.info(f"Edge {i+1}: {edge.get('source')} -> {edge.get('target')} (id={edge.get('id')})")
+                
                 
                 return {
                     "reply": user_reply or "I've updated the flow based on your request. Please review the canvas.",
