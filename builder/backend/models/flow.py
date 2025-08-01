@@ -18,7 +18,7 @@ class Flow(Base):
     description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     nodes: Mapped[List[Dict]] = mapped_column(JSON, nullable=False)
     edges: Mapped[List[Dict]] = mapped_column(JSON, nullable=False)
-    metadata: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
+    flow_metadata: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc), nullable=False
     )

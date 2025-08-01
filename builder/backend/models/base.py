@@ -1,8 +1,7 @@
-from sqlalchemy import create_engine, Integer, String, Float, MetaData, ForeignKey, Index, JSON
+from sqlalchemy import DateTime, create_engine, Integer, String, Float, MetaData, ForeignKey, Index, JSON
 from sqlalchemy.orm import DeclarativeBase, relationship, registry, Mapped, mapped_column, sessionmaker
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from .base import Base
 
 metadata = MetaData()
 
@@ -13,7 +12,7 @@ type_annotation_map = {
     bool: Integer,
     dict: JSON,
     list: JSON,
-    datetime: datetime(timezone=True),
+    datetime: DateTime(timezone=True),
 }
 mapper_registry = registry(type_annotation_map = type_annotation_map)
 
