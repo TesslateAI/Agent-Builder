@@ -19,7 +19,7 @@ logger = logging.getLogger("Database")
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "agent_builder.db")
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-engine = create_engine(DB_PATH)
+engine = create_engine(f"sqlite:///{DB_PATH}")
 Base.metadata.create_all(engine)
 LocalSession = sessionmaker(bind=engine)
 
@@ -87,7 +87,7 @@ def save_flow(
     nodes: List[Dict],
     edges: List[Dict],
     description: str = "",
-    metadata: Optional[Dict] = None
+    flow_metadata: Optional[Dict] = None
 ) -> Dict[str, Any]:
     """Save or update a flow"""
     with LocalSession() as session:
@@ -99,7 +99,7 @@ def save_flow(
             flow.description = description
             flow.nodes = nodes
             flow.edges = edges
-            flow.metadata = metadata or {}
+            flow.flow_metadata = flow_metadata or {}
             flow.updated_at = datetime.now(timezone.utc)
         else:
             flow = Flow(
@@ -109,7 +109,7 @@ def save_flow(
                 description=description,
                 nodes=nodes,
                 edges=edges,
-                metadata=metadata or {},
+                flow_metadata=flow_metadata or {},
                 created_at=datetime.now(timezone.utc),
                 updated_at=datetime.now(timezone.utc)
             )
@@ -125,7 +125,7 @@ def save_flow(
             "description": flow.description,
             "nodes": flow.nodes,
             "edges": flow.edges,
-            "metadata": flow.metadata,
+            "flow_metadata": flow.flow_metadata,
             "created_at": flow.created_at.isoformat() if flow.created_at else None,
             "updated_at": flow.updated_at.isoformat() if flow.updated_at else None
         }
@@ -142,7 +142,7 @@ def get_flow(flow_id: str) -> Optional[Dict[str, Any]]:
                 "description": flow.description,
                 "nodes": flow.nodes,
                 "edges": flow.edges,
-                "metadata": flow.metadata,
+                "flow_metadata": flow.flow_metadata,
                 "created_at": flow.created_at.isoformat(),
                 "updated_at": flow.updated_at.isoformat()
             }
@@ -162,7 +162,7 @@ def list_flows(project_id: Optional[str] = None) -> List[Dict[str, Any]]:
             "description": flow.description,
             "nodes": flow.nodes,
             "edges": flow.edges,
-            "metadata": flow.metadata,
+            "flow_metadata": flow.flow_metadata,
             "created_at": flow.created_at.isoformat(),
             "updated_at": flow.updated_at.isoformat()
         } for flow in flows]
