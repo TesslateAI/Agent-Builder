@@ -84,9 +84,9 @@ def discover_tframex_components(app_instance): # app_instance is now a required 
             "tframex_agent_type": agent_type_name, 
             "config_options": { 
                 "system_prompt_template": config.get("system_prompt_template", ""),
-                "can_use_tools": "LLMAgent" in agent_type_name or "ToolAgent" in agent_type_name,
+                "can_use_tools": config.get("can_use_tools", "LLMAgent" in agent_type_name or "ToolAgent" in agent_type_name),
                 "default_tools": config.get("tool_names", []), 
-                "can_call_agents": "LLMAgent" in agent_type_name,
+                "can_call_agents": config.get("can_call_agents", "LLMAgent" in agent_type_name),
                 "default_callable_agents": config.get("callable_agent_names", []),
                 "strip_think_tags": config.get("strip_think_tags", False),
                 "mcp_tools_from_servers": mcp_tools_from_servers,  # v1.1.0

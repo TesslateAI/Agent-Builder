@@ -13,7 +13,7 @@ def register_utility_tools(tframex_app):
     """Register utility tools with the TFrameXApp instance."""
     
     @tframex_app.tool(
-        name="Date & Time Tool",
+        name="datetime_tool",
         description="Work with dates and times including formatting, parsing, and calculations"
     )
     async def datetime_tool(
@@ -79,7 +79,7 @@ def register_utility_tools(tframex_app):
             }
     
     @tframex_app.tool(
-        name="Math Calculator",
+        name="math_calculator",
         description="Perform mathematical calculations including basic arithmetic, statistics, and functions"
     )
     async def math_calculator(

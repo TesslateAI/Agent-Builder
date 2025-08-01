@@ -14,7 +14,7 @@ def register_code_execution_tools(tframex_app):
     """Register code execution tools with the TFrameXApp instance."""
     
     @tframex_app.tool(
-        name="Python Code Executor",
+        name="python_code_executor",
         description="Safely execute Python code in a sandboxed environment with timeout protection"
     )
     async def execute_python(code: str, timeout: int = 30) -> Dict[str, Any]:
@@ -75,7 +75,7 @@ def register_code_execution_tools(tframex_app):
                 pass
     
     @tframex_app.tool(
-        name="Shell Command Executor",
+        name="shell_command_executor",
         description="Execute shell commands with safety restrictions and timeout"
     )
     async def execute_shell(command: str, timeout: int = 30, working_dir: str = None) -> Dict[str, Any]:

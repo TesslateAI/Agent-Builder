@@ -77,6 +77,18 @@ docker-compose -f docker-compose.prod.yml logs   # Check deployment logs
 
 ## Code Architecture
 
+### TFrameX Source Reference
+The `tframex/` folder contains the source code of the TFrameX library v1.1.0. This is provided as a reference for understanding how to use the library effectively:
+- **DO NOT MODIFY** files in this folder - it's the library source code
+- Use it to understand TFrameX patterns, APIs, and implementation details
+- Key modules to reference:
+  - `tframex/app.py` - Core TFrameXApp class and decorators
+  - `tframex/agents/` - Agent base classes and implementations
+  - `tframex/flows/` - Flow orchestration system
+  - `tframex/patterns/` - Built-in coordination patterns
+  - `tframex/mcp/` - Model Context Protocol integration
+  - `tframex/util/llms.py` - LLM wrapper implementations
+
 ### Backend Structure (Flask + TFrameX)
 
 **Key Files:**

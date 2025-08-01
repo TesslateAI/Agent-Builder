@@ -115,6 +115,7 @@ test_*.py
 *.db
 *.db-shm
 *.db-wal
+tframex/
 
 # Backup files
 *.bak

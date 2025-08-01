@@ -166,11 +166,13 @@ def translate_visual_to_tframex_flow(
                 # In v1.1.0, validate against all tools including MCP tools
                 all_available_tools = list(current_run_app_instance._tools.keys())
                 valid_tools = sorted([t for t in node_selected_tools if t in all_available_tools])
-                effective_config['tool_names'] = valid_tools # Set for runtime
+                effective_config['tool_names'] = valid_tools # Set for runtime (legacy)
+                effective_config['native_tool_names'] = valid_tools # Set for TFrameX engine
                 if valid_tools != base_values_for_comparison["tool_names"]: # Compare sorted lists
                     config_values_for_hashing['tool_names'] = valid_tools
             else: # No 'selected_tools' in node_data, agent uses its default tools.
                 effective_config['tool_names'] = base_values_for_comparison["tool_names"]
+                effective_config['native_tool_names'] = base_values_for_comparison["tool_names"]
 
             # Apply strip_think_tags_override (v1.1.0 feature)
             if 'strip_think_tags_override' in node_data:
