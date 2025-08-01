@@ -42,6 +42,13 @@ const FlowEditor = () => {
 
   const nodes = useStore((state) => state.nodes);
   const edges = useStore((state) => state.edges);
+  
+  // Add logging for ReactFlow state changes
+  useEffect(() => {
+    console.log("🔄 REACTFLOW STATE CHANGED - Nodes:", nodes.length, "Edges:", edges.length);
+    console.log("🎯 Current nodes:", nodes.map(n => ({ id: n.id, type: n.type, position: n.position })));
+    console.log("🎯 Current edges:", edges.map(e => ({ id: e.id, source: e.source, target: e.target })));
+  }, [nodes, edges]);
   const onNodesChange = useStore((state) => state.onNodesChange);
   const onEdgesChange = useStore((state) => state.onEdgesChange);
   const onConnect = useStore((state) => state.onConnect);

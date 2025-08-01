@@ -17,11 +17,22 @@ def register_flow_analysis_tools(tframex_app):
         description="Analyze visual flow structure for patterns, issues, and optimization opportunities"
     )
     async def analyze_flow_structure(
-        nodes: List[Dict[str, Any]],
-        edges: List[Dict[str, Any]]
+        nodes: str,
+        edges: str
     ) -> Dict[str, Any]:
-        """Analyze the structure of a visual flow."""
+        """Analyze the structure of a visual flow.
+        
+        Args:
+            nodes: JSON string representing array of node objects
+            edges: JSON string representing array of edge objects
+        """
         try:
+            # Parse JSON strings to lists - handle empty strings
+            import json
+            if isinstance(nodes, str):
+                nodes = json.loads(nodes) if nodes.strip() else []
+            if isinstance(edges, str):
+                edges = json.loads(edges) if edges.strip() else []
             analysis = {
                 "success": True,
                 "node_count": len(nodes),
@@ -153,12 +164,24 @@ def register_flow_analysis_tools(tframex_app):
         description="Predict optimal next components to add to a flow based on current state"
     )
     async def predict_next_components(
-        current_nodes: List[Dict[str, Any]],
-        current_edges: List[Dict[str, Any]],
+        current_nodes: str,
+        current_edges: str,
         user_intent: str = ""
     ) -> Dict[str, Any]:
-        """Predict what components should be added next to the flow."""
+        """Predict what components should be added next to the flow.
+        
+        Args:
+            current_nodes: JSON string representing array of current node objects
+            current_edges: JSON string representing array of current edge objects
+            user_intent: User's description of what they want to achieve
+        """
         try:
+            # Parse JSON strings to lists - handle empty strings
+            import json
+            if isinstance(current_nodes, str):
+                current_nodes = json.loads(current_nodes) if current_nodes.strip() else []
+            if isinstance(current_edges, str):  
+                current_edges = json.loads(current_edges) if current_edges.strip() else []
             predictions = {
                 "success": True,
                 "recommendations": [],
@@ -283,12 +306,29 @@ def register_flow_analysis_tools(tframex_app):
         description="Suggest optimizations and improvements for existing flows"
     )
     async def optimize_flow(
-        nodes: List[Dict[str, Any]],
-        edges: List[Dict[str, Any]],
-        optimization_goals: List[str] = None
+        nodes: str,
+        edges: str,
+        optimization_goals: str = "performance,maintainability,reliability"
     ) -> Dict[str, Any]:
-        """Suggest optimizations for a flow."""
+        """Suggest optimizations for a flow.
+        
+        Args:
+            nodes: JSON string representing array of node objects
+            edges: JSON string representing array of edge objects  
+            optimization_goals: Comma-separated list of optimization objectives
+        """
         try:
+            # Parse JSON strings and optimization goals - handle empty strings
+            import json
+            if isinstance(nodes, str):
+                nodes = json.loads(nodes) if nodes.strip() else []
+            if isinstance(edges, str):
+                edges = json.loads(edges) if edges.strip() else []
+            
+            if isinstance(optimization_goals, str):
+                optimization_goals = [goal.strip() for goal in optimization_goals.split(',')]
+            elif optimization_goals is None:
+                optimization_goals = ["performance", "maintainability", "reliability"]
             optimizations = {
                 "success": True,
                 "optimizations": [],
@@ -297,8 +337,6 @@ def register_flow_analysis_tools(tframex_app):
                 "best_practices": []
             }
             
-            if optimization_goals is None:
-                optimization_goals = ["performance", "maintainability", "reliability"]
             
             # Analyze current structure
             agent_count = sum(1 for n in nodes if n.get('data', {}).get('component_category') == 'agent')
