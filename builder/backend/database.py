@@ -233,8 +233,36 @@ def get_flow_executions(flow_id: str, limit: int = 10) -> List[Dict[str, Any]]:
             "completed_at": execution.completed_at.isoformat() if execution.completed_at else None
         } for execution in executions
         ]
-    
-#Everything below this line is new code, please implement the necessary changes
+
+# Organization management
+def create_organization(
+    org_id: str,
+    name: str,
+    description: str = "",
+    settings: Optional[Dict] = None
+) -> Dict[str, Any]:
+    """Create a new organization"""
+    with LocalSession() as session:
+        org = Organizations(
+            id=org_id,
+            name=name,
+            description=description,
+            settings=settings or {},
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        session.add(org)
+        session.commit()
+        session.refresh(org)
+        return {
+            "id": org.id,
+            "name": org.name,
+            "description": org.description,
+            "settings": org.settings or {},
+            "created_at": org.created_at.isoformat(),
+            "updated_at": org.updated_at.isoformat()
+        }
+
 def get_organization(org_id: str) -> Optional[Dict[str, Any]]:
     """Get organization by ID"""
     with LocalSession() as session:
