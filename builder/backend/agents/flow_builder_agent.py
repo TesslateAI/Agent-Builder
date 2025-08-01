@@ -29,7 +29,7 @@ CRITICAL REQUIREMENTS:
 2. JSON must have "nodes" and "edges" keys - NEVER empty edges array
 3. Node 'type' must be EXACT TFrameX component ID from the available components list above
 4. For AGENT nodes: type must be an agent ID like "ConversationalAssistant", "OrchestratorAgent"
-5. For TOOL nodes: type must be an exact tool ID like "HTTP Request Tool", "Web Search Tool", "Text Pattern Matcher"
+5. For TOOL nodes: type must be an exact tool ID like "http_request_tool", "web_search_tool", "text_pattern_matcher"
 6. For PATTERN nodes: type must be pattern class name like "SequentialPattern", "ParallelPattern"
 7. Agent nodes should have data.component_category = "agent"
 8. Tool nodes should have data.component_category = "tool" 
@@ -52,7 +52,7 @@ FLOW PATTERN EXAMPLES:
 1. AGENT-TO-TOOLS PATTERN:
 {
   "nodes": [
-    {"id": "tool1", "type": "HTTP Request Tool", "data": {"label": "HTTP Request Tool", "component_category": "tool"}, "position": {"x": 50, "y": 100}},
+    {"id": "tool1", "type": "http_request_tool", "data": {"label": "HTTP Request Tool", "component_category": "tool"}, "position": {"x": 50, "y": 100}},
     {"id": "agent1", "type": "ConversationalAssistant", "data": {"label": "Processing Agent", "component_category": "agent"}, "position": {"x": 300, "y": 150}}
   ],
   "edges": [{"id": "edge1", "source": "tool1", "target": "agent1"}]

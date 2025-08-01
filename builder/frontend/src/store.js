@@ -613,22 +613,30 @@ export const useStore = create((set, get) => ({
   },
   clearChatHistory: () => set({ chatHistory: [] }),
   sendChatMessageToFlowBuilder: async (userMessage) => {
+    console.log("🚀 START sendChatMessageToFlowBuilder:", userMessage);
     const { nodes, edges, addChatMessage, fetchTFrameXComponents } = get();
-    if (!userMessage.trim()) return;
+    console.log("📊 Current state - nodes:", nodes.length, "edges:", edges.length);
+    
+    if (!userMessage.trim()) {
+      console.log("❌ Empty message, returning");
+      return;
+    }
 
     addChatMessage('user', userMessage);
     set({ isChatbotLoading: true });
+    console.log("⏳ Set loading state to true");
 
     await fetchTFrameXComponents();
+    console.log("📦 Components fetched");
 
     try {
       const payload = { message: userMessage, nodes, edges };
-      console.log("🚀 [FIXED VERSION] Sending to chatbot flow builder:", payload);
+      console.log("🚀 [DETAILED LOGGING] Sending to chatbot flow builder:", payload);
       
       const response = await axios.post(`${API_BASE_URL}/chatbot_flow_builder`, payload);
-      console.log("Raw response from chatbot flow builder:", response);
-      console.log("Response data from chatbot flow builder:", response.data);
-      console.log("Response data type:", typeof response.data);
+      console.log("📡 Raw response from chatbot flow builder:", response);
+      console.log("📋 Response data from chatbot flow builder:", response.data);
+      console.log("🔍 Response data type:", typeof response.data);
 
       // More defensive checks for response structure
       if (!response) {
@@ -664,8 +672,16 @@ export const useStore = create((set, get) => ({
       const reply = responseData?.reply || "Received no reply from chatbot flow builder.";
       const flowUpdate = responseData?.flow_update;
 
-      console.log("Extracted reply:", reply);
-      console.log("Extracted flowUpdate:", flowUpdate);
+      console.log("💬 Extracted reply:", reply);
+      console.log("🔄 Extracted flowUpdate:", flowUpdate);
+      console.log("🔄 flowUpdate type:", typeof flowUpdate);
+      console.log("🔄 flowUpdate structure:", {
+        hasFlowUpdate: !!flowUpdate,
+        hasNodes: flowUpdate && Array.isArray(flowUpdate.nodes),
+        hasEdges: flowUpdate && Array.isArray(flowUpdate.edges),
+        nodesLength: flowUpdate?.nodes?.length,
+        edgesLength: flowUpdate?.edges?.length
+      });
 
       console.log("🔵 About to call addChatMessage with reply:", reply);
       try {
@@ -677,45 +693,198 @@ export const useStore = create((set, get) => ({
       }
 
       if (flowUpdate && Array.isArray(flowUpdate.nodes) && Array.isArray(flowUpdate.edges)) {
-        const allKnownTypes = [
-          ...get().tframexComponents.agents.map(a => a.id),
-          ...get().tframexComponents.patterns.map(p => p.id),
-          ...get().tframexComponents.tools.map(t => t.id),
-          ...get().tframexComponents.utility.map(u => u.id),
-          ...get().tframexComponents.mcp_servers.map(m => m.id),
-          'textInput',
-          'MCPServerNode'
-        ];
-        const allNodesValid = flowUpdate.nodes.every(node => allKnownTypes.includes(node.type));
+        console.log("🎯 FLOW UPDATE PROCESSING STARTED");
+        console.log("🔄 Processing flow update:", flowUpdate);
+        
+        // Get current state
+        const currentState = get();
+        const existingNodes = currentState.nodes;
+        const existingEdges = currentState.edges;
+        
+        console.log("📊 Current state before processing:", {
+          existingNodesCount: existingNodes.length,
+          existingEdgesCount: existingEdges.length,
+          tframexComponents: {
+            agents: currentState.tframexComponents.agents.length,
+            patterns: currentState.tframexComponents.patterns.length,
+            tools: currentState.tframexComponents.tools.length,
+            utility: currentState.tframexComponents.utility.length,
+            mcp_servers: currentState.tframexComponents.mcp_servers.length
+          }
+        });
+        
+        // Create mapping from component names to IDs for validation
+        const componentTypeMap = new Map();
+        
+        console.log("🗺️ Building component type mapping...");
+        
+        // Add all component types to the map (both ID and name as keys)
+        [...currentState.tframexComponents.agents, 
+         ...currentState.tframexComponents.patterns, 
+         ...currentState.tframexComponents.tools,
+         ...currentState.tframexComponents.utility,
+         ...currentState.tframexComponents.mcp_servers].forEach(comp => {
+          componentTypeMap.set(comp.id, comp.id);
+          componentTypeMap.set(comp.name, comp.id);
+          console.log(`🔗 Mapped: "${comp.name}" → "${comp.id}"`);
+        });
+        
+        // Add special node types
+        componentTypeMap.set('textInput', 'textInput');
+        componentTypeMap.set('MCPServerNode', 'MCPServerNode');
+        
+        console.log("🗺️ Final component type mapping:", Array.from(componentTypeMap.entries()));
+        console.log("📥 Incoming node types:", flowUpdate.nodes.map(n => ({ id: n.id, type: n.type, label: n.data?.label })));
+        
+        // Process and validate new nodes
+        const processedNodes = [];
+        let allNodesValid = true;
+        
+        console.log("🔄 Processing nodes...");
+        for (const newNode of flowUpdate.nodes) {
+          console.log(`🔍 Processing node: ${newNode.id} (type: ${newNode.type})`);
+          
+          const mappedType = componentTypeMap.get(newNode.type);
+          console.log(`🔗 Type mapping result: "${newNode.type}" → "${mappedType}"`);
+          
+          if (!mappedType) {
+            console.error(`❌ Unknown node type: ${newNode.type}`);
+            console.error(`❌ Available types:`, Array.from(componentTypeMap.keys()));
+            allNodesValid = false;
+            break;
+          }
+          
+          // Find next available position to avoid overlaps
+          const findAvailablePosition = (preferredX = 100, preferredY = 100) => {
+            const spacing = 200;
+            const maxCols = 6;
+            let position = { x: preferredX, y: preferredY };
+            
+            for (let row = 0; row < 10; row++) {
+              for (let col = 0; col < maxCols; col++) {
+                const testX = 100 + (col * spacing);
+                const testY = 100 + (row * spacing);
+                
+                // Check if position is free
+                const positionTaken = [...existingNodes, ...processedNodes].some(node => 
+                  Math.abs(node.position.x - testX) < 150 && 
+                  Math.abs(node.position.y - testY) < 150
+                );
+                
+                if (!positionTaken) {
+                  return { x: testX, y: testY };
+                }
+              }
+            }
+            
+            return position; // Fallback to preferred position
+          };
+          
+          const newPosition = findAvailablePosition(newNode.position?.x, newNode.position?.y);
+          console.log(`📍 Position calculated:`, newPosition);
+          
+          // Create processed node with unique ID and proper positioning
+          const processedNode = {
+            ...newNode,
+            id: `${mappedType}-${nanoid(6)}`, // Generate unique ID
+            type: mappedType, // Use mapped type
+            position: newPosition,
+            data: {
+              ...newNode.data,
+              // Ensure proper component mapping
+              tframex_component_id: mappedType,
+            }
+          };
+          
+          console.log(`➕ Created processed node:`, {
+            id: processedNode.id,
+            type: processedNode.type,
+            position: processedNode.position,
+            label: processedNode.data?.label
+          });
+          
+          processedNodes.push(processedNode);
+        }
+        
+        console.log(`✅ Processed ${processedNodes.length} nodes, allNodesValid: ${allNodesValid}`);
 
         if (allNodesValid) {
-          set({ nodes: flowUpdate.nodes, edges: flowUpdate.edges });
-          addChatMessage('bot', "(Flow canvas updated successfully)", 'info');
+          // Process edges with updated node IDs
+          const nodeIdMapping = new Map();
+          flowUpdate.nodes.forEach((originalNode, index) => {
+            nodeIdMapping.set(originalNode.id, processedNodes[index].id);
+          });
+          
+          const processedEdges = flowUpdate.edges.map(edge => ({
+            ...edge,
+            id: `edge-${nanoid(6)}`, // Generate unique edge ID
+            source: nodeIdMapping.get(edge.source) || edge.source,
+            target: nodeIdMapping.get(edge.target) || edge.target,
+          }));
+          
+          // MERGE with existing nodes/edges instead of replacing
+          const mergedNodes = [...existingNodes, ...processedNodes];
+          const mergedEdges = [...existingEdges, ...processedEdges];
+          
+          console.log("🔄 MERGING NODES AND EDGES");
+          console.log(`📊 Merging ${processedNodes.length} new nodes with ${existingNodes.length} existing nodes`);
+          console.log(`📊 Merging ${processedEdges.length} new edges with ${existingEdges.length} existing edges`);
+          console.log("🎯 Final merged nodes:", mergedNodes.map(n => ({ id: n.id, type: n.type, position: n.position })));
+          console.log("🎯 Final merged edges:", mergedEdges.map(e => ({ id: e.id, source: e.source, target: e.target })));
+          
+          console.log("🚀 CALLING SET STATE...");
+          set({ nodes: mergedNodes, edges: mergedEdges });
+          console.log("✅ SET STATE CALLED SUCCESSFULLY");
+          
+          // Verify state was actually updated
+          const stateAfterSet = get();
+          console.log("📊 State after set:", {
+            nodesCount: stateAfterSet.nodes.length,
+            edgesCount: stateAfterSet.edges.length,
+            lastNodeIds: stateAfterSet.nodes.slice(-3).map(n => n.id)
+          });
+          
+          addChatMessage('bot', `✅ Added ${processedNodes.length} nodes and ${processedEdges.length} edges to canvas!`, 'info');
+          console.log("✅ SUCCESS MESSAGE ADDED TO CHAT");
         } else {
-          addChatMessage('bot', "(Chatbot proposed a flow with unknown component types. Update aborted.)", 'error');
-          console.warn("Chatbot proposed invalid node types.", flowUpdate.nodes.map(n=>n.type), "Known:", allKnownTypes);
+          console.error("❌ NODE VALIDATION FAILED");
+          addChatMessage('bot', "(⚠️ Chatbot proposed a flow with unknown component types. Update aborted.)", 'error');
+          console.warn("❌ Invalid node types found:", flowUpdate.nodes.map(n => n.type));
+          console.warn("❌ Available types:", Array.from(componentTypeMap.keys()));
         }
       } else if (responseData.hasOwnProperty('flow_update') && flowUpdate !== null) {
-        addChatMessage('bot', "(Chatbot returned an invalid flow structure)", 'error');
+        console.error("❌ INVALID FLOW STRUCTURE:", {
+          hasFlowUpdate: !!flowUpdate,
+          isNodesArray: Array.isArray(flowUpdate?.nodes),
+          isEdgesArray: Array.isArray(flowUpdate?.edges),
+          flowUpdate
+        });
+        addChatMessage('bot', "(❌ Chatbot returned an invalid flow structure)", 'error');
+      } else {
+        console.log("ℹ️ No flow update in response - normal conversational response");
       }
 
+      console.log("🏁 RETURNING RESPONSE DATA:", responseData);
       // Return the response data for TerminalPanel
       return responseData;
     } catch (error) {
-      console.error("Error sending chat message to flow builder:", error);
-      console.error("Error details:", {
+      console.error("💥 EXCEPTION CAUGHT IN sendChatMessageToFlowBuilder:", error);
+      console.error("💥 Error details:", {
         message: error.message,
         response: error.response,
-        request: error.request
+        request: error.request,
+        stack: error.stack
       });
       
       let errorMessage = "Failed to get response from chatbot flow builder.";
       if (error.response) {
-        console.error("Backend error response:", error.response.data);
+        console.error("💥 Backend error response:", error.response.data);
         errorMessage = `Chatbot Builder Error (${error.response.status}): ${error.response.data?.error || error.response.data?.reply || 'Unknown backend error'}`;
       } else if (error.request) {
+        console.error("💥 Network error - no response received");
         errorMessage = "Network Error: Could not connect to the chatbot flow builder backend.";
       } else {
+        console.error("💥 Request setup error");
         errorMessage = `Request Error: ${error.message}`;
       }
       addChatMessage('bot', errorMessage, 'error');
@@ -723,7 +892,9 @@ export const useStore = create((set, get) => ({
       // Return error response for TerminalPanel
       return { reply: errorMessage, flow_update: null };
     } finally {
+      console.log("🔄 FINALLY: Setting loading to false");
       set({ isChatbotLoading: false });
+      console.log("🏁 sendChatMessageToFlowBuilder COMPLETE");
     }
   },
 
