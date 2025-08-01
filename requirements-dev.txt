@@ -11,6 +11,10 @@ pydantic>=2.0.0
 PyYAML>=6.0.1
 aiohttp>=3.9.0
 
+# Builtin tools dependencies
+beautifulsoup4>=4.12.0
+pandas>=2.2.0
+
 # TFrameX dependency (matches production)
 tframex==1.1.0
 

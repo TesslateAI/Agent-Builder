@@ -117,6 +117,9 @@ class OrchestratorAgent(BaseAgent):
         """
         if not system_prompt_template:
             system_prompt_template = self._get_default_system_prompt()
+            logger.info(f"OrchestratorAgent {agent_id}: Using default system prompt (concise version)")
+        else:
+            logger.info(f"OrchestratorAgent {agent_id}: Using provided system prompt, length: {len(system_prompt_template)}")
             
         if not description:
             description = "PRIMARY interface for building workflows - coordinates flow analysis, component prediction, and FlowBuilderAgent communication"
@@ -154,6 +157,7 @@ class OrchestratorAgent(BaseAgent):
         self.used_analysis_tools: Set[str] = set()
         self.failed_tools: Set[str] = set()
         self.current_flow_context: Dict[str, Any] = {}
+        self.available_components: Dict[str, List[Dict[str, Any]]] = {}
         
         if not self.llm:
             raise ValueError(f"OrchestratorAgent '{self.agent_id}' requires an LLM instance.")
@@ -161,72 +165,33 @@ class OrchestratorAgent(BaseAgent):
             raise ValueError(f"OrchestratorAgent '{self.agent_id}' requires an Engine instance.")
     
     def _get_default_system_prompt(self) -> str:
-        return """You are the OrchestratorAgent for the TFrameX Agent Builder Studio - the PRIMARY interface for users building workflows.
+        return """You are the OrchestratorAgent - the primary interface for building TFrameX workflows.
 
-Your sophisticated capabilities:
-1. **Flow Analysis**: Deep understanding of flow structures, patterns, and optimization opportunities
-2. **Component Prediction**: AI-powered suggestions for next components based on user intent and flow context
-3. **Pattern Recognition**: Identify and suggest appropriate TFrameX patterns (Sequential, Parallel, Router, Discussion)
-4. **FlowBuilderAgent Coordination**: Generate precise FLOW_INSTRUCTION commands for visual flow creation using exact component IDs
-5. **Context Awareness**: Maintain understanding of current flow state and user goals
+CORE FUNCTION: Analyze user requests and generate FLOW_INSTRUCTION commands for the FlowBuilderAgent.
 
-Available Analysis Tools:
-{available_tools_descriptions}
+Available Components:
+{available_components_context}
 
-Available Agents you can coordinate with:
-{available_agents_descriptions}
+Current Flow: {current_flow_state_context}
 
-Current Flow Context:
-{current_flow_state_context}
+PROCESS:
+1. Understand user's workflow request
+2. Identify required components from available list above
+3. Generate FLOW_INSTRUCTION with exact component IDs
 
-Coordination Strategy: {coordination_strategy}
-- intelligent: Dynamically adapt approach based on user intent and flow complexity
-- comprehensive: Thorough analysis using multiple tools for complex flows
-- focused: Targeted analysis for specific flow improvements
-- quick: Rapid analysis and suggestions for simple modifications
+FLOW PATTERNS:
+- Multiple agents discussing → DiscussionPattern with participants: [agent1, agent2, ...]
+- Sequential steps → SequentialPattern with steps_config: [agent1, agent2, ...]
+- Parallel tasks → ParallelPattern with tasks: [agent1, agent2, ...]
+- Decision routing → RouterPattern with router_agent_name and routes
 
-Flow Building Process:
-1. **LISTEN & UNDERSTAND**: Carefully analyze user's specific workflow needs
-2. **ANALYZE CURRENT STATE**: Use flow analysis tools to understand existing structure
-3. **PREDICT OPTIMAL COMPONENTS**: Leverage component prediction tools based on intent
-4. **IDENTIFY PATTERNS**: Recognize appropriate TFrameX coordination patterns
-5. **GENERATE INSTRUCTIONS**: Create precise FLOW_INSTRUCTION for FlowBuilderAgent
+CRITICAL RULES:
+- ALWAYS end flow requests with: FLOW_INSTRUCTION: [specific instruction]
+- Use EXACT component IDs from available components list
+- Be specific: "Create DiscussionPattern with participants: ['ResearchAgent', 'ConversationalAssistant']"
+- If unclear, ask specific questions
 
-Communication Protocol:
-- Use your analysis tools to understand user requests (never assume)
-- Provide conversational explanations of your analysis
-- When flow modifications are needed, end with: FLOW_INSTRUCTION: [precise instruction]
-- Coordinate with FlowBuilderAgent for visual flow generation
-
-Flow Pattern Recognition:
-- Agent-to-Agent workflows → SequentialPattern coordination
-- Parallel processing needs → ParallelPattern with sync points
-- Decision-based routing → RouterPattern with decision logic
-- Collaborative analysis → DiscussionPattern with multiple agents
-- Tool-heavy workflows → Agent with comprehensive tool connections
-
-Key Guidelines:
-- ALWAYS use your analysis tools before making suggestions
-- Provide confidence levels for your recommendations
-- Consider performance, maintainability, and user experience
-- Build on existing flow structure when possible
-- Explain your reasoning process clearly
-- Adapt analysis depth based on user needs and flow complexity
-
-When analysis tools fail or return limited results:
-- Try alternative analysis approaches
-- Break complex flow requests into smaller components
-- Explain what you tried and why it may not have worked
-- ALWAYS provide fallback suggestions based on common patterns
-- NEVER leave users without actionable flow building guidance
-
-CRITICAL: For ANY flow building request (create, build, make, add flows), you MUST:
-1. Provide conversational explanation of your approach
-2. ALWAYS end with: FLOW_INSTRUCTION: [specific, actionable instruction]
-3. Even if tools fail completely, generate intelligent instructions based on user intent
-4. Use EXACT component IDs like: web_search_tool (NOT "Web Search Tool"), text_pattern_matcher (NOT "Text Pattern Matcher"), file_reader (NOT "File Reader"), math_calculator (NOT "Math Calculator")
-
-Your role is to be the intelligent, reliable interface between users and the TFrameX flow building system."""
+Your job: Convert user requests into precise, actionable FLOW_INSTRUCTION commands."""
 
     def _get_all_available_tool_definitions(self) -> List[ToolDefinition]:
         """Get all available tool definitions for the LLM."""
@@ -254,28 +219,18 @@ Your role is to be the intelligent, reliable interface between users and the TFr
         """
         Analyze the user's request and create a structured coordination plan.
         """
-        analysis_prompt = f"""Analyze this flow building request and create a structured coordination plan:
+        analysis_prompt = f"""Create coordination plan for: "{user_query}"
 
-User Request: "{user_query}"
+Available Tools: {json.dumps([{"name": t.function["name"], "description": t.function["description"]} for t in available_tools], indent=2)}
 
-Available Analysis Tools:
-{json.dumps([{"name": t.function["name"], "description": t.function["description"]} for t in available_tools], indent=2)}
-
-Current Flow Context: {json.dumps(self.current_flow_context, indent=2)}
-
-Strategy: {self.coordination_strategy}
-Max Analysis Depth: {self.max_execution_depth}
-
-Create a JSON coordination plan with:
+Return JSON:
 {{
-    "flow_requirements": ["specific flow building needs identified"],
-    "primary_analysis_tools": ["most important tools for this request"],
-    "secondary_tools": ["supporting tools that might be helpful"],
-    "pattern_suggestions": ["TFrameX patterns that might be relevant"],
-    "component_predictions": [{{"type": "component_type", "priority": "high/medium/low", "rationale": "why this component"}}]
-}}
-
-Prioritize tools based on relevance to flow building and user intent."""
+    "flow_requirements": ["needs identified"],
+    "primary_analysis_tools": ["most relevant tools"],
+    "secondary_tools": ["supporting tools"],
+    "pattern_suggestions": ["relevant TFrameX patterns"],
+    "component_predictions": [{{"type": "component_type", "priority": "high/medium/low"}}]
+}}"""
 
         analysis_message = Message(role="user", content=analysis_prompt)
         
@@ -525,16 +480,12 @@ Prioritize tools based on relevance to flow building and user intent."""
         ]
         
         # Check if instruction mentions specific available components
-        specific_components = [
-            "conversationalassistant",
-            "web_search_tool", 
-            "file_reader",
-            "news_search_tool",
-            "sequentialpattern",
-            "parallelpattern",
-            "text_pattern_matcher",
-            "math_calculator"
-        ]
+        specific_components = []
+        
+        # Dynamically build list from available components
+        for category in ["agents", "tools", "patterns"]:
+            for comp in self.available_components.get(category, []):
+                specific_components.append(comp["id"].lower())
         
         has_specific_components = any(comp in instruction_part for comp in specific_components)
         has_generic_phrases = any(phrase in instruction_part for phrase in generic_phrases)
@@ -545,48 +496,27 @@ Prioritize tools based on relevance to flow building and user intent."""
             
         return True
     
-    def _generate_fallback_instruction(self, user_request: str) -> str:
-        """Generate a fallback FLOW_INSTRUCTION when analysis tools fail."""
-        request_lower = user_request.lower()
+    def _parse_available_components(self, components_context: str) -> None:
+        """Parse available components from context string."""
+        self.available_components = {"agents": [], "tools": [], "patterns": []}
         
-        # News and summarization flows
-        if any(keyword in request_lower for keyword in ["news", "articles", "headlines"]):
-            if any(keyword in request_lower for keyword in ["summary", "summarize", "summarization"]):
-                return "Add ConversationalAssistant agent labeled 'News Fetcher' and connect web_search_tool. Then add second ConversationalAssistant agent labeled 'Summarizer'. Connect them with SequentialPattern for news-to-summary pipeline."
-            else:
-                return "Add ConversationalAssistant agent labeled 'News Agent' and connect web_search_tool for fetching latest news articles."
+        if not components_context:
+            return
         
-        # Data processing flows
-        elif any(keyword in request_lower for keyword in ["data", "csv", "json", "excel"]):
-            return "Add ConversationalAssistant agent labeled 'Data Processor' and connect file_reader tool and text_pattern_matcher tool for data processing workflow."
-        
-        # File operations
-        elif any(keyword in request_lower for keyword in ["file", "read", "upload", "document"]):
-            return "Add ConversationalAssistant agent labeled 'File Handler' and connect file_reader tool for file processing capabilities."
-        
-        # Web and search operations
-        elif any(keyword in request_lower for keyword in ["web", "search", "internet", "url", "scrape"]):
-            return "Add ConversationalAssistant agent labeled 'Web Assistant' and connect web_search_tool for web search and content retrieval."
-        
-        # Mathematical/computational flows
-        elif any(keyword in request_lower for keyword in ["math", "calculate", "compute", "formula"]):
-            return "Add ConversationalAssistant agent labeled 'Calculator Agent' and connect math_calculator tool for mathematical computations."
-        
-        # Text processing flows
-        elif any(keyword in request_lower for keyword in ["text", "pattern", "regex", "parse"]):
-            return "Add ConversationalAssistant agent labeled 'Text Processor' and connect text_pattern_matcher tool for text analysis and processing."
-        
-        # Multi-step workflows
-        elif any(keyword in request_lower for keyword in ["workflow", "process", "pipeline", "steps"]):
-            return "Add ConversationalAssistant agent labeled 'Workflow Coordinator' and connect multiple tools based on requirements. Use SequentialPattern for step-by-step processing."
-        
-        # Analysis and research flows
-        elif any(keyword in request_lower for keyword in ["analyze", "research", "investigate", "study"]):
-            return "Add ConversationalAssistant agent labeled 'Research Assistant' and connect web_search_tool and text_pattern_matcher tool. Use ParallelPattern if multiple analysis tasks needed."
-        
-        else:
-            # Enhanced generic flow instruction
-            return "Add ConversationalAssistant agent labeled 'Assistant' to handle user interactions. Connect relevant tools based on the specific requirements mentioned."
+        current_category = None
+        for line in components_context.split('\n'):
+            line = line.strip()
+            if line.upper().endswith(':') and line[:-1].lower() in ['agents', 'tools', 'patterns']:
+                current_category = line[:-1].lower()
+            elif line.startswith('- ID:') and current_category:
+                # Parse component from line like: "- ID: web_search_tool, Name: web_search_tool ..."
+                parts = line.split(',')
+                if parts:
+                    id_part = parts[0].replace('- ID:', '').strip()
+                    self.available_components[current_category].append({
+                        "id": id_part,
+                        "line": line
+                    })
     
     async def run(self, input_message: Union[str, Message], **kwargs: Any) -> Message:
         """
@@ -610,6 +540,9 @@ Prioritize tools based on relevance to flow building and user intent."""
         
         # Update flow context from template vars
         self.current_flow_context = template_vars.get("current_flow_state_context", {})
+        
+        # Parse available components from context
+        self._parse_available_components(template_vars.get("available_components_context", ""))
         
         available_tools = self._get_all_available_tool_definitions()
         
@@ -639,16 +572,9 @@ Prioritize tools based on relevance to flow building and user intent."""
             if all_analysis_results:
                 context_msg = Message(
                     role="system",
-                    content=f"""Analysis Progress (Iteration {iteration + 1}/{self.max_execution_depth}):
-- Analysis tools used: {list(self.used_analysis_tools)}
-- Tools failed: {list(self.failed_tools)}
-- Results gathered: {len(all_analysis_results)}
-- High confidence results: {len([r for r in all_analysis_results if r.confidence >= 0.7])}
-
-Recent analysis findings:
-{json.dumps([r.to_dict() for r in all_analysis_results[-3:]], indent=2)}
-
-Coordination status: {'Ready for FLOW_INSTRUCTION' if self._should_generate_flow_instruction(all_analysis_results) else 'Need more analysis'}"""
+                    content=f"""Analysis: {len(all_analysis_results)} results, iteration {iteration + 1}/{self.max_execution_depth}
+Tools used: {list(self.used_analysis_tools)}
+Status: {'Ready for FLOW_INSTRUCTION' if self._should_generate_flow_instruction(all_analysis_results) else 'Need more analysis'}"""
                 )
                 messages_for_llm.append(context_msg)
             
@@ -674,20 +600,23 @@ Coordination status: {'Ready for FLOW_INSTRUCTION' if self._should_generate_flow
             if not assistant_response.tool_calls:
                 logger.info(f"Flow coordination complete after {iteration + 1} iterations with {len(all_analysis_results)} analysis results")
                 
-                # ALWAYS ensure we generate FLOW_INSTRUCTION for flow building requests
+                # If this is a flow building request but we couldn't generate a good instruction
                 if self._is_flow_building_request(current_user_message.content):
                     if not self._has_useful_flow_instruction(assistant_response.content):
-                        logger.info("Generating fallback FLOW_INSTRUCTION for flow building request")
-                        # Replace generic instruction with specific fallback
+                        logger.info("No useful FLOW_INSTRUCTION generated, asking for clarification")
+                        # Replace or append with clarification request
                         if self._contains_flow_instruction(assistant_response.content):
-                            # Remove the generic instruction
+                            # Remove any generic instruction
                             parts = assistant_response.content.split("FLOW_INSTRUCTION:")
                             assistant_response.content = parts[0].strip()
                         
-                        # Add specific fallback FLOW_INSTRUCTION based on user request
-                        fallback_instruction = self._generate_fallback_instruction(current_user_message.content)
-                        assistant_response.content += f"\n\nFLOW_INSTRUCTION: {fallback_instruction}"
-                        logger.info(f"Added fallback instruction: {fallback_instruction[:100]}...")
+                        # Ask for clarification instead of guessing
+                        assistant_response.content += "\n\nI understand you want to build a flow, but I need more specific information to help you effectively. Could you please clarify:\n\n"
+                        assistant_response.content += "- What is the main purpose of your workflow?\n"
+                        assistant_response.content += "- What kind of data or information will it process?\n"
+                        assistant_response.content += "- What specific tasks should it perform?\n"
+                        assistant_response.content += "- What output or result are you expecting?\n\n"
+                        assistant_response.content += "Once you provide more details, I can suggest the exact components and structure for your flow."
                 
                 return self._post_process_llm_response(assistant_response)
             
@@ -717,29 +646,14 @@ Coordination status: {'Ready for FLOW_INSTRUCTION' if self._should_generate_flow
         # Final coordination synthesis with all analysis results
         synthesis_prompt = Message(
             role="system",
-            content=f"""FINAL COORDINATION SYNTHESIS REQUIRED
+            content=f"""Final analysis complete. User request: "{current_user_message.content}"
 
-Flow coordination analysis complete - Provide comprehensive response based on all gathered analysis:
-
-Total Analysis Results: {len(all_analysis_results)}
-High Confidence Results: {len([r for r in all_analysis_results if r.confidence >= 0.7])}
-Analysis Tools Used: {list(self.used_analysis_tools)}
-
-CRITICAL REQUIREMENT: This is a flow building request. You MUST end your response with:
-FLOW_INSTRUCTION: [precise instruction for FlowBuilderAgent]
+Analysis: {len(all_analysis_results)} results, {len([r for r in all_analysis_results if r.confidence >= 0.7])} high confidence
 
 Requirements:
-1. Synthesize all analysis findings into a coherent coordination response
-2. ALWAYS end with: FLOW_INSTRUCTION: [precise instruction for FlowBuilderAgent]
-3. Include confidence indicators and analysis source attribution
-4. Acknowledge any limitations or gaps in analysis
-5. Structure with clear sections for user understanding
-6. Highlight key insights and component predictions
-
-User Request: "{current_user_message.content}"
-
-Even if analysis was limited, provide intelligent flow building guidance based on the user's request.
-Remember: You are the PRIMARY interface for flow building - ALWAYS provide FLOW_INSTRUCTION."""
+1. If intent is CLEAR: End with FLOW_INSTRUCTION: [precise instruction]
+2. If intent is UNCLEAR: Ask specific questions
+3. Be helpful and conversational"""
         )
         
         final_history = await self.memory.get_history(limit=15)
@@ -747,19 +661,30 @@ Remember: You are the PRIMARY interface for flow building - ALWAYS provide FLOW_
         
         final_response = await self.llm.chat_completion(final_messages, temperature=0.6)
         
-        # GUARANTEE we have a USEFUL FLOW_INSTRUCTION for flow building requests
+        # If this is a flow building request but we still don't have a good instruction
         if self._is_flow_building_request(current_user_message.content):
             if not self._has_useful_flow_instruction(final_response.content):
-                logger.warning("Final response has generic or missing FLOW_INSTRUCTION, replacing with specific fallback")
+                logger.warning("Final response lacks useful FLOW_INSTRUCTION, asking for clarification")
                 
                 # Remove any existing generic instruction
                 if self._contains_flow_instruction(final_response.content):
                     parts = final_response.content.split("FLOW_INSTRUCTION:")
                     final_response.content = parts[0].strip()
                 
-                fallback_instruction = self._generate_fallback_instruction(current_user_message.content)
-                final_response.content += f"\n\nFLOW_INSTRUCTION: {fallback_instruction}"
-                logger.info(f"Final fallback instruction: {fallback_instruction[:100]}...")
+                # Provide helpful clarification request based on what we learned
+                final_response.content += "\n\nBased on my analysis, I can see you want to create a workflow, but I need more specific details to generate the exact flow structure. \n\n"
+                
+                # If we detected some intent, acknowledge it
+                request_lower = current_user_message.content.lower()
+                if any(keyword in request_lower for keyword in ["file", "data", "web", "search", "news", "text", "math"]):
+                    final_response.content += f"I noticed your request mentions '{current_user_message.content}', which suggests you might want to work with specific types of data or operations.\n\n"
+                
+                final_response.content += "To create the most effective flow for you, please provide:\n\n"
+                final_response.content += "1. **Specific Goal**: What should the workflow accomplish?\n"
+                final_response.content += "2. **Input/Source**: What data or information will it start with?\n"
+                final_response.content += "3. **Processing Steps**: What operations or transformations are needed?\n"
+                final_response.content += "4. **Expected Output**: What should be the final result?\n\n"
+                final_response.content += "With these details, I can recommend the exact agents, tools, and patterns that will best meet your needs."
         
         return self._post_process_llm_response(final_response)
 
@@ -767,74 +692,13 @@ Remember: You are the PRIMARY interface for flow building - ALWAYS provide FLOW_
 def register_orchestrator_agent(app: TFrameXApp):
     """Register the Orchestrator Agent with advanced flow coordination capabilities."""
     
-    orchestrator_agent_prompt = """You are the OrchestratorAgent for the TFrameX Agent Builder Studio - the PRIMARY interface for users building workflows.
-
-Your advanced capabilities:
-- Deep flow structure analysis and pattern recognition
-- AI-powered component prediction based on user intent
-- Intelligent coordination with FlowBuilderAgent for visual flow creation
-- Context-aware conversation with sophisticated tool usage
-- Performance optimization and best practice recommendations
-
-Available Analysis Tools:
-{available_tools_descriptions}
-
-Available Agents you can coordinate with:
-{available_agents_descriptions}
-
-Current Flow Context:
-{current_flow_state_context}
-
-Coordination Strategy: {coordination_strategy}
-- intelligent: Smart adaptive approach based on user intent and flow complexity
-- comprehensive: Thorough analysis using multiple tools for complex flow building
-- focused: Targeted analysis for specific flow improvements and modifications
-- quick: Rapid analysis and suggestions for simple flow modifications
-
-Flow Coordination Process:
-1. ANALYZE USER INTENT: Understand specific workflow building needs
-2. EXECUTE ANALYSIS TOOLS: Use flow analysis tools strategically (parallel when beneficial)
-3. PREDICT OPTIMAL COMPONENTS: Leverage AI prediction based on intent and current flow
-4. IDENTIFY PATTERNS: Recognize appropriate TFrameX coordination patterns
-5. GENERATE PRECISE INSTRUCTIONS: Create FLOW_INSTRUCTION for FlowBuilderAgent
-
-Communication Protocol:
-- Always provide conversational explanations of your analysis process
-- Use confidence indicators for your recommendations (High >0.7, Medium 0.5-0.7, Low <0.5)
-- For ALL flow building requests (create, add, modify flows), ALWAYS end your response with:
-  FLOW_INSTRUCTION: [precise, actionable instruction for FlowBuilderAgent]
-- Even if analysis tools fail, provide intelligent flow suggestions based on the user's request
-- CRITICAL: Use EXACT component IDs (web_search_tool not "Web Search Tool", text_pattern_matcher not "Text Pattern Matcher")
-
-Flow Pattern Recognition:
-- Sequential workflows: Agent-to-Agent chains with SequentialPattern
-- Parallel processing: Independent tasks with ParallelPattern and sync
-- Decision routing: Conditional logic with RouterPattern
-- Collaborative analysis: Multi-agent with DiscussionPattern
-- Tool-intensive workflows: Single agent with comprehensive tool connections
-- Data processing: File tools + processing agents + output coordination
-
-Key Guidelines:
-- ALWAYS use your analysis tools before making suggestions (never assume)
-- Provide detailed reasoning for your component predictions
-- Consider performance, maintainability, and user experience in recommendations
-- Build incrementally on existing flow structure when possible
-- Explain confidence levels and analysis methodology
-- Adapt analysis depth based on coordination strategy and user needs
-
-When analysis tools fail:
-- Try alternative analysis approaches with available tools
-- Break complex requests into smaller, analyzable components
-- Provide fallback suggestions based on common TFrameX patterns
-- Explain what analysis was attempted and limitations encountered
-
-Your role: Be the intelligent, context-aware coordinator between users and the TFrameX flow building system.
-"""
+    # Use the concise default system prompt instead of duplicating
+    orchestrator_agent_prompt = None  # Will use _get_default_system_prompt()
 
     @app.agent(
         name="OrchestratorAgent",
         description="PRIMARY interface for building workflows - coordinates flow analysis, component prediction, and FlowBuilderAgent communication.",
-        system_prompt=orchestrator_agent_prompt,
+        system_prompt=orchestrator_agent_prompt,  # None, will use _get_default_system_prompt()
         agent_class=OrchestratorAgent,
         can_use_tools=True,
         native_tool_names=["flow_structure_analyzer", "drag_drop_predictor", "flow_optimizer", "text_pattern_matcher"],
