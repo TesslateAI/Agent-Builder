@@ -26,6 +26,7 @@ import TFrameXAgentNode from './nodes/tframex/TFrameXAgentNode';
 import TFrameXPatternNode from './nodes/tframex/TFrameXPatternNode';
 import TFrameXToolNode from './nodes/tframex/TFrameXToolNode';
 import MCPServerNode from './nodes/tframex/MCPServerNode';
+import TriggerNode from './nodes/tframex/TriggerNode';
 
 
 const staticNodeTypes = {
@@ -34,6 +35,7 @@ const staticNodeTypes = {
   tframexTool: TFrameXToolNode,       // Fallback if specific tool type not found
   textInput: TextInputNode,         // For the new TextInputNode
   MCPServerNode: MCPServerNode,     // For MCP server nodes
+  trigger: TriggerNode,             // For trigger nodes
 };
 
 const FlowEditor = () => {
@@ -213,6 +215,10 @@ const FlowEditor = () => {
         edgeStyle = { ...edgeStyle, stroke: '#0ea5e9', strokeWidth: 2 }; // Cyan for text input
         animated = true;
         break;
+      case 'triggerToNode':
+        edgeStyle = { ...edgeStyle, stroke: '#f97316', strokeWidth: 3 }; // Orange for trigger connections
+        animated = true;
+        break;
       default:
         // Keep default style
         break;
@@ -266,6 +272,7 @@ const FlowEditor = () => {
               className="!m-4 !bg-card !border-border" 
               nodeColor={(n) => {
                 if (n.type === 'textInput') return '#0ea5e9'; // Cyan for text input
+                if (n.type === 'trigger') return '#f97316'; // Orange for triggers
                 if (n.type === 'MCPServerNode' || n.data?.component_category === 'mcp_server') return '#10b981'; // Green for MCP servers
                 if (n.data?.component_category === 'agent') return 'var(--color-primary)';
                 if (n.data?.component_category === 'pattern') return 'var(--color-secondary)';

@@ -8,6 +8,7 @@ from .organizations import Organizations
 from .users import Users
 from .roles import Roles
 from .user_project_roles import UserProjectRoles
+from .triggers import Triggers, TriggerExecutions
 
 __all__ = [
     "Base",
@@ -19,5 +20,7 @@ __all__ = [
     "Organizations",
     "Users",
     "Roles",
-    "UserProjectRoles"
+    "UserProjectRoles",
+    "Triggers",
+    "TriggerExecutions"
 ]
