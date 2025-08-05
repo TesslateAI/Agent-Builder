@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base, Projects, Flow, FlowExecution, Organizations, Users, Roles, UserProjectRoles, AuditLog, UserSession
+from models import Base, Projects, Flow, FlowExecution, Organizations, Users, Roles, UserProjectRoles, AuditLog, UserSession, Triggers, TriggerExecutions
 
 logger = logging.getLogger("Database")
 

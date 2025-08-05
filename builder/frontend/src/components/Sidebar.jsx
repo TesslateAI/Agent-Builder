@@ -2,9 +2,11 @@
 import React, { useEffect } from 'react';
 import NodesPanel from './NodesPanel';
 import CodeRegistrationPanel from './CodeRegistrationPanel';
+import TriggerPanel from './triggers/TriggerPanel';
 import { useStore } from '../store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Box, Code2, Layers } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Box, Code2, Layers, Zap } from 'lucide-react';
 
 const Sidebar = () => {
   const tframexComponents = useStore((state) => state.tframexComponents);
@@ -23,62 +25,97 @@ const Sidebar = () => {
   }, [fetchTFrameXComponents, tframexComponents, isLoading, error]);
 
   return (
-    <aside className="w-80 flex flex-col bg-sidebar border-r border-sidebar-border h-full">
-      <div className="h-14 px-4 border-b border-sidebar-border flex items-center flex-shrink-0">
-        <div className="flex items-center space-x-3">
-          <img
-            src="/Tesslate.svg"
-            alt="Tesslate"
-            className="h-6 w-auto"
-          />
-          <div>
-            <h2 className="text-sm font-semibold text-sidebar-foreground leading-none">
-              Tesslate Agent Builder
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Powered by TFrameX v1.1.0
-            </p>
+    <TooltipProvider>
+      <aside className="w-80 flex flex-col bg-sidebar border-r border-sidebar-border h-full">
+        <div className="h-14 px-4 border-b border-sidebar-border flex items-center flex-shrink-0">
+          <div className="flex items-center space-x-3">
+            <img
+              src="/Tesslate.svg"
+              alt="Tesslate"
+              className="h-6 w-auto"
+            />
+            <div>
+              <h2 className="text-sm font-semibold text-sidebar-foreground leading-none">
+                Tesslate Agent Builder
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Powered by TFrameX v1.1.0
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div className="flex-grow flex flex-col px-4 pt-3 pb-4 min-h-0">
-        <Tabs defaultValue="nodes" className="flex flex-col h-full">
-          <TabsList className="flex w-full justify-center bg-card/50 rounded-t-lg border-x border-t border-border/50 p-2 flex-shrink-0 gap-1">
-            <TabsTrigger 
-              value="nodes" 
-              className="py-2.5 px-1.5 transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-card text-xs font-medium rounded-md mt-0.5"
-            >
-              <Layers className="h-3 w-3 mr-1" />
-              <span>Components</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="register" 
-              className="py-2.5 px-1.5 transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-card text-xs font-medium rounded-md mt-0.5"
-            >
-              <Code2 className="h-3 w-3 mr-1" />
-              <span>Add Code</span>
-            </TabsTrigger>
-          </TabsList>
+        
+        <div className="flex-grow flex flex-col px-4 pt-3 pb-4 min-h-0">
+          <Tabs defaultValue="nodes" className="flex flex-col h-full">
+            <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-hidden flex flex-col">
+              <TabsList className="grid w-full grid-cols-3 bg-transparent p-1 pb-0 flex-shrink-0 gap-1 rounded-none border-none">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TabsTrigger 
+                      value="nodes" 
+                      className="h-8 px-3 transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-700 hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-blue-500 [&[data-state=active]]:!text-white [&[data-state=active]]:!shadow-lg"
+                    >
+                      <Layers className="h-4 w-4" />
+                    </TabsTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Components</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TabsTrigger 
+                      value="triggers" 
+                      className="h-8 px-3 transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-700 hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-orange-500 [&[data-state=active]]:!text-white [&[data-state=active]]:!shadow-lg"
+                    >
+                      <Zap className="h-4 w-4" />
+                    </TabsTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Triggers</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TabsTrigger 
+                      value="register" 
+                      className="h-8 px-3 transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-700 hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-green-500 [&[data-state=active]]:!text-white [&[data-state=active]]:!shadow-lg"
+                    >
+                      <Code2 className="h-4 w-4" />
+                    </TabsTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Add Code</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TabsList>
 
-          <TabsContent value="nodes" className="flex-1 min-h-0 data-[state=inactive]:hidden -mt-px">
-            <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-hidden">
-              <div className="h-full overflow-y-auto">
-                <NodesPanel tframexComponents={tframexComponents} isLoading={isLoading} error={error} />
-              </div>
+              <div className="border-t border-border/50 mx-3"></div>
+
+              <TabsContent value="nodes" className="flex-1 min-h-0 data-[state=inactive]:hidden m-0">
+                <div className="h-full overflow-y-auto p-3 pt-3">
+                  <NodesPanel tframexComponents={tframexComponents} isLoading={isLoading} error={error} />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="triggers" className="flex-1 min-h-0 data-[state=inactive]:hidden m-0">
+                <div className="h-full overflow-y-auto p-3 pt-3">
+                  <TriggerPanel />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="register" className="flex-1 min-h-0 data-[state=inactive]:hidden m-0">
+                <div className="h-full overflow-y-auto p-3 pt-3">
+                  <CodeRegistrationPanel />
+                </div>
+              </TabsContent>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="register" className="flex-1 min-h-0 data-[state=inactive]:hidden -mt-px">
-            <div className="h-full bg-card/50 rounded-lg border border-border/50 overflow-hidden">
-              <div className="h-full overflow-y-auto">
-                <CodeRegistrationPanel />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </aside>
+          </Tabs>
+        </div>
+      </aside>
+    </TooltipProvider>
   );
 };
 
