@@ -1,0 +1,209 @@
+# =============================================================================
+# Production Docker Compose Configuration
+# Deploy with: docker-compose -f docker-compose.prod.yml up -d
+# =============================================================================
+
+services:
+  # =============================================================================
+  # Backend Service (Flask API + TFrameX)
+  # =============================================================================
+  backend:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: production
+    image: agent-builder-backend:latest
+    container_name: agent-builder-backend
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_RUN_HOST=0.0.0.0
+      - FLASK_RUN_PORT=5000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - KEYCLOAK_SERVER_URL=http://keycloak:8080
+      - KEYCLOAK_PUBLIC_URL=${KEYCLOAK_PUBLIC_URL:-https://auth.example.com}
+      - KEYCLOAK_REDIRECT_URI=${BACKEND_URL:-https://api.example.com}/api/auth/callback
+      - FRONTEND_URL=${FRONTEND_URL:-https://example.com}
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    env_file:
+      - .env.prod
+    volumes:
+      - ../../builder/backend/data:/app/data:rw
+      - ../../builder/backend/logs:/app/logs:rw
+      - ../../builder/backend/servers_config.json:/app/builder/backend/servers_config.json:ro
+      - ../../builder/backend/enterprise_config.yaml:/app/builder/backend/enterprise_config.yaml:ro
+    networks:
+      - agent-builder-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # =============================================================================
+  # Frontend Service (Nginx serving static files)
+  # =============================================================================
+  frontend:
+    build:
+      context: ../../builder/frontend
+      dockerfile: Dockerfile.prod
+    image: agent-builder-frontend:latest
+    container_name: agent-builder-frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    environment:
+      - API_URL=${BACKEND_URL:-https://api.example.com}
+    networks:
+      - agent-builder-prod
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: agent-builder-postgres
+    restart: always
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-agentbuilder}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-keycloak-db.sql:/docker-entrypoint-initdb.d/init-keycloak-db.sql:ro
+    networks:
+      - agent-builder-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # Redis Cache
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: agent-builder-redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --appendfilename "appendonly.aof"
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - redis-data:/data
+    networks:
+      - agent-builder-prod
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # Keycloak Authentication Server
+  # =============================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: agent-builder-keycloak
+    restart: always
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/keycloak
+      - KC_DB_USERNAME=${POSTGRES_USER}
+      - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KC_HOSTNAME_URL=${KEYCLOAK_PUBLIC_URL:-https://auth.example.com}
+      - KC_HOSTNAME_ADMIN_URL=${KEYCLOAK_PUBLIC_URL:-https://auth.example.com}
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_HTTP_ENABLED=true
+      - KC_HOSTNAME_STRICT=false
+      - KC_LOG_LEVEL=INFO
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ../keycloak/production-realm.json:/opt/keycloak/data/import/prod-realm.json:ro
+    networks:
+      - agent-builder-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: 
+      - start
+      - --import-realm
+      - --optimized
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # =============================================================================
+  # Nginx Reverse Proxy (Optional - uncomment if needed)
+  # =============================================================================
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: agent-builder-nginx
+  #   restart: always
+  #   ports:
+  #     - "443:443"
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   networks:
+  #     - agent-builder-prod
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #     - keycloak
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  agent-builder-prod:
+    driver: bridge
+    name: agent-builder-prod
+
+# =============================================================================
+# Persistent Volumes
+# =============================================================================
+volumes:
+  postgres-data:
+    name: agent-builder-postgres-data
+  redis-data:
+    name: agent-builder-redis-data
+  keycloak-data:
+    name: agent-builder-keycloak-data

@@ -9,8 +9,8 @@ services:
   # =============================================================================
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
       target: development
       args:
         BUILD_ENV: development
@@ -33,14 +33,18 @@ services:
       - DATABASE_URL=postgresql://devuser:devpass@postgres:5432/agentbuilder_dev
     env_file:
       - .env
+    user: root
+    command: /app/scripts/docker/init-backend.sh
     volumes:
       # Source code mounting for hot reload
-      - ./builder/backend:/app/builder/backend:rw
-      - ./builder/backend/data:/app/data:rw
-      - ./builder/backend/logs:/app/logs:rw
+      - ../../builder/backend:/app/builder/backend:rw
+      - ../../builder/backend/data:/app/data:rw
+      - ../../builder/backend/logs:/app/logs:rw
       # Configuration files (backend .env not needed - using root .env via env_file)
-      - ./builder/backend/servers_config.json:/app/builder/backend/servers_config.json:ro
-      - ./builder/backend/enterprise_config.yaml:/app/builder/backend/enterprise_config.yaml:ro
+      - ../../builder/backend/servers_config.json:/app/builder/backend/servers_config.json:ro
+      - ../../builder/backend/enterprise_config.yaml:/app/builder/backend/enterprise_config.yaml:ro
+      # Mount init script
+      - ../../scripts/docker/init-backend.sh:/app/scripts/docker/init-backend.sh:ro
     networks:
       - agent-builder-dev
     depends_on:
@@ -50,13 +54,19 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.backend-dev.rule=Host(`api.localhost`)"
       - "traefik.http.services.backend-dev.loadbalancer.server.port=5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # =============================================================================
   # Frontend Service (React + Vite with HMR)
   # =============================================================================
   frontend:
     build:
-      context: ./builder/frontend
+      context: ../../builder/frontend
       dockerfile: Dockerfile.dev
     container_name: agent-builder-frontend-dev
     restart: unless-stopped
@@ -68,7 +78,7 @@ services:
       - CHOKIDAR_USEPOLLING=true
     volumes:
       # Source code mounting for hot reload
-      - ./builder/frontend:/app:rw
+      - ../../builder/frontend:/app:rw
       - /app/node_modules
     networks:
       - agent-builder-dev
@@ -76,6 +86,12 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend-dev.rule=Host(`localhost`)"
       - "traefik.http.services.frontend-dev.loadbalancer.server.port=5173"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
   # =============================================================================
   # Redis (for caching and session management)
@@ -113,7 +129,7 @@ services:
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
-      - ./scripts/init-keycloak-db.sql:/docker-entrypoint-initdb.d/init-keycloak-db.sql:ro
+      - ../../scripts/docker/init-keycloak-db.sql:/docker-entrypoint-initdb.d/init-keycloak-db.sql:ro
     networks:
       - agent-builder-dev
     healthcheck:
@@ -167,7 +183,7 @@ services:
       - KC_LOG_LEVEL=INFO
     volumes:
       - keycloak-dev-data:/opt/keycloak/data
-      - ./keycloak/dev-realm.json:/opt/keycloak/data/import/dev-realm.json:ro
+      - ../keycloak/dev-realm.json:/opt/keycloak/data/import/dev-realm.json:ro
     networks:
       - agent-builder-dev
     depends_on:
@@ -177,7 +193,7 @@ services:
       - start-dev
       - --import-realm
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/master/console/"]
       interval: 30s
       timeout: 10s
       retries: 5

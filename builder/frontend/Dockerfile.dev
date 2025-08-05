@@ -10,14 +10,14 @@ RUN addgroup -g 1001 -S nodejs && \
 # Set working directory
 WORKDIR /app
 
-# Install dependencies for native modules
-RUN apk add --no-cache libc6-compat
+# Install dependencies for native modules and health check
+RUN apk add --no-cache libc6-compat python3 make g++ git curl
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with fallback for optionalDependencies
+RUN npm ci || npm install --force
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/src /app/public && \

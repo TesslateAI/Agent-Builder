@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "*",
@@ -32,9 +33,12 @@
       "Bash(claude config reset)",
       "Bash(timeout:*)",
       "Bash(echo:*)",
-      "Bash(start http://localhost:5173)"
+      "Bash(start http://localhost:5173)",
+      "Bash(winpty docker exec -it agent-builder-backend-dev /opt/venv/bin/pip install SQLAlchemy==2.0.23 psycopg2-binary==2.9.9)",
+      "Bash(touch:*)",
+      "Bash(winpty docker exec -it agent-builder-backend-dev /opt/venv/bin/python -c \"import alembic; print(''Alembic version:'', alembic.__version__)\")",
+      "Bash(git add:*)"
     ],
     "deny": []
-  },
-  "$schema": "https://json.schemastore.org/claude-code-settings.json"
+  }
 }

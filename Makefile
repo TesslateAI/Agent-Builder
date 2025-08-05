@@ -120,31 +120,31 @@ format: ## Format code
 
 docker-dev-up: ## Start development environment with Docker
 	@echo "Starting development environment..."
-	@./scripts/deploy.sh dev up
+	@./deploy/scripts/deploy.sh dev up
 
 docker-dev-down: ## Stop development environment
 	@echo "Stopping development environment..."
-	@./scripts/deploy.sh dev down
+	@./deploy/scripts/deploy.sh dev down
 
 docker-dev-build: ## Build development images
 	@echo "Building development images..."
-	@./scripts/deploy.sh dev build
+	@./deploy/scripts/deploy.sh dev build
 
 docker-dev-rebuild: ## Rebuild development images from scratch
 	@echo "Rebuilding development images..."
-	@./scripts/deploy.sh dev rebuild
+	@./deploy/scripts/deploy.sh dev rebuild
 
 docker-dev-logs: ## Show development logs
-	@./scripts/deploy.sh dev logs
+	@./deploy/scripts/deploy.sh dev logs
 
 docker-dev-status: ## Show development service status
-	@./scripts/deploy.sh dev status
+	@./deploy/scripts/deploy.sh dev status
 
 docker-dev-shell: ## Open shell in development backend container
-	@./scripts/deploy.sh dev shell
+	@./deploy/scripts/deploy.sh dev shell
 
 docker-dev-restart: ## Restart development services
-	@./scripts/deploy.sh dev restart
+	@./deploy/scripts/deploy.sh dev restart
 
 # =============================================================================
 # Docker Production Commands
@@ -152,38 +152,38 @@ docker-dev-restart: ## Restart development services
 
 docker-prod-up: ## Start production environment with Docker
 	@echo "Starting production environment..."
-	@./scripts/deploy.sh prod up
+	@./deploy/scripts/deploy.sh prod up
 
 docker-prod-down: ## Stop production environment
 	@echo "Stopping production environment..."
-	@./scripts/deploy.sh prod down
+	@./deploy/scripts/deploy.sh prod down
 
 docker-prod-build: ## Build production images
 	@echo "Building production images..."
-	@./scripts/deploy.sh prod build
+	@./deploy/scripts/deploy.sh prod build
 
 docker-prod-rebuild: ## Rebuild production images from scratch
 	@echo "Rebuilding production images..."
-	@./scripts/deploy.sh prod rebuild
+	@./deploy/scripts/deploy.sh prod rebuild
 
 docker-prod-deploy: ## Deploy to production (build + up)
 	@echo "Deploying to production..."
-	@./scripts/deploy.sh prod build && ./scripts/deploy.sh prod up
+	@./deploy/scripts/deploy.sh prod build && ./deploy/scripts/deploy.sh prod up
 
 docker-prod-logs: ## Show production logs
-	@./scripts/deploy.sh prod logs
+	@./deploy/scripts/deploy.sh prod logs
 
 docker-prod-status: ## Show production service status
-	@./scripts/deploy.sh prod status
+	@./deploy/scripts/deploy.sh prod status
 
 docker-prod-shell: ## Open shell in production app container
-	@./scripts/deploy.sh prod shell
+	@./deploy/scripts/deploy.sh prod shell
 
 docker-prod-backup: ## Backup production data
-	@./scripts/deploy.sh prod backup
+	@./deploy/scripts/deploy.sh prod backup
 
 docker-prod-restart: ## Restart production services
-	@./scripts/deploy.sh prod restart
+	@./deploy/scripts/deploy.sh prod restart
 
 # =============================================================================
 # Docker Maintenance Commands
@@ -191,8 +191,8 @@ docker-prod-restart: ## Restart production services
 
 docker-clean: ## Clean up Docker resources
 	@echo "Cleaning up Docker resources..."
-	@docker compose -f docker-compose.dev.yml down --remove-orphans --volumes || true
-	@docker compose -f docker-compose.prod.yml down --remove-orphans --volumes || true
+	@docker compose -f deploy/docker/docker-compose.dev.yml down --remove-orphans --volumes || true
+	@docker compose -f deploy/docker/docker-compose.prod.yml down --remove-orphans --volumes || true
 	@docker system prune -f
 
 docker-prune: ## Aggressive Docker cleanup (removes all unused resources)
@@ -202,10 +202,10 @@ docker-prune: ## Aggressive Docker cleanup (removes all unused resources)
 	@docker network prune -f
 
 docker-logs-backend: ## Show backend logs only (dev)
-	@docker compose -f docker-compose.dev.yml logs -f backend
+	@docker compose -f deploy/docker/docker-compose.dev.yml logs -f backend
 
 docker-logs-frontend: ## Show frontend logs only (dev)
-	@docker compose -f docker-compose.dev.yml logs -f frontend
+	@docker compose -f deploy/docker/docker-compose.dev.yml logs -f frontend
 
 # =============================================================================
 # Legacy Docker Commands (for backward compatibility)
@@ -213,7 +213,7 @@ docker-logs-frontend: ## Show frontend logs only (dev)
 
 docker-build: ## Build Docker image (legacy - use docker-dev-build or docker-prod-build)
 	@echo "⚠️  Legacy command. Use 'make docker-dev-build' or 'make docker-prod-build'"
-	@docker build -f Dockerfile --target production -t agent-builder:latest .
+	@docker build -f deploy/docker/Dockerfile --target production -t agent-builder:latest .
 
 docker-run: ## Run Docker container (legacy - use docker-dev-up or docker-prod-up)
 	@echo "⚠️  Legacy command. Use 'make docker-dev-up' or 'make docker-prod-up'"

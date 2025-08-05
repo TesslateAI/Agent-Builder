@@ -61,7 +61,7 @@ COPY pyproject.toml ./
 COPY builder/backend/requirements.txt ./builder/backend/
 
 # Install Python dependencies including TFrameX and auth dependencies
-RUN uv pip install --no-cache-dir flask flask-cors python-dotenv httpx pydantic PyYAML aiohttp beautifulsoup4 pandas tframex==1.1.0 PyJWT==2.8.0 redis==5.0.1 requests==2.32.3
+RUN uv pip install --no-cache-dir flask flask-cors python-dotenv httpx pydantic PyYAML aiohttp beautifulsoup4 pandas tframex==1.1.0 PyJWT==2.8.0 redis==5.0.1 requests==2.32.3 SQLAlchemy==2.0.23 psycopg2-binary==2.9.9 alembic==1.13.1
 
 # =============================================================================
 # Stage 3: Production Runtime
@@ -96,7 +96,7 @@ COPY --chown=appuser:appuser builder/backend/servers_config.json ./builder/backe
 COPY --chown=appuser:appuser builder/backend/enterprise_config.yaml ./builder/backend/
 
 # Copy entrypoint script
-COPY --chown=appuser:appuser scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --chown=appuser:appuser scripts/docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/data /app/logs && \
