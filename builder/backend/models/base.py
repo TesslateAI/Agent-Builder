@@ -1,7 +1,6 @@
-from sqlalchemy import DateTime, create_engine, Integer, String, Float, MetaData, ForeignKey, Index, JSON
-from sqlalchemy.orm import DeclarativeBase, relationship, registry, Mapped, mapped_column, sessionmaker
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from sqlalchemy import DateTime, Integer, String, Float, MetaData, JSON
+from sqlalchemy.orm import DeclarativeBase, registry
+from datetime import datetime
 
 metadata = MetaData()
 

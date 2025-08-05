@@ -3,7 +3,6 @@
 import inspect
 import logging
 import json # For robust parameter serialization
-from typing import Dict, List, Any, Optional
 from tframex import patterns as tframex_patterns_module
 from tframex.patterns import BasePattern
 from tframex import ToolParameters, ToolParameterProperty
@@ -183,8 +182,7 @@ def register_code_dynamically(python_code: str, app_instance_to_modify): # app_i
     from tframex import (
         TFrameXApp, OpenAIChatLLM, Message, MessageChunk, BaseLLMWrapper,
         BaseAgent, LLMAgent, ToolAgent, Flow, FlowContext,
-        Tool, ToolCall, FunctionCall, ToolDefinition, ToolParameters, ToolParameterProperty,
-        BaseMemoryStore, InMemoryMemoryStore,
+        Tool, ToolCall, FunctionCall, ToolDefinition, BaseMemoryStore, InMemoryMemoryStore,
         setup_logging
     )
     from tframex.patterns import (

@@ -12,7 +12,6 @@ const TerminalPanel = () => {
   const scrollRef = useRef(null);
   
   const output = useStore((state) => state.output);
-  const runFlow = useStore((state) => state.runFlow);
   const isRunning = useStore((state) => state.isRunning);
   const sendChatMessageToFlowBuilder = useStore((state) => state.sendChatMessageToFlowBuilder);
   

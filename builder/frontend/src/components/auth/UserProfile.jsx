@@ -19,7 +19,7 @@ import {
   Lock
 } from 'lucide-react';
 
-export function UserProfile({ onClose }) {
+export function UserProfile() {
   const { user, organization, permissions, logout, isAdmin, isSuperAdmin } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 

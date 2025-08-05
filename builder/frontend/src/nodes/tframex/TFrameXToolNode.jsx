@@ -13,7 +13,6 @@ const TFrameXToolNode = memo(({ id, data, type: tframexToolId }) => {
     state.tframexComponents.tools.find(t => t.id === tframexToolId)
   );
   const deleteNode = useStore((state) => state.deleteNode);
-  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
 
   if (!toolDefinition) {
     return (

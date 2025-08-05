@@ -108,7 +108,7 @@ const MCPServerPropertiesPanel = ({ nodeId, nodeData }) => {
         clearInterval(intervalId);
       }
     };
-  }, [nodeData?.status, nodeId, updateNodeData]); // Removed serverAliasRef from deps
+  }, [nodeData, nodeId, updateNodeData]);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -117,10 +117,6 @@ const MCPServerPropertiesPanel = ({ nodeId, nodeData }) => {
     if (name === 'server_alias') {
       serverAliasRef.current = value;
     }
-  }, []);
-
-  const handleConfigChange = useCallback((field, value) => {
-    setLocalData(prev => ({ ...prev, [field]: value }));
   }, []);
 
   const handleTextareaChange = useCallback((name, value) => {
@@ -132,7 +128,7 @@ const MCPServerPropertiesPanel = ({ nodeId, nodeData }) => {
         } else {
           parsedArgs = value.trim() ? value.split(/\s+/) : [];
         }
-      } catch (e) {
+      } catch {
         parsedArgs = value.trim() ? value.split(/\s+/) : [];
       }
       setLocalData(prev => ({ ...prev, args: parsedArgs }));
@@ -140,7 +136,7 @@ const MCPServerPropertiesPanel = ({ nodeId, nodeData }) => {
       let parsedEnv;
       try {
         parsedEnv = value.trim() ? JSON.parse(value) : {};
-      } catch (e) {
+      } catch {
         // If JSON parsing fails, treat as key=value pairs
         parsedEnv = {};
         value.split('\n').forEach(line => {

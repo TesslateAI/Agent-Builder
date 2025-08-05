@@ -37,7 +37,19 @@
       "Bash(winpty docker exec -it agent-builder-backend-dev /opt/venv/bin/pip install SQLAlchemy==2.0.23 psycopg2-binary==2.9.9)",
       "Bash(touch:*)",
       "Bash(winpty docker exec -it agent-builder-backend-dev /opt/venv/bin/python -c \"import alembic; print(''Alembic version:'', alembic.__version__)\")",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(./deploy/scripts/deploy.sh:*)",
+      "Bash(winget install:*)",
+      "Bash(pacman:*)",
+      "Bash(cmd:*)",
+      "Bash(choco:*)",
+      "Bash(winget:*)",
+      "Bash(ruff check:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click"
     ],
     "deny": []
   }

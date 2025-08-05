@@ -2,9 +2,7 @@
 import os
 import logging
 from dotenv import load_dotenv
-from tframex import TFrameXApp, OpenAIChatLLM, Tool, setup_logging
-from tframex.mcp import MCPManager
-import json
+from tframex import TFrameXApp, OpenAIChatLLM, setup_logging
 from pathlib import Path
 from builtin_tools import register_builtin_tools
 from agents import register_conversational_assistant, register_flow_builder_agent, register_orchestrator_agent, register_research_agent
@@ -55,7 +53,7 @@ def init_tframex_app():
     # Try to detect if we're in an async context for MCP initialization
     try:
         import asyncio
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         logger.info("Event loop detected, initializing with MCP support")
         use_mcp = mcp_config_path is not None
     except RuntimeError:
@@ -75,7 +73,7 @@ def init_tframex_app():
         mcp_roots_allowed_paths=None  # Can be configured via environment
     )
     
-    logger.info(f"TFrameXApp initialized with:")
+    logger.info("TFrameXApp initialized with:")
     logger.info(f"  - LLM: {model_name} via {api_base_url}")
     logger.info(f"  - MCP: {'Enabled' if mcp_config_path else 'Disabled'}")
 

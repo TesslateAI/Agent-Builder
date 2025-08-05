@@ -1,6 +1,6 @@
 // frontend/src/nodes/tframex/TFrameXPatternNode.jsx
 // builder/frontend/src/nodes/tframex/TFrameXPatternNode.jsx
-import React, { useCallback, useRef, useEffect, useState, useMemo, memo } from 'react';
+import React, { useCallback, useMemo, memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { useStore } from '../../store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Puzzle, PlusCircle, Trash2, Users, Settings2, Route, GitBranch, Link2, X } from 'lucide-react';
 
-const PatternListItem = ({ parentNodeId, paramName, agentIdInSlot, index, onRemove, getAgentNameById }) => {
+const PatternListItem = ({ paramName, agentIdInSlot, index, onRemove, getAgentNameById }) => {
     // console.log(`[PatternListItem] Rendering for ${paramName}[${index}] on node ${parentNodeId}. Agent ID: ${agentIdInSlot}`); // DEBUG: Uncomment to see if item renders
 
     // Removed itemRef, useState for handleTop, and useEffect for handleTop calculation.
@@ -60,7 +60,7 @@ const TFrameXPatternNode = memo(({ id, data, type: tframexPatternId }) => {
   const allPatternsFromStore = useStore((state) => state.tframexComponents.patterns);
   const nodes = useStore((state) => state.nodes);
   const deleteNode = useStore((state) => state.deleteNode);
-  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId); 
+ 
 
   const patternDefinition = useStore(state => 
     state.tframexComponents.patterns.find(p => p.id === tframexPatternId)
@@ -135,7 +135,7 @@ const TFrameXPatternNode = memo(({ id, data, type: tframexPatternId }) => {
     let newKeyBase = `route_key`;
     let newKey = newKeyBase;
     let i = 1;
-    while(currentRoutes.hasOwnProperty(newKey)) {
+    while(Object.prototype.hasOwnProperty.call(currentRoutes, newKey)) {
         newKey = `${newKeyBase}_${i}`;
         i++;
     }
@@ -148,6 +148,30 @@ const TFrameXPatternNode = memo(({ id, data, type: tframexPatternId }) => {
     updateNodeData(id, { ...data, routes: currentRoutes });
   }, [id, updateNodeData, data]);
 
+  const hasDynamicRouteOutputs = tframexPatternId === 'RouterPattern' && data.routes && Object.keys(data.routes).length > 0;
+  
+  const routeOutputHandles = useMemo(() => {
+    if (!hasDynamicRouteOutputs) return [];
+    
+    const routeKeys = Object.keys(data.routes);
+    const numHandles = routeKeys.length;
+    const startPercent = 25;
+    const endPercent = 75;
+    const totalSpreadPercent = endPercent - startPercent;
+
+    return routeKeys.map((routeKey, index) => {
+        let topPercent = 50; 
+        if (numHandles > 1) {
+            const step = totalSpreadPercent / (numHandles - 1);
+            topPercent = startPercent + (step * index);
+        }
+        return {
+            key: routeKey,
+            top: `${topPercent}%`,
+            id: `route_${routeKey}`,
+        };
+    });
+  }, [hasDynamicRouteOutputs, data.routes]);
 
   if (!patternDefinition) {
     return <Card className="w-80 p-2 border-destructive bg-destructive/10"><CardHeader><CardTitle className="text-destructive-foreground">Error: Pattern Unknown</CardTitle></CardHeader><CardContent className="text-destructive-foreground/80">Definition for '{tframexPatternId}' not found.</CardContent></Card>;
@@ -286,32 +310,7 @@ const TFrameXPatternNode = memo(({ id, data, type: tframexPatternId }) => {
     return <Input id={inputId} type="text" value={value || ''} onChange={(e) => handleSimpleChange(paramName, e.target.value)} placeholder={placeholder} className="text-xs h-8 border-input"/>;
   };
   
-  const hasDynamicRouteOutputs = tframexPatternId === 'RouterPattern' && data.routes && Object.keys(data.routes).length > 0;
-  const outputHandleTop = '50px'; 
-
-
-  const routeOutputHandles = useMemo(() => {
-    if (!hasDynamicRouteOutputs) return [];
-    
-    const routeKeys = Object.keys(data.routes);
-    const numHandles = routeKeys.length;
-    const startPercent = 25;
-    const endPercent = 75;
-    const totalSpreadPercent = endPercent - startPercent;
-
-    return routeKeys.map((routeKey, index) => {
-        let topPercent = 50; 
-        if (numHandles > 1) {
-            topPercent = startPercent + (index / (numHandles - 1)) * totalSpreadPercent;
-        }
-        return {
-            key: `route-out-${id}-${routeKey}`,
-            id: `output_route_${routeKey.replace(/[\s.:;()]/g, '_')}`, 
-            top: `${topPercent}%`,
-            title: `Output for route: ${routeKey}`
-        };
-    });
-  }, [hasDynamicRouteOutputs, data.routes, id]);
+  const outputHandleTop = '50px';
 
 
   return (

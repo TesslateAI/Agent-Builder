@@ -117,7 +117,6 @@ yarn-error.log*
 
 # Additional patterns
 repomix-output.xml
-test_*.py
 *.db
 *.db-shm
 *.db-wal

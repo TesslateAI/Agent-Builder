@@ -11,15 +11,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 # Import your models
 from models import Base
-from models.organizations import Organizations
-from models.users import Users
-from models.roles import Roles
-from models.project import Projects
-from models.flow import Flow
-from models.flow_execution import FlowExecution
-from models.user_project_roles import UserProjectRoles
-from models.audit_log import AuditLog
-from models.user_session import UserSession
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

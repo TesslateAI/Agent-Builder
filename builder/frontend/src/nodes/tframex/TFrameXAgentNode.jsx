@@ -1,6 +1,7 @@
 // frontend/src/nodes/tframex/TFrameXAgentNode.jsx
 // builder/frontend/src/nodes/tframex/TFrameXAgentNode.jsx
 import React, { useCallback, useState, useEffect, useMemo, memo } from 'react'; // Import memo for optimization
+import { isEqual } from 'lodash';
 import { Handle, Position } from 'reactflow';
 import { useStore } from '../../store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,14 +10,12 @@ import { Input } from '@/components/ui/input';
 // import { Textarea } from '@/components/ui/textarea'; // Not used directly, properties panel will handle
 import { Button } from '@/components/ui/button';
 // import { Checkbox } from '@/components/ui/checkbox'; // Assuming you create this - Removed checkbox from here
-import { isEqual } from 'lodash'; // For comparing tool arrays - Import isEqual
 import { Cog, Wrench, PlusCircle, Trash2, Zap, MessageSquare, X, Bot, Server } from 'lucide-react';
 
 const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const allTools = useStore((state) => state.tframexComponents.tools);
   const deleteNode = useStore((state) => state.deleteNode);
-  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
   const models = useStore((state) => state.models);
 
   const agentDefinition = useStore(state =>
@@ -56,7 +55,7 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
     let newKey = newKeyBase;
     let i = 1;
     // Ensure unique key
-    while(localTemplateVars.hasOwnProperty(newKey)) {
+    while(Object.prototype.hasOwnProperty.call(localTemplateVars, newKey)) {
         newKey = `${newKeyBase}_${i}`;
         i++;
     }
@@ -69,6 +68,33 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
     setLocalTemplateVars(newVars);
     updateNodeData(id, { template_vars_config: newVars });
   };
+
+  // Calculate if the node is modified from its base definition
+  const isModified = useMemo(() => {
+    if (!agentDefinition || !agentDefinition.config_options) return false;
+
+    const baseConfig = agentDefinition.config_options;
+    const baseSystemPrompt = baseConfig.system_prompt_template || "";
+    const baseStripThinkTags = baseConfig.strip_think_tags || false;
+    const baseToolsSorted = [...(baseConfig.default_tools || [])].sort();
+
+    const currentSystemPrompt = (data.system_prompt_override !== undefined && data.system_prompt_override !== null && data.system_prompt_override.trim() !== '')
+                              ? data.system_prompt_override.trim()
+                              : baseSystemPrompt;
+
+    const currentStripThinkTags = (data.strip_think_tags_override !== undefined)
+                                  ? !!data.strip_think_tags_override
+                                  : baseStripThinkTags;
+
+    const currentToolsSorted = [...(data.selected_tools || [])].sort();
+
+    if (currentSystemPrompt !== baseSystemPrompt) return true;
+    if (currentStripThinkTags !== baseStripThinkTags) return true;
+    if (!isEqual(currentToolsSorted, baseToolsSorted)) return true;
+    if (data.model && data.model !== 'default') return true;
+
+    return false;
+  }, [data, agentDefinition]);
 
   if (!agentDefinition) {
     return (
@@ -92,38 +118,6 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
         ? agentDefinition.config_options.strip_think_tags
         : false);
 
-
-   // --- NEW: Calculate if the node is modified from its base definition ---
-   const isModified = useMemo(() => {
-     if (!agentDefinition || !agentDefinition.config_options) return false; // Can't be modified if no base definition
-
-     const baseConfig = agentDefinition.config_options;
-     const baseSystemPrompt = baseConfig.system_prompt_template || ""; // Handle potential missing template
-     const baseStripThinkTags = baseConfig.strip_think_tags || false;
-     const baseToolsSorted = [...(baseConfig.default_tools || [])].sort();
-
-     // Get current values from node data, handling undefined/null
-     const currentSystemPrompt = (data.system_prompt_override !== undefined && data.system_prompt_override !== null && data.system_prompt_override.trim() !== '')
-                               ? data.system_prompt_override.trim()
-                               : baseSystemPrompt; // If override is empty or undefined, it means the base prompt is used
-
-     const currentStripThinkTags = (data.strip_think_tags_override !== undefined)
-                                   ? !!data.strip_think_tags_override // Ensure boolean
-                                   : baseStripThinkTags;
-
-     // Sort current tools for comparison
-     const currentToolsSorted = [...(data.selected_tools || [])].sort();
-
-     // Compare values
-     if (currentSystemPrompt !== baseSystemPrompt) return true;
-     if (currentStripThinkTags !== baseStripThinkTags) return true;
-     if (!isEqual(currentToolsSorted, baseToolsSorted)) return true; // Use isEqual for array comparison
-     if (data.model && data.model !== 'default') return true; // Model override is always a modification
-
-     // If none of the checked overrides differ from the base, it's not modified
-     return false;
-   }, [data, agentDefinition]);
-   // --- END NEW ---
 
 
   return (

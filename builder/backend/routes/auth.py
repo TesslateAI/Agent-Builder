@@ -7,8 +7,7 @@ import logging
 import secrets
 import uuid
 from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify, redirect, make_response, url_for, g
-from urllib.parse import urlencode
+from flask import Blueprint, request, jsonify, redirect, make_response, g
 
 from auth.keycloak_client import keycloak_client, KeycloakError
 from auth.rbac import get_user_effective_permissions
@@ -422,7 +421,7 @@ def _create_new_user_and_organization(user_info: dict) -> dict:
         org_name = f"{email_domain.title()} Organization"
         org_id = str(uuid.uuid4())
         
-        organization = create_organization(
+        create_organization(
             org_id=org_id,
             name=org_name,
             description=f"Auto-created organization for {email_domain}",

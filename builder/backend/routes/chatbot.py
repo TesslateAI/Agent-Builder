@@ -61,11 +61,11 @@ async def execute_chatbot_logic(rt, user_message, template_vars):
         )
         
         flow_json_content = flow_builder_response.content.strip()
-        logger.info(f"=== FlowBuilderAgent Output ===")
+        logger.info("=== FlowBuilderAgent Output ===")
         logger.info(f"Instruction: {instruction_part[:100]}...")
         logger.info(f"Response length: {len(flow_json_content)} characters")
         logger.info(f"Raw output: {flow_json_content}")
-        logger.info(f"=== End FlowBuilderAgent Output ===")
+        logger.info("=== End FlowBuilderAgent Output ===")
         
         # Step 4: Parse and validate the JSON
         flow_update_json = None

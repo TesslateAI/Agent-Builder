@@ -851,7 +851,7 @@ export const useStore = create((set, get) => ({
           console.warn("❌ Invalid node types found:", flowUpdate.nodes.map(n => n.type));
           console.warn("❌ Available types:", Array.from(componentTypeMap.keys()));
         }
-      } else if (responseData.hasOwnProperty('flow_update') && flowUpdate !== null) {
+      } else if (Object.prototype.hasOwnProperty.call(responseData, 'flow_update') && flowUpdate !== null) {
         console.error("❌ INVALID FLOW STRUCTURE:", {
           hasFlowUpdate: !!flowUpdate,
           isNodesArray: Array.isArray(flowUpdate?.nodes),

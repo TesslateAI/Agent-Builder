@@ -9,8 +9,7 @@ from dotenv import load_dotenv
 
 # TFrameX v1.1.0 core components
 from tframex import (
-    TFrameXApp, TFrameXRuntimeContext, Message, FlowContext,
-    setup_logging, Flow
+    setup_logging
 )
 
 # Import all blueprints
@@ -62,7 +61,7 @@ def create_app():
     jwt_middleware.init_app(app)
     
     # Initialize TFrameX App (this ensures it's created before blueprints use it)
-    global_tframex_app = get_tframex_app_instance()
+    get_tframex_app_instance()
     
     # Initialize MCP in async context if it was deferred
     import asyncio
@@ -82,7 +81,7 @@ def create_app():
     # Run MCP setup in new event loop if needed
     try:
         # Try to get existing loop
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         # If we have a loop, schedule MCP init
         asyncio.ensure_future(setup_mcp())
     except RuntimeError:
@@ -148,10 +147,10 @@ if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV', 'development').lower() == 'development'
     
     # Log startup information
-    logger.info(f"Starting Agent-Builder Backend")
+    logger.info("Starting Agent-Builder Backend")
     logger.info(f"Host: {host}:{port}")
     logger.info(f"Debug: {debug_mode}")
-    logger.info(f"TFrameX Version: 1.1.0")
+    logger.info("TFrameX Version: 1.1.0")
     
     # Check if frontend is built
     frontend_dist = os.path.join(os.path.dirname(__file__), '../frontend/dist/index.html')

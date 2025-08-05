@@ -5,9 +5,8 @@ Handles authentication flows, token management, and user synchronization
 import os
 import logging
 import requests
-import json
 from typing import Dict, Optional, List, Any
-from urllib.parse import urlencode, parse_qs, urlparse
+from urllib.parse import urlencode
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)

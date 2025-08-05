@@ -1,16 +1,14 @@
 # backend/flow_translator.py
 import inspect
 import logging
-from typing import List, Dict, Any, Tuple, Optional, Union
+from typing import List, Dict, Any, Tuple, Optional
 from collections import deque
 import copy
 import hashlib
 
-from tframex import Flow, TFrameXApp, FlowContext, Message, OpenAIChatLLM
+from tframex import Flow, TFrameXApp, OpenAIChatLLM
 from tframex import patterns as tframex_patterns_module
-from tframex.patterns import BasePattern, SequentialPattern, ParallelPattern, RouterPattern, DiscussionPattern
-from tframex.agents import LLMAgent
-import os
+from tframex.patterns import BasePattern
 
 logger = logging.getLogger("FlowTranslator")
 
@@ -246,7 +244,8 @@ def translate_visual_to_tframex_flow(
     visited_for_sort = set()
     while queue:
         u_id = queue.popleft()
-        if u_id in visited_for_sort: continue
+        if u_id in visited_for_sort:
+            continue
         visited_for_sort.add(u_id)
         sorted_canvas_node_ids_for_flow.append(u_id)
         for v_id in adj[u_id]:
@@ -266,7 +265,8 @@ def translate_visual_to_tframex_flow(
     constructed_flow = Flow(flow_name=f"studio_visual_flow_{flow_id}")
     for canvas_node_id_in_flow_order in sorted_canvas_node_ids_for_flow:
         node_config = node_map.get(canvas_node_id_in_flow_order)
-        if not node_config: continue # Should not happen if sort is correct
+        if not node_config:  # Should not happen if sort is correct
+            continue
 
         node_data_from_frontend = node_config.get('data', {})
         component_category = node_data_from_frontend.get('component_category')
@@ -296,13 +296,13 @@ def translate_visual_to_tframex_flow(
             missing_required_params = []
 
             for param_name_in_sig, param_obj_in_sig in sig.parameters.items():
-                if param_name_in_sig in ['self', 'pattern_name', 'args', 'kwargs']: continue
+                if param_name_in_sig in ['self', 'pattern_name', 'args', 'kwargs']:
+                    continue
 
                 if param_name_in_sig in node_data_from_frontend:
                     value = node_data_from_frontend[param_name_in_sig]
 
                     # Resolve agent/pattern names in parameters using the map
-                    agent_ref_params = ["steps", "tasks", "participant_agent_names", "router_agent_name", "moderator_agent_name", "default_route"]
                     is_list_of_agents = param_name_in_sig in ["steps", "tasks", "participant_agent_names"]
                     is_single_agent_ref = param_name_in_sig in ["router_agent_name", "moderator_agent_name"]
                     is_route_target_ref = param_name_in_sig == "default_route" # Can be agent or pattern CLASS name
@@ -333,9 +333,12 @@ def translate_visual_to_tframex_flow(
                             # `value` here is expected to be a canvas node ID (if connected) or a TFrameX ID (if selected)
                             effective_name = canvas_node_to_effective_name_map.get(value, value)
                             is_valid_target = False
-                            if effective_name in current_run_app_instance._agents: is_valid_target = True
-                            elif is_route_target_ref and hasattr(tframex_patterns_module, effective_name): is_valid_target = True # Pattern class for default_route
-                            elif is_route_target_ref and effective_name.startswith("p_"): is_valid_target = True # Instantiated pattern
+                            if effective_name in current_run_app_instance._agents:
+                                is_valid_target = True
+                            elif is_route_target_ref and hasattr(tframex_patterns_module, effective_name):
+                                is_valid_target = True  # Pattern class for default_route
+                            elif is_route_target_ref and effective_name.startswith("p_"):
+                                is_valid_target = True  # Instantiated pattern
 
                             if not is_valid_target:
                                 translation_log.append(f"  Warning: Invalid target '{effective_name}' (original ref: '{value}') for '{param_name_in_sig}' in Pattern '{original_tframex_component_id}'. May fail.")
@@ -358,8 +361,10 @@ def translate_visual_to_tframex_flow(
                                  translation_log.append(f"  Warning: Empty/invalid route target for key '{k}' in Pattern '{original_tframex_component_id}'.")
                         pattern_init_params[param_name_in_sig] = resolved_routes
                     elif param_name_in_sig == "discussion_rounds" and value is not None:
-                        try: pattern_init_params[param_name_in_sig] = int(value)
-                        except (ValueError, TypeError): translation_log.append(f"  Warning: Invalid integer for 'discussion_rounds'.")
+                        try:
+                            pattern_init_params[param_name_in_sig] = int(value)
+                        except (ValueError, TypeError):
+                            translation_log.append("  Warning: Invalid integer for 'discussion_rounds'.")
                     else:
                         pattern_init_params[param_name_in_sig] = value
                 elif param_obj_in_sig.default == inspect.Parameter.empty:

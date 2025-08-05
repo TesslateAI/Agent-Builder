@@ -71,7 +71,7 @@ def register_code_execution_tools(tframex_app):
             # Clean up temp file
             try:
                 os.unlink(temp_file)
-            except:
+            except OSError:
                 pass
     
     @tframex_app.tool(
