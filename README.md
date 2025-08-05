@@ -154,8 +154,8 @@ Follow these steps to get Tesslate Studio up and running:
         pip install -r requirements.txt
         ```
     *   **Configure your LLM:**
-        *   Copy the example environment file: `cp .env copy .env`
-        *   Edit the `.env` file with your LLM details. Example for local Ollama:
+        *   Copy the example environment file: `cp deploy/docker/.env.example deploy/docker/.env`
+        *   Edit the `deploy/docker/.env` file with your LLM details. Example for local Ollama:
             ```env
             OPENAI_API_BASE="http://localhost:11434/v1"
             OPENAI_API_KEY="ollama" # Placeholder for Ollama

@@ -37,3 +37,6 @@ yarl==1.20.0
 PyJWT==2.8.0
 redis==5.0.1
 requests==2.32.3
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.1

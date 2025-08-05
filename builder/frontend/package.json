@@ -48,5 +48,14 @@
     "globals": "^16.0.0",
     "tw-animate-css": "^1.2.9",
     "vite": "^6.3.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.46.2",
+    "@rollup/rollup-linux-x64-musl": "^4.46.2",
+    "@rollup/rollup-linux-x64-gnu": "^4.46.2",
+    "@rollup/rollup-darwin-x64": "^4.46.2",
+    "@rollup/rollup-darwin-arm64": "^4.46.2",
+    "@swc/core-linux-x64-gnu": "^1.3.100",
+    "@swc/core-linux-x64-musl": "^1.3.100"
   }
 }

@@ -2,29 +2,39 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Recent Updates (January 2025)
+
+- **Database Migration**: Migrated from custom database layer to SQLAlchemy 2.0 ORM with PostgreSQL
+- **Enterprise Features**: Added multi-tenancy, RBAC, audit logging, and Keycloak authentication
+- **Improved Docker Setup**: Fixed build issues with proper dependencies and initialization scripts
+- **Health Monitoring**: Added comprehensive health check endpoints for all services
+- **Testing Infrastructure**: Created API test suite and comprehensive testing documentation
+
 ## Project Overview
 
 Agent-Builder is a visual flow builder for TFrameX v1.1.0 - a React-based drag-and-drop interface for creating multi-agent LLM workflows. Users design flows visually that execute via TFrameX's orchestration engine.
 
 **Architecture:**
-- **Frontend**: React + ReactFlow (visual canvas) + Zustand (state) + shadcn/ui + Vite
-- **Backend**: Flask API that translates visual flows to executable TFrameX flows  
+- **Frontend**: React 18 + ReactFlow (visual canvas) + Zustand (state) + shadcn/ui + Vite 6
+- **Backend**: Flask API with SQLAlchemy ORM that translates visual flows to executable TFrameX flows  
 - **Core Integration**: TFrameX v1.1.0 for LLM orchestration with MCP (Model Context Protocol) support
+- **Database**: PostgreSQL with SQLAlchemy 2.0 ORM and Alembic migrations
+- **Enterprise Features**: Multi-tenancy, RBAC, audit logging, Keycloak authentication
 
 ## Common Commands
 
 ### Development Setup
 ```bash
 # PRIMARY: Docker Compose Development Environment (RECOMMENDED)
-docker-compose -f docker-compose.dev.yml up -d  # Start all services
-docker-compose -f docker-compose.dev.yml logs -f  # Check logs for debugging
-docker-compose -f docker-compose.dev.yml down     # Stop all services
+docker-compose -f deploy/docker/docker-compose.dev.yml up -d  # Start all services
+docker-compose -f deploy/docker/docker-compose.dev.yml logs -f  # Check logs for debugging
+docker-compose -f deploy/docker/docker-compose.dev.yml down     # Stop all services
 
 # Alternative: Quick start with local TFrameX
-./start-dev.sh  # Assumes ../TFrameX directory exists
+./scripts/dev/start-dev.sh  # Assumes ../TFrameX directory exists
 
 # Alternative: Python start script
-python start-dev.py  # or python3 on some systems
+python scripts/dev/start-dev.py  # or python3 on some systems
 
 # Alternative: Manual setup with Make
 make install-dev  # Install all dependencies including dev tools
@@ -53,6 +63,7 @@ make format       # Format with black and fix with ruff
 
 # Run tests
 make test         # Runs builder/backend/test_v1.1.0.py
+python tests/integration/test_api.py  # Run API integration tests
 
 # Frontend linting
 cd builder/frontend && npm run lint
@@ -61,18 +72,18 @@ cd builder/frontend && npm run lint
 ### Docker
 ```bash
 # Development Environment (PRIMARY)
-docker-compose -f docker-compose.dev.yml up -d
-docker-compose -f docker-compose.dev.yml logs backend  # Check backend logs
-docker-compose -f docker-compose.dev.yml logs frontend # Check frontend logs
+docker-compose -f deploy/docker/docker-compose.dev.yml up -d
+docker-compose -f deploy/docker/docker-compose.dev.yml logs backend  # Check backend logs
+docker-compose -f deploy/docker/docker-compose.dev.yml logs frontend # Check frontend logs
 
 # Production Build
 make docker-build  # Build Docker image
 make docker-run    # Run container (requires OPENAI_API_KEY env var)
 
 # Production Deployment with Authentication
-cp .env.prod.example .env.prod  # Copy and configure production environment
-docker-compose -f docker-compose.prod.yml up -d  # Deploy production stack
-docker-compose -f docker-compose.prod.yml logs   # Check deployment logs
+cp deploy/docker/.env.prod.example deploy/docker/.env.prod  # Copy and configure production environment
+docker-compose -f deploy/docker/docker-compose.prod.yml up -d  # Deploy production stack
+docker-compose -f deploy/docker/docker-compose.prod.yml logs   # Check deployment logs
 ```
 
 ## Code Architecture
@@ -96,6 +107,9 @@ The `tframex/` folder contains the source code of the TFrameX library v1.1.0. Th
 - `builder/backend/app.py`: Flask server with API endpoints for component discovery, flow execution, model management, and dynamic code registration
 - `builder/backend/flow_translator.py`: Core logic that converts ReactFlow visual graphs to executable TFrameX Flow objects with multi-model support
 - `builder/backend/component_manager.py`: Introspects TFrameX app to discover available agents/tools/patterns
+- `builder/backend/models.py`: SQLAlchemy ORM models for users, organizations, projects, flows, and audit logs
+- `builder/backend/database.py`: Database session management and connection configuration
+- `builder/backend/manage_db.py`: Database management CLI for migrations and initialization
 
 **TFrameX Integration Pattern:**
 ```python
@@ -151,10 +165,17 @@ source .venv/bin/activate      # Unix/Mac
 ```
 
 ### Environment Variables
-Required for LLM access (in `.env` or environment):
+Required for LLM access (in `deploy/docker/.env` or environment):
 - `OPENAI_API_KEY` / `OPENAI_API_BASE` - For OpenAI/compatible APIs
 - `LLAMA_API_KEY` / `LLAMA_BASE_URL` / `LLAMA_MODEL` - For Ollama/local models
 - `MCP_CONFIG_FILE` - Path to MCP servers config (default: `servers_config.json`)
+
+**Database Variables (Development):**
+- `DB_USER` - Database user (default: `devuser`)
+- `DB_PASSWORD` - Database password (default: `devpass`)
+- `DB_HOST` - Database host (default: `postgres`)
+- `DB_PORT` - Database port (default: `5432`)
+- `DB_NAME` - Database name (default: `agentbuilder_dev`)
 
 **Authentication Variables (Production):**
 - `JWT_SECRET_KEY` - JWT token signing secret (generate with `python -c "import secrets; print(secrets.token_hex(32))"`)
@@ -169,6 +190,8 @@ Required for LLM access (in `.env` or environment):
 - Backend runs on port 5000, Frontend on port 5173
 - Keycloak authentication server on port 8081 (admin console at http://localhost:8081)
 - Ollama available at port 11434 for local LLM testing
+- Backend uses custom init script to ensure SQLAlchemy dependencies are installed
+- Frontend build includes platform-specific dependencies for cross-platform compatibility
 
 ### Override System
 UI configurations create **runtime overrides** without modifying base TFrameX definitions:
@@ -260,6 +283,14 @@ docker-compose -f docker-compose.dev.yml logs -f frontend
 # Keycloak Admin: http://localhost:8081 (admin/admin)
 # Ollama: http://localhost:11434
 # Traefik Dashboard: http://localhost:8080
+# PgAdmin: http://localhost:8002 (admin@example.com/admin)
+# RedisInsight: http://localhost:8001
+
+# Access backend container
+docker exec -it agent-builder-backend-dev bash
+
+# Access database
+docker exec -it agent-builder-postgres-dev psql -U devuser -d agentbuilder_dev
 ```
 
 ## Authentication System
@@ -293,11 +324,11 @@ Pre-configured in development realm:
 4. Subsequent requests use JWT for authorization
 
 ### Production Deployment
-- Use `.env.prod.example` as template for production configuration
-- Deploy with `docker-compose -f docker-compose.prod.yml up -d`
+- Use `deploy/docker/.env.prod.example` as template for production configuration
+- Deploy with `docker-compose -f deploy/docker/docker-compose.prod.yml up -d`
 - Keycloak accessible at `https://auth.your-domain.com`
 - Application at `https://your-domain.com`
-- See `AUTHENTICATION.md` for complete deployment guide
+- See `docs/AUTHENTICATION.md` for complete deployment guide
 
 ## Project-Specific Patterns
 
@@ -329,3 +360,60 @@ Communication flow:
 - Missing required parameters caught during translation
 - Clear error messages returned to UI Output panel
 - Model connectivity issues caught during testing and execution
+- Health check endpoints for monitoring all services
+- Comprehensive logging for debugging
+
+## Database Management
+
+### Alembic Migrations
+```bash
+# Run migrations
+docker exec agent-builder-backend-dev alembic upgrade head
+
+# Create new migration
+docker exec agent-builder-backend-dev alembic revision --autogenerate -m "Description"
+
+# Check current version
+docker exec agent-builder-backend-dev alembic current
+
+# Downgrade
+docker exec agent-builder-backend-dev alembic downgrade -1
+```
+
+### Database CLI
+```bash
+# Initialize database with sample data
+docker exec agent-builder-backend-dev python builder/backend/manage_db.py init
+
+# Upgrade to latest migration
+docker exec agent-builder-backend-dev python builder/backend/manage_db.py upgrade
+
+# Create a new organization
+docker exec agent-builder-backend-dev python builder/backend/manage_db.py create-org "My Org"
+
+# List all users
+docker exec agent-builder-backend-dev python builder/backend/manage_db.py list-users
+```
+
+## Testing
+
+### API Testing Script
+A comprehensive test script is available at `tests/integration/test_api.py`:
+```bash
+# Run all API tests
+python tests/integration/test_api.py
+
+# Tests include:
+# - Health checks (basic, ready, live, detailed)
+# - Component discovery
+# - Model management
+# - Flow execution
+```
+
+### Health Check Endpoints
+- `/health` - Basic health check
+- `/health/ready` - Readiness probe (checks all dependencies)
+- `/health/live` - Liveness probe  
+- `/health/detailed` - Detailed status of all services
+
+See `docs/TESTING.md` for comprehensive testing guide.

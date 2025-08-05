@@ -20,6 +20,7 @@ from routes.flows import flows_bp
 from routes.chatbot import chatbot_bp
 from routes.files import files_bp, init_generated_files_dir
 from routes.auth import auth_bp
+from routes.health import health_bp
 
 # Import authentication middleware
 from middleware.auth import JWTMiddleware
@@ -90,6 +91,7 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(auth_bp)
+    app.register_blueprint(health_bp)
     app.register_blueprint(models_bp)
     app.register_blueprint(mcp_servers_bp)
     app.register_blueprint(flows_bp)
