@@ -16,7 +16,7 @@ from database import (
 from component_manager import discover_tframex_components, register_code_dynamically
 from flow_translator import translate_visual_to_tframex_flow
 from middleware.auth import require_auth, get_current_user_id, get_current_organization_id
-from auth.rbac import require_permission, require_project_access
+from auth.rbac import require_permission
 
 logger = logging.getLogger("FlowsAPI")
 
@@ -310,7 +310,7 @@ def handle_execute_tframex_flow():
 
         if "studio_preview_url" in final_flow_context.shared_data:
             final_preview_link = final_flow_context.shared_data["studio_preview_url"]
-            execution_log.append(f"\n--- Preview Link Detected ---")
+            execution_log.append("\n--- Preview Link Detected ---")
             execution_log.append(f"PREVIEW_LINK::{final_preview_link}")
             logger.info(f"Run ID {run_id}: Preview link found in shared_data: {final_preview_link}")
         

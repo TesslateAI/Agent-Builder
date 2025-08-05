@@ -3,7 +3,7 @@ Role-Based Access Control (RBAC) utilities for Agent-Builder
 Provides advanced permission checking and role management
 """
 import logging
-from typing import List, Dict, Any, Optional, Set
+from typing import List, Dict, Any, Set
 from functools import wraps
 from flask import request, jsonify, g
 
@@ -214,7 +214,6 @@ def require_project_access(project_id_param: str = 'project_id'):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             user_id = getattr(g, 'user_id', None)
-            organization_id = getattr(g, 'organization_id', None)
             
             if not user_id:
                 return jsonify({'error': 'Authentication required'}), 401

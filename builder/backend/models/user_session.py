@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey, Index, TIMESTAMP
+from sqlalchemy import String, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timezone
 from typing import Optional

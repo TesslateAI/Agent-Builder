@@ -115,7 +115,7 @@ def detailed_health():
             "flows": flow_count,
             "users": user_count
         }
-    except:
+    except Exception:
         db_metrics = None
     
     # Get TFrameX details
@@ -126,7 +126,7 @@ def detailed_health():
             "tools": list(tframex_app._tools.keys()),
             "patterns": ["sequential", "parallel", "router", "discussion"]
         }
-    except:
+    except Exception:
         tframex_details = None
     
     response = {

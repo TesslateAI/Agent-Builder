@@ -42,20 +42,16 @@ def register_builtin_tools(tframex_app):
             logger.error(f"Failed to register {category_name} tools: {e}")
     
     # Check for missing dependencies and log warnings
+    import importlib.util
+    
     missing_deps = []
-    try:
-        import aiohttp
-    except ImportError:
+    if importlib.util.find_spec("aiohttp") is None:
         missing_deps.append("aiohttp (web tools may be limited)")
     
-    try:
-        import pandas
-    except ImportError:
+    if importlib.util.find_spec("pandas") is None:
         missing_deps.append("pandas (CSV processing disabled)")
     
-    try:
-        from bs4 import BeautifulSoup
-    except ImportError:
+    if importlib.util.find_spec("bs4") is None:
         missing_deps.append("beautifulsoup4 (web scraping disabled)")
     
     if missing_deps:
