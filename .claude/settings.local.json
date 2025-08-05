@@ -49,7 +49,12 @@
       "Bash(git push:*)",
       "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_snapshot",
-      "mcp__playwright__browser_click"
+      "mcp__playwright__browser_click",
+      "Bash(alembic revision:*)",
+      "Bash(winpty docker exec -it agent-builder-frontend-dev npm install @radix-ui/react-tooltip)",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_press_key"
     ],
     "deny": []
   }

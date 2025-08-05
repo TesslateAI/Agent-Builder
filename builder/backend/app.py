@@ -20,6 +20,7 @@ from routes.chatbot import chatbot_bp
 from routes.files import files_bp, init_generated_files_dir
 from routes.auth import auth_bp
 from routes.health import health_bp
+from routes.triggers import triggers_bp
 
 # Import authentication middleware
 from middleware.auth import JWTMiddleware
@@ -87,6 +88,46 @@ def create_app():
     except RuntimeError:
         # No loop running, create one for MCP init
         asyncio.run(setup_mcp())
+    
+    # Initialize trigger service
+    async def setup_triggers():
+        """Initialize trigger service and processors."""
+        try:
+            from services.trigger_service import get_trigger_service
+            from services.webhook_processor import WebhookProcessor
+            from services.schedule_processor import ScheduleProcessor
+            from services.email_processor import EmailProcessor
+            from services.file_processor import FileProcessor
+            
+            trigger_service = get_trigger_service()
+            
+            # Register processors
+            webhook_processor = WebhookProcessor(trigger_service, app)
+            schedule_processor = ScheduleProcessor(trigger_service)
+            email_processor = EmailProcessor(trigger_service)
+            file_processor = FileProcessor(trigger_service)
+            
+            trigger_service.register_processor('webhook', webhook_processor)
+            trigger_service.register_processor('schedule', schedule_processor)
+            trigger_service.register_processor('email', email_processor)
+            trigger_service.register_processor('file', file_processor)
+            
+            # Start the services
+            await trigger_service.start()
+            await schedule_processor.start()
+            await email_processor.start()
+            await file_processor.start()
+            
+            logger.info("Trigger service initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing trigger service: {e}")
+    
+    # Run trigger setup
+    try:
+        asyncio.get_running_loop()
+        asyncio.ensure_future(setup_triggers())
+    except RuntimeError:
+        asyncio.run(setup_triggers())
 
     # Register blueprints
     app.register_blueprint(auth_bp)
@@ -96,6 +137,7 @@ def create_app():
     app.register_blueprint(flows_bp)
     app.register_blueprint(chatbot_bp)
     app.register_blueprint(files_bp)
+    app.register_blueprint(triggers_bp)
 
     # Basic routes
     @app.route('/health', methods=['GET'])

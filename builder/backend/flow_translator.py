@@ -400,3 +400,140 @@ def translate_visual_to_tframex_flow(
 
     translation_log.append("--- Flow Translation End ---")
     return constructed_flow, translation_log, canvas_node_to_effective_name_map
+
+async def execute_flow_from_trigger(trigger, payload: Dict[str, Any]) -> str:
+    """
+    Execute a flow from a trigger context
+    Returns the flow execution ID
+    """
+    from database import LocalSession, create_flow_execution, update_flow_execution, get_flow
+    from tframex_config import get_tframex_app_instance
+    import uuid
+    
+    logger.info(f"Executing flow {trigger.flow_id} from trigger {trigger.id}")
+    
+    # Get the flow data
+    flow_data = get_flow(trigger.flow_id)
+    if not flow_data:
+        raise ValueError(f"Flow {trigger.flow_id} not found")
+    
+    # Create flow execution record
+    execution_id = create_flow_execution(
+        flow_id=trigger.flow_id,
+        input_data={
+            'trigger_id': trigger.id,
+            'trigger_type': trigger.type,
+            'trigger_payload': payload,
+            'triggered_at': payload.get('triggered_at', 'unknown')
+        }
+    )
+    
+    try:
+        # Get nodes and edges
+        nodes = flow_data['nodes']
+        edges = flow_data['edges']
+        
+        # Find trigger node in the flow or start with root nodes
+        trigger_nodes = [n for n in nodes if n.get('type') == 'trigger']
+        connected_node_ids = []
+        
+        if trigger_nodes:
+            # Find nodes connected to trigger outputs
+            for edge in edges:
+                if edge.get('source') in [tn['id'] for tn in trigger_nodes]:
+                    if edge.get('target') not in connected_node_ids:
+                        connected_node_ids.append(edge.get('target'))
+        else:
+            # No trigger nodes - find all nodes without incoming edges (root nodes)
+            incoming_targets = {edge.get('target') for edge in edges if edge.get('target')}
+            root_nodes = [n for n in nodes if n['id'] not in incoming_targets]
+            connected_node_ids = [n['id'] for n in root_nodes]
+            logger.info(f"No trigger nodes found, starting with root nodes: {connected_node_ids}")
+        
+        if not connected_node_ids:
+            logger.warning(f"No nodes connected to trigger in flow {trigger.flow_id}")
+            update_flow_execution(execution_id, 'completed', {'message': 'No connected nodes to execute'})
+            return str(execution_id)
+        
+        # Get global app instance for execution
+        global_app_instance = get_tframex_app_instance()
+        current_run_app_instance = global_app_instance  # Use the same instance for now
+        
+        # Filter nodes to only include connected nodes and their dependencies
+        executable_nodes = []
+        for node in nodes:
+            if (node['id'] in connected_node_ids or 
+                node.get('data', {}).get('component_category') in ['agent', 'pattern'] or
+                any(edge.get('target') == node['id'] for edge in edges if edge.get('source') in connected_node_ids)):
+                executable_nodes.append(node)
+        
+        # Translate visual flow to TFrameX flow
+        tframex_flow, translation_log, node_mapping = translate_visual_to_tframex_flow(
+            flow_id=f"trigger_execution_{execution_id}",
+            visual_nodes=executable_nodes,
+            visual_edges=edges,
+            global_app_instance=global_app_instance,
+            current_run_app_instance=current_run_app_instance
+        )
+        
+        if not tframex_flow:
+            raise ValueError("Failed to translate flow for execution")
+        
+        # Prepare execution context with trigger payload
+        execution_context = {
+            'trigger_data': payload,
+            'trigger_type': trigger.type,
+            'flow_execution_id': str(execution_id)
+        }
+        
+        # Add trigger payload to initial message if needed
+        initial_message = payload.get('data', {})
+        if trigger.type == 'webhook':
+            webhook_data = payload.get('webhook', {})
+            initial_message = {
+                'trigger_source': 'webhook',
+                'webhook_method': webhook_data.get('method'),
+                'webhook_url': webhook_data.get('url'),
+                'data': initial_message
+            }
+        elif trigger.type == 'schedule':
+            schedule_data = payload.get('schedule', {})
+            initial_message = {
+                'trigger_source': 'schedule',
+                'scheduled_at': schedule_data.get('triggered_at'),
+                'data': initial_message
+            }
+        
+        # Execute the flow
+        result = await tframex_flow.run(
+            initial_message=str(initial_message) if initial_message else "Flow triggered",
+            app=current_run_app_instance
+        )
+        
+        # Update execution record with success
+        update_flow_execution(
+            execution_id=execution_id,
+            status='completed',
+            output_data={
+                'result': str(result) if result else None,
+                'translation_log': translation_log,
+                'node_mapping': node_mapping,
+                'execution_context': execution_context
+            }
+        )
+        
+        logger.info(f"Successfully executed flow {trigger.flow_id} from trigger {trigger.id}")
+        return str(execution_id)
+        
+    except Exception as e:
+        logger.error(f"Failed to execute flow {trigger.flow_id} from trigger {trigger.id}: {e}", exc_info=True)
+        
+        # Update execution record with error
+        update_flow_execution(
+            execution_id=execution_id,
+            status='failed',
+            error_message=str(e),
+            output_data={'error_details': str(e)}
+        )
+        
+        raise

@@ -26,5 +26,6 @@ class Flow(Base):
         default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-    project = relationship("Project", back_populates="flows")
+    project = relationship("Projects", back_populates="flows")
     executions = relationship("FlowExecution", back_populates="flow", cascade="all, delete-orphan")
+    # triggers = relationship("Triggers", back_populates="flow", cascade="all, delete-orphan")
