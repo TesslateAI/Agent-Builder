@@ -1,5 +1,5 @@
 // builder/frontend/src/components/CodeRegistrationPanel.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { Button } from '@/components/ui/button';

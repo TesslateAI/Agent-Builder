@@ -133,11 +133,6 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  // Check authentication status on mount
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
   const checkAuthStatus = useCallback(async () => {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING });
@@ -177,6 +172,11 @@ export function AuthProvider({ children }) {
       }
     }
   }, []);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
 
   const login = useCallback(async () => {
     try {
@@ -244,20 +244,35 @@ export function AuthProvider({ children }) {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING });
       
-      await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
+      console.log('Attempting logout...');
+      const response = await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
         withCredentials: true
       });
       
-      dispatch({ type: AUTH_ACTIONS.SET_UNAUTHENTICATED });
+      console.log('Logout response:', response);
       
-      // Redirect to login page
-      window.location.href = '/login';
+      // Clear any local storage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      
+      // Clear any persisted app state
+      localStorage.removeItem('tframexStudioProjects');
+      
+      // Set unauthenticated state - this will trigger the LoginPage to render
+      dispatch({ type: AUTH_ACTIONS.SET_UNAUTHENTICATED });
       
     } catch (error) {
       console.error('Logout failed:', error);
+      console.error('Error response:', error.response);
+      
       // Even if logout fails on backend, clear local state
+      // Clear any local storage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('tframexStudioProjects');
+      
+      // Set unauthenticated state - this will trigger the LoginPage to render
       dispatch({ type: AUTH_ACTIONS.SET_UNAUTHENTICATED });
-      window.location.href = '/login';
     }
   }, []);
 
@@ -398,17 +413,17 @@ export function withAuth(Component) {
             <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
             <p className="text-gray-600 mb-4">Please log in to access this page.</p>
             <button
-              onClick={() => window.location.href = '/login'}
+              onClick={() => window.location.reload()}
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             >
-              Go to Login
+              Reload Page
             </button>
           </div>
         </div>
       );
     }
     
-    return <Component {...props} />;
+    return React.createElement(Component, props);
   };
 }
 

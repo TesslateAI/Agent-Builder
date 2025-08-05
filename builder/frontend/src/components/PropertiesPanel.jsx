@@ -20,7 +20,6 @@ const PropertiesPanel = () => {
   const setSelectedNodeId = useStore((state) => state.setSelectedNodeId); // To close panel
   const tframexComponents = useStore((state) => state.tframexComponents);
   const models = useStore((state) => state.models);
-  const defaultModelId = useStore((state) => state.defaultModelId);
 
 
   const [localData, setLocalData] = useState({});

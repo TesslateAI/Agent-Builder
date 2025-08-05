@@ -13,7 +13,6 @@ import { MessageSquare, X } from 'lucide-react';
 const TextInputNode = memo(({ id, data }) => {
   const updateNodeData = useStore((state) => state.updateNodeData);
   const deleteNode = useStore((state) => state.deleteNode);
-  const setSelectedNodeId = useStore((state) => state.setSelectedNodeId);
 
   const handleChange = useCallback((evt) => {
     const { name, value } = evt.target;

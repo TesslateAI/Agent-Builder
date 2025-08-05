@@ -5,8 +5,7 @@ Handles failed login tracking and basic rate limiting
 import os
 import redis
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from functools import wraps
 from flask import request, jsonify
 
@@ -30,15 +29,6 @@ RATE_LIMIT_MAX_ATTEMPTS = 10  # max attempts per minute
 def log_auth_attempt(email: str, success: bool, ip_address: str, user_agent: str = None) -> None:
     """Log authentication attempt with details"""
     try:
-        # Create structured log entry
-        log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'email': email,
-            'success': success,
-            'ip_address': ip_address,
-            'user_agent': user_agent
-        }
-        
         if success:
             logger.info(f"Successful login: {email} from {ip_address}")
             # Clear failed attempts on successful login

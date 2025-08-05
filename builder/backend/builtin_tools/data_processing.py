@@ -68,7 +68,7 @@ def register_data_processing_tools(tframex_app):
                         else:
                             current = current[part]
                     result["value"] = current
-                except (KeyError, IndexError, TypeError) as e:
+                except (KeyError, IndexError, TypeError):
                     result["success"] = False
                     result["error"] = f"Path not found: {path}"
             

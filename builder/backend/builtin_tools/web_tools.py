@@ -5,7 +5,7 @@ Provides web search, HTTP requests, and web scraping capabilities.
 """
 
 import logging
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, Union
 from urllib.parse import urljoin
 
 # Optional imports - tools will be disabled if dependencies are missing
@@ -194,7 +194,7 @@ def register_web_tools(tframex_app):
                     # Try to parse JSON if possible
                     try:
                         json_content = await response.json()
-                    except:
+                    except (ValueError, TypeError):
                         json_content = None
                     
                     return {

@@ -31,12 +31,11 @@ const TopBar = () => {
   const isRunning = useStore((state) => state.isRunning);
 
   // Auth state
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [newProjectName, setNewProjectName] = useState('');
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved'
   const [showUserProfile, setShowUserProfile] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleCreateProject = useCallback(() => {
     if (newProjectName.trim()) {
@@ -63,15 +62,6 @@ const TopBar = () => {
     setSaveStatus('saved');
   }, [saveCurrentProject]);
 
-  const handleLogout = useCallback(async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-      setIsLoggingOut(false);
-    }
-  }, [logout]);
 
   // Reset save status after showing success feedback
   useEffect(() => {

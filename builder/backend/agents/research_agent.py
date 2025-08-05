@@ -5,7 +5,7 @@ import asyncio
 import json
 import logging
 import hashlib
-from typing import Any, Dict, List, Optional, Union, Set, Tuple
+from typing import Any, Dict, List, Optional, Union, Set
 from datetime import datetime, timedelta
 
 from tframex import TFrameXApp
@@ -13,6 +13,11 @@ from tframex.models.primitives import Message, ToolCall, ToolDefinition
 from tframex.util.llms import BaseLLMWrapper
 from tframex.util.memory import BaseMemoryStore
 from tframex.util.tools import Tool
+
+# Type import for Engine
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from tframex.engine import Engine
 from tframex.agents import BaseAgent
 
 logger = logging.getLogger(__name__)
@@ -56,7 +61,7 @@ class ResearchResult:
         try:
             result_str = json.dumps(result, sort_keys=True) if isinstance(result, (dict, list)) else str(result)
             return hashlib.md5(result_str.encode()).hexdigest()
-        except:
+        except (TypeError, ValueError):
             return hashlib.md5(str(result).encode()).hexdigest()
     
     def is_expired(self, max_age_minutes: int = 30) -> bool:

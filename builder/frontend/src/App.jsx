@@ -38,7 +38,7 @@ const staticNodeTypes = {
 
 const FlowEditor = () => {
   const reactFlowWrapper = useRef(null);
-  const { project, getViewport, setViewport } = useReactFlow();
+  const { project, setViewport } = useReactFlow();
 
   const nodes = useStore((state) => state.nodes);
   const edges = useStore((state) => state.edges);

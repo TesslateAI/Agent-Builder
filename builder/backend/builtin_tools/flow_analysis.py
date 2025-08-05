@@ -4,9 +4,8 @@ Flow analysis tools for the Agent-Builder application.
 Provides flow optimization, validation, and prediction capabilities.
 """
 
-import json
-from typing import Any, Dict, List, Optional, Set, Tuple
-from collections import defaultdict, deque
+from typing import Any, Dict
+from collections import defaultdict
 
 
 def register_flow_analysis_tools(tframex_app):

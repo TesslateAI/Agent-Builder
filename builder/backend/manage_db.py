@@ -8,17 +8,14 @@ import sys
 import argparse
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models import Base
 from database import (
-    engine, LocalSession,
-    create_organization, create_default_roles,
-    create_user, create_project, create_role
+    engine, create_organization, create_default_roles,
+    create_user, create_project
 )
 
 def get_alembic_config():
