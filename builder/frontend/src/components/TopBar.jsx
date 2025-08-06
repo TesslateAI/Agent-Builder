@@ -17,10 +17,25 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database, Check, User, ChevronDown, Download, Upload } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import ModelConfigurationPanel from './ModelConfigurationPanel';
 import UserProfile from './auth/UserProfile';
 import ExportDialog from './ExportDialog';
 import ImportDialog from './ImportDialog';
+
+// Reusable tooltip button component
+const TooltipButton = ({ tooltip, children, ...props }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button {...props}>
+        {children}
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>
+      <p>{tooltip}</p>
+    </TooltipContent>
+  </Tooltip>
+);
 
 const TopBar = () => {
   const projects = useStore((state) => state.projects);
@@ -76,6 +91,7 @@ const TopBar = () => {
   }, [saveStatus]);
 
   return (
+    <TooltipProvider>
     <div className="h-14 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-6 flex-shrink-0">
       {/* Left Side: Project Controls */}
       <div className="flex items-center space-x-6">
@@ -88,8 +104,8 @@ const TopBar = () => {
                 size="sm"
                 className="h-9 px-2 hover:bg-sidebar-border"
               >
-                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2">
-                  <User className="w-3 h-3 text-blue-600" />
+                <div className="w-6 h-6 bg-muted rounded-full flex items-center justify-center mr-2">
+                  <User className="w-3 h-3 text-muted-foreground" />
                 </div>
                 <span className="text-sm font-medium max-w-24 truncate">
                   {user?.first_name || user?.username || 'User'}
@@ -97,7 +113,7 @@ const TopBar = () => {
                 <ChevronDown className="w-3 h-3 ml-1 text-muted-foreground" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
               <UserProfile onClose={() => setShowUserProfile(false)} />
             </DialogContent>
           </Dialog>
@@ -133,7 +149,8 @@ const TopBar = () => {
               className="w-32 h-9 rounded-r-none border-r-0"
               disabled={isRunning}
             />
-            <Button
+            <TooltipButton
+              tooltip="Add new project"
               onClick={handleCreateProject}
               variant="secondary"
               size="sm"
@@ -141,10 +158,11 @@ const TopBar = () => {
               disabled={isRunning || !newProjectName.trim()}
             >
               <Plus className="h-4 w-4" />
-            </Button>
+            </TooltipButton>
           </div>
 
-          <Button
+          <TooltipButton
+            tooltip="Delete project"
             onClick={handleDeleteClick}
             variant="ghost"
             size="icon"
@@ -152,7 +170,7 @@ const TopBar = () => {
             disabled={isRunning || !currentProjectId || Object.keys(projects).length <= 1}
           >
             <Trash2 className="h-4 w-4" />
-          </Button>
+          </TooltipButton>
         </div>
       </div>
 
@@ -163,26 +181,27 @@ const TopBar = () => {
         <ImportDialog />
         <ExportDialog />
 
-        <Button
+        <TooltipButton
+          tooltip={saveStatus === 'saved' ? 'Project saved!' : saveStatus === 'saving' ? 'Saving project...' : 'Save project'}
           onClick={handleSaveClick}
           variant="ghost"
           size="icon"
           className={`h-9 w-9 transition-colors ${
             saveStatus === 'saved' 
-              ? 'bg-green-100 text-green-700 hover:bg-green-100' 
+              ? 'bg-success/20 text-success hover:bg-success/20' 
               : ''
           }`}
           disabled={isRunning || saveStatus === 'saving'}
-          title={saveStatus === 'saved' ? 'Project saved!' : saveStatus === 'saving' ? 'Saving project...' : 'Save project'}
         >
           {saveStatus === 'saved' ? (
             <Check className="h-4 w-4" />
           ) : (
             <Save className="h-4 w-4" />
           )}
-        </Button>
+        </TooltipButton>
 
-        <Button
+        <TooltipButton
+          tooltip={isRunning ? 'Flow is running...' : 'Run the current flow'}
           onClick={runFlow}
           size="sm"
           className={`h-9 min-w-[100px] ${
@@ -203,10 +222,11 @@ const TopBar = () => {
               Run Flow
             </>
           )}
-        </Button>
+        </TooltipButton>
 
       </div>
     </div>
+    </TooltipProvider>
   );
 };
 

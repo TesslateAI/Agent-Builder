@@ -1,0 +1,208 @@
+/* Utility Classes */
+
+/* Glass Morphism Effects */
+.glass {
+  background: var(--color-hover);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+}
+
+/* Gradient Borders */
+.gradient-border {
+  position: relative;
+  background: linear-gradient(var(--color-card), var(--color-card)) padding-box,
+              linear-gradient(135deg, var(--color-primary), var(--color-accent)) border-box;
+  border: 2px solid transparent;
+}
+
+.gradient-border-secondary {
+  position: relative;
+  background: linear-gradient(var(--color-card), var(--color-card)) padding-box,
+              linear-gradient(135deg, var(--color-secondary), var(--color-primary)) border-box;
+  border: 2px solid transparent;
+}
+
+/* Animation Classes */
+.animate-slide-in {
+  animation: slideIn var(--duration-slow) var(--ease-out);
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--duration-slow) var(--ease-out);
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--duration-normal) var(--ease-out);
+}
+
+.animate-bounce-subtle {
+  animation: bounceSubtle var(--duration-slower) var(--ease-out);
+}
+
+/* Interactive States */
+.interactive {
+  transition: all var(--duration-normal) var(--ease-out);
+  cursor: pointer;
+}
+
+.interactive:hover {
+  background-color: var(--color-hover);
+}
+
+.interactive:active {
+  background-color: var(--color-active);
+  transform: translateY(1px);
+}
+
+.interactive-scale:hover {
+  transform: scale(1.02);
+}
+
+.interactive-scale:active {
+  transform: scale(0.98);
+}
+
+/* Focus Utilities */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+}
+
+.focus-ring-accent {
+  @apply focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background;
+}
+
+/* Layout Utilities */
+.h-screen-safe {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-muted) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--color-muted);
+  border-radius: var(--radius-full);
+  border: none;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-muted-foreground);
+}
+
+/* Text Utilities */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-secondary {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Shadow Utilities */
+.shadow-glow {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.shadow-glow-accent {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.shadow-glow-secondary {
+  box-shadow: 0 0 20px rgba(6, 214, 160, 0.3);
+}
+
+/* State Utilities */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.readonly {
+  opacity: 0.8;
+  cursor: default;
+}
+
+/* Border Utilities */
+.border-gradient {
+  border: 1px solid transparent;
+  background: linear-gradient(var(--color-background), var(--color-background)) padding-box,
+              linear-gradient(135deg, var(--color-primary), var(--color-accent)) border-box;
+}
+
+.border-dashed-animated {
+  border: 2px dashed var(--color-border);
+  animation: dashOffset 2s linear infinite;
+}
+
+/* Backdrop Utilities */
+.backdrop-blur-subtle {
+  backdrop-filter: blur(4px);
+}
+
+.backdrop-blur-medium {
+  backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-strong {
+  backdrop-filter: blur(16px);
+}
+
+/* Flex Utilities */
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
+.flex-between {
+  @apply flex items-center justify-between;
+}
+
+.flex-start {
+  @apply flex items-center justify-start;
+}
+
+.flex-end {
+  @apply flex items-center justify-end;
+}
+
+/* Grid Utilities */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-4);
+}
+
+.grid-auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-4);
+}

@@ -262,15 +262,15 @@ const PropertiesPanel = () => {
     titleText = "Agent Properties";
   } else if (selectedNode.type === 'textInput') {
     content = renderTextInputProperties();
-    titleIcon = <MessageSquare className="h-5 w-5 mr-2 text-cyan-500" />;
+    titleIcon = <MessageSquare className="h-5 w-5 mr-2 text-secondary" />;
     titleText = "Text Input Properties";
   } else if (selectedNode.data.component_category === 'pattern') {
     content = renderPatternProperties();
-    titleIcon = <Cog className="h-5 w-5 mr-2 text-yellow-500" />; // Example icon for patterns
+    titleIcon = <Cog className="h-5 w-5 mr-2 text-primary" />; // Example icon for patterns
     titleText = "Pattern Properties";
   } else if (selectedNode.data.component_category === 'tool') {
     content = renderToolProperties();
-    titleIcon = <Cog className="h-5 w-5 mr-2 text-indigo-500" />; // Example icon for tools
+    titleIcon = <Cog className="h-5 w-5 mr-2 text-accent" />; // Example icon for tools
     titleText = "Tool Properties";
   } else if (selectedNode.data.component_category === 'mcp_server' || selectedNode.type === 'MCPServerNode') {
     // Use the specialized MCP Server Properties Panel

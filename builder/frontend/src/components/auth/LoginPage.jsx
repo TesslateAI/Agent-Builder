@@ -122,12 +122,12 @@ export function LoginPage() {
                   onClick={handleDevLogin}
                   disabled={isLoading}
                   variant="outline"
-                  className="w-full h-12 border-dashed border-orange-500 text-orange-600 hover:bg-orange-50 transition-all duration-200"
+                  className="w-full h-12 border-dashed border-warning text-warning hover:bg-warning/10 transition-all duration-200"
                   size="lg"
                 >
                   {isLoading ? (
                     <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-warning mr-2"></div>
                       Dev Login...
                     </div>
                   ) : (
@@ -153,15 +153,15 @@ export function LoginPage() {
                   </p>
                   <div className="grid grid-cols-3 gap-3 text-xs">
                     <div className="flex flex-col items-center space-y-1 p-2 rounded-lg bg-card/30">
-                      <Shield className="h-4 w-4 text-primary" />
+                      <Shield className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">SSO Integration</span>
                     </div>
                     <div className="flex flex-col items-center space-y-1 p-2 rounded-lg bg-card/30">
-                      <Users className="h-4 w-4 text-accent" />
+                      <Users className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Role-Based Access</span>
                     </div>
                     <div className="flex flex-col items-center space-y-1 p-2 rounded-lg bg-card/30">
-                      <FileText className="h-4 w-4 text-secondary" />
+                      <FileText className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Audit Logging</span>
                     </div>
                   </div>

@@ -123,28 +123,27 @@ const TriggerConfigModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Icon className="h-5 w-5 text-orange-600" />
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Icon className="h-4 w-4" />
             <span>{trigger ? 'Edit Trigger' : 'Create New Trigger'}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="basic">Basic Settings</TabsTrigger>
-            <TabsTrigger value="config">Configuration</TabsTrigger>
-            <TabsTrigger value="auth">Authentication</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
-          </TabsList>
+        <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-120px)]">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="basic">Basic Settings</TabsTrigger>
+              <TabsTrigger value="config">Configuration</TabsTrigger>
+              <TabsTrigger value="auth">Authentication</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="basic" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <TabsContent value="basic" className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Basic Information</label>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="trigger-name">Trigger Name *</Label>
@@ -202,21 +201,19 @@ const TriggerConfigModal = ({
                   <Label htmlFor="trigger-enabled">Enable trigger immediately</Label>
                 </div>
 
-                {selectedTriggerType && (
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">{selectedTriggerType.description}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  {selectedTriggerType && (
+                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 text-blue-400">
+                      <p className="text-sm">{selectedTriggerType.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
 
-          <TabsContent value="config" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Trigger Configuration</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <TabsContent value="config" className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Trigger Configuration</label>
                 {formData.type === 'webhook' && (
                   <WebhookConfig
                     config={formData.config}
@@ -241,31 +238,29 @@ const TriggerConfigModal = ({
                     onChange={handleConfigChange}
                   />
                 )}
-                {!['webhook', 'schedule', 'email', 'file'].includes(formData.type) && (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Configuration for {formData.type} triggers is not yet implemented.</p>
-                    <p className="text-sm mt-2">Coming soon!</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  {!['webhook', 'schedule', 'email', 'file'].includes(formData.type) && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>Configuration for {formData.type} triggers is not yet implemented.</p>
+                      <p className="text-sm mt-2">Coming soon!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
 
-          <TabsContent value="auth" className="space-y-4">
-            <AuthConfig
-              config={formData.config.auth || {}}
-              onChange={(authConfig) => handleConfigChange({ ...formData.config, auth: authConfig })}
-              triggerType={formData.type}
-            />
-          </TabsContent>
+            <TabsContent value="auth" className="space-y-4">
+              <AuthConfig
+                config={formData.config.auth || {}}
+                onChange={(authConfig) => handleConfigChange({ ...formData.config, auth: authConfig })}
+                triggerType={formData.type}
+              />
+            </TabsContent>
 
-          <TabsContent value="advanced" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Advanced Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-sm text-gray-600">
+            <TabsContent value="advanced" className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Advanced Settings</label>
+                  <div className="text-sm text-muted-foreground">
                   <p>Advanced configuration options will be available in future versions:</p>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     <li>Rate limiting and throttling</li>
@@ -295,21 +290,22 @@ const TriggerConfigModal = ({
                         </Badge>
                       )}
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
-        <div className="flex justify-end space-x-2 pt-4 border-t">
+          <div className="flex justify-end space-x-2 pt-4">
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isLoading}>
-            <Save className="h-4 w-4 mr-2" />
-            {isLoading ? 'Saving...' : (trigger ? 'Update Trigger' : 'Create Trigger')}
-          </Button>
+            <Button onClick={handleSave} disabled={isLoading}>
+              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? 'Saving...' : (trigger ? 'Update Trigger' : 'Create Trigger')}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

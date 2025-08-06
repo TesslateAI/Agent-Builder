@@ -51,7 +51,6 @@ const CRON_PRESETS = [
 
 const ScheduleConfig = ({ config, onChange }) => {
   const [nextRuns, setNextRuns] = useState([]);
-  const [cronError, setCronError] = useState('');
 
   const handleConfigChange = useCallback((field, value) => {
     const newConfig = {
@@ -188,11 +187,7 @@ const ScheduleConfig = ({ config, onChange }) => {
                 value={config.cronExpression || ''}
                 onChange={(e) => handleConfigChange('cronExpression', e.target.value)}
                 placeholder="0 9 * * 1-5"
-                className={cronError ? 'border-red-500' : ''}
               />
-              {cronError && (
-                <p className="text-xs text-red-600">{cronError}</p>
-              )}
               <div className="text-xs text-gray-500">
                 <p>Format: minute hour day month day_of_week</p>
                 <p>Examples:</p>

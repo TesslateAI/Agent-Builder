@@ -51,13 +51,13 @@ export function UserProfile() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-120px)]">
       {/* Header */}
       <div className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+              <User className="w-6 h-6 text-muted-foreground" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">
@@ -66,10 +66,10 @@ export function UserProfile() {
                   : user?.username || 'User'
                 }
                 {isSuperAdmin() && (
-                  <Crown className="inline-block w-4 h-4 text-yellow-500 ml-2" />
+                  <Crown className="inline-block w-4 h-4 text-warning ml-2" />
                 )}
                 {isAdmin() && !isSuperAdmin() && (
-                  <Shield className="inline-block w-4 h-4 text-blue-500 ml-2" />
+                  <Shield className="inline-block w-4 h-4 text-primary ml-2" />
                 )}
               </h2>
               <p className="flex items-center text-sm text-muted-foreground">
@@ -80,27 +80,28 @@ export function UserProfile() {
           </div>
         </div>
       </div>
-        {/* Organization Info */}
-        {organization && (
+      {/* Organization Info */}
+      {organization && (
+        <div className="bg-muted/50 rounded-lg p-3">
           <div className="space-y-2">
-            <h3 className="font-medium flex items-center">
-              <Building2 className="w-4 h-4 mr-2" />
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
               Organization
-            </h3>
-            <div className="bg-muted p-3 rounded-lg">
+            </label>
+            <div>
               <p className="font-medium">{organization.name}</p>
               {organization.description && (
                 <p className="text-sm text-muted-foreground">{organization.description}</p>
               )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        <Separator />
-
-        {/* Account Details */}
+      {/* Account Details */}
+      <div className="bg-muted/50 rounded-lg p-3">
         <div className="space-y-3">
-          <h3 className="font-medium">Account Details</h3>
+          <label className="text-sm font-medium">Account Details</label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Username:</span>
@@ -120,15 +121,15 @@ export function UserProfile() {
             </div>
           </div>
         </div>
+      </div>
 
-        <Separator />
-
-        {/* Permissions */}
+      {/* Permissions */}
+      <div className="bg-muted/50 rounded-lg p-3">
         <div className="space-y-3">
-          <h3 className="font-medium flex items-center">
-            <Lock className="w-4 h-4 mr-2" />
+          <label className="text-sm font-medium flex items-center gap-2">
+            <Lock className="w-4 h-4" />
             Permissions & Access
-          </h3>
+          </label>
           
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -176,11 +177,10 @@ export function UserProfile() {
             )}
           </div>
         </div>
+      </div>
 
-        <Separator />
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3">
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row gap-3">
           <Button
             variant="outline"
             className="flex-1"
@@ -211,7 +211,7 @@ export function UserProfile() {
               </>
             )}
           </Button>
-        </div>
+      </div>
     </div>
   );
 }
