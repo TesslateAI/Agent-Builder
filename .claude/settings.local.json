@@ -54,7 +54,9 @@
       "Bash(winpty docker exec -it agent-builder-frontend-dev npm install @radix-ui/react-tooltip)",
       "mcp__playwright__browser_wait_for",
       "mcp__playwright__browser_hover",
-      "mcp__playwright__browser_press_key"
+      "mcp__playwright__browser_press_key",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "mcp__playwright__browser_type"
     ],
     "deny": []
   }

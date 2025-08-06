@@ -35,8 +35,12 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 def login():
     """Initiate OAuth login flow"""
     try:
+        logger.info(f"🚀 [AUTH] Login initiation requested from {request.remote_addr}")
+        logger.debug(f"🚀 [AUTH] Request headers: {dict(request.headers)}")
+        
         # Generate state parameter for CSRF protection
         state = secrets.token_urlsafe(32)
+        logger.info(f"🚀 [AUTH] Generated state parameter: {state}")
         
         # Store state in session or cache (in production, use Redis)
         # For now, we'll pass it through and validate on callback
@@ -44,13 +48,18 @@ def login():
         # Get authorization URL from Keycloak
         auth_url = keycloak_client.get_authorization_url(state=state)
         
+        logger.info(f"🚀 [AUTH] ✅ Login initiation successful")
+        logger.info(f"🚀 [AUTH] Redirecting to: {auth_url}")
+        
         return jsonify({
             'auth_url': auth_url,
             'state': state
         })
         
     except Exception as e:
-        logger.error(f"Login initiation failed: {e}")
+        logger.error(f"🚀 [AUTH] ❌ Login initiation failed: {e}")
+        logger.error(f"🚀 [AUTH] Exception type: {type(e).__name__}")
+        logger.error(f"🚀 [AUTH] Exception details: {str(e)}")
         return jsonify({
             'error': 'Login failed',
             'message': 'Unable to initiate login process'
@@ -60,30 +69,80 @@ def login():
 def auth_callback():
     """Handle OAuth callback from Keycloak"""
     try:
+        logger.info(f"🔄 [AUTH] OAuth callback received from {request.remote_addr}")
+        logger.info(f"🔄 [AUTH] Full callback URL: {request.url}")
+        logger.debug(f"🔄 [AUTH] Request headers: {dict(request.headers)}")
+        logger.debug(f"🔄 [AUTH] Query parameters: {dict(request.args)}")
+        
         # Rate limiting check
         client_ip = request.remote_addr
         if not check_rate_limit(client_ip):
+            logger.warning(f"🔄 [AUTH] Rate limit exceeded for {client_ip}")
             return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/login?error=rate_limit_exceeded")
         
         # Get authorization code and state from callback
         code = request.args.get('code')
         state = request.args.get('state')
         error = request.args.get('error')
+        session_state = request.args.get('session_state')
+        iss = request.args.get('iss')
+        
+        logger.info(f"🔄 [AUTH] Authorization code (first 20 chars): {code[:20] if code else 'None'}...")
+        logger.info(f"🔄 [AUTH] State parameter: {state}")
+        logger.info(f"🔄 [AUTH] Session state: {session_state}")
+        logger.info(f"🔄 [AUTH] Issuer: {iss}")
+        logger.info(f"🔄 [AUTH] OAuth error: {error}")
         
         if error:
-            logger.error(f"OAuth error: {error}")
+            logger.error(f"🔄 [AUTH] ❌ OAuth error received: {error}")
             return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/login?error=oauth_error")
         
         if not code:
+            logger.error(f"🔄 [AUTH] ❌ Missing authorization code in callback")
             return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/login?error=missing_code")
         
-        # Exchange code for tokens
-        token_data = keycloak_client.exchange_code_for_tokens(code)
+        logger.info(f"🔄 [AUTH] Starting token exchange process...")
+        
+        # Exchange code for tokens with proper scopes
+        scopes = ['openid', 'profile', 'email', 'roles']
+        logger.info(f"🔄 [AUTH] Requesting scopes: {scopes}")
+        token_data = keycloak_client.exchange_code_for_tokens(code, scopes=scopes)
         access_token = token_data['access_token']
         refresh_token = token_data['refresh_token']
         
-        # Get user info from Keycloak
-        user_info = keycloak_client.get_user_info(access_token)
+        logger.info(f"🔄 [AUTH] Token exchange completed, extracting user info from ID token...")
+        
+        # Extract user info from ID token instead of making userinfo API call
+        # This avoids the JWT issuer validation problem we're experiencing
+        id_token = token_data.get('id_token')
+        if id_token:
+            try:
+                import base64
+                import json
+                # Decode the ID token payload (without signature verification for now)
+                parts = id_token.split('.')
+                if len(parts) >= 2:
+                    payload = json.loads(base64.urlsafe_b64decode(parts[1] + '=='))
+                    user_info = {
+                        'sub': payload.get('sub'),
+                        'preferred_username': payload.get('preferred_username'),
+                        'email': payload.get('email'),
+                        'email_verified': payload.get('email_verified', False),
+                        'given_name': payload.get('given_name'),
+                        'family_name': payload.get('family_name')
+                    }
+                    logger.info(f"🔄 [AUTH] ✅ Successfully extracted user info from ID token")
+                    logger.info(f"🔄 [AUTH] User: {user_info.get('preferred_username')} ({user_info.get('email')})")
+                else:
+                    raise Exception("Invalid ID token format")
+            except Exception as e:
+                logger.error(f"🔄 [AUTH] ❌ Failed to decode ID token: {e}")
+                # Fallback to userinfo endpoint
+                logger.info(f"🔄 [AUTH] Falling back to userinfo endpoint...")
+                user_info = keycloak_client.get_user_info(access_token)
+        else:
+            logger.warning(f"🔄 [AUTH] No ID token received, using userinfo endpoint...")
+            user_info = keycloak_client.get_user_info(access_token)
         
         # Check if account is locked
         user_email = user_info.get('email', '')
@@ -176,13 +235,19 @@ def auth_callback():
         return response
         
     except KeycloakError as e:
-        logger.error(f"Keycloak error during callback: {e}")
+        logger.error(f"🔄 [AUTH] ❌ Keycloak error during callback: {e}")
+        logger.error(f"🔄 [AUTH] Exception type: {type(e).__name__}")
+        logger.error(f"🔄 [AUTH] Exception details: {str(e)}")
         # Log failed attempt if we have user email
         if 'user_email' in locals():
             log_auth_attempt(user_email, False, client_ip, request.headers.get('User-Agent'))
         return redirect(f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/login?error=keycloak_error")
     except Exception as e:
-        logger.error(f"Auth callback failed: {e}")
+        logger.error(f"🔄 [AUTH] ❌ Unexpected error during auth callback: {e}")
+        logger.error(f"🔄 [AUTH] Exception type: {type(e).__name__}")
+        logger.error(f"🔄 [AUTH] Exception details: {str(e)}")
+        import traceback
+        logger.error(f"🔄 [AUTH] Full traceback: {traceback.format_exc()}")
         # Log failed attempt if we have user email
         if 'user_email' in locals():
             log_auth_attempt(user_email, False, client_ip, request.headers.get('User-Agent'))

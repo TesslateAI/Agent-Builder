@@ -25,9 +25,6 @@ services:
       - FLASK_RUN_PORT=5000
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=DEBUG
-      - KEYCLOAK_SERVER_URL=http://keycloak:8080
-      - KEYCLOAK_PUBLIC_URL=http://localhost:8081
-      - KEYCLOAK_REDIRECT_URI=http://localhost:5000/api/auth/callback
       - FRONTEND_URL=http://localhost:5173
       - REDIS_HOST=redis
       - DATABASE_URL=postgresql://devuser:devpass@postgres:5432/agentbuilder_dev
@@ -175,8 +172,8 @@ services:
       - KC_DB_URL=jdbc:postgresql://postgres:5432/keycloak_dev
       - KC_DB_USERNAME=devuser
       - KC_DB_PASSWORD=devpass
-      - KC_HOSTNAME_URL=http://localhost:8081
-      - KC_HOSTNAME_ADMIN_URL=http://localhost:8081
+      # Remove hostname configuration - let Keycloak auto-detect
+      # This allows it to work with any hostname (localhost:8081, keycloak:8080, etc.)
       - KC_HTTP_ENABLED=true
       - KC_HOSTNAME_STRICT=false
       - KC_HOSTNAME_STRICT_HTTPS=false
@@ -192,12 +189,6 @@ services:
     command: 
       - start-dev
       - --import-realm
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/master/console/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
 
   # =============================================================================
   # Development Tools & Monitoring

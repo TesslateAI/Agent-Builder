@@ -23,28 +23,29 @@ class KeycloakClient:
     
     def __init__(self):
         # Keycloak configuration from environment
-        self.server_url = os.getenv('KEYCLOAK_SERVER_URL', 'http://localhost:8080')
+        self.public_url = os.getenv('KEYCLOAK_PUBLIC_URL', 'http://localhost:8081')  # For browser redirects
+        self.internal_url = os.getenv('KEYCLOAK_INTERNAL_URL', 'http://keycloak:8080')  # For backend API calls
         self.realm = os.getenv('KEYCLOAK_REALM', 'agent-builder')
         self.client_id = os.getenv('KEYCLOAK_CLIENT_ID', 'agent-builder-app')
         self.client_secret = os.getenv('KEYCLOAK_CLIENT_SECRET', '')
         self.redirect_uri = os.getenv('KEYCLOAK_REDIRECT_URI', 'http://localhost:5000/api/auth/callback')
         
-        # For frontend-facing URLs, use public URL (localhost:8081 for dev)
-        self.public_server_url = os.getenv('KEYCLOAK_PUBLIC_URL', 'http://localhost:8081')
+        # Build URLs - use public URL for browser-facing operations
+        self.public_realm_url = f"{self.public_url}/realms/{self.realm}"
+        self.internal_realm_url = f"{self.internal_url}/realms/{self.realm}"
         
-        # Build internal URLs (for admin operations only)
-        self.realm_url = f"{self.server_url}/realms/{self.realm}"
-        self.admin_url = f"{self.server_url}/admin/realms/{self.realm}"
-        
-        # Build public URLs (for all token operations - must match token issuer)
-        self.public_realm_url = f"{self.public_server_url}/realms/{self.realm}"
+        # Browser-facing URLs (use public URL)
         self.auth_url = f"{self.public_realm_url}/protocol/openid-connect/auth"
-        self.token_url = f"{self.public_realm_url}/protocol/openid-connect/token"
-        self.userinfo_url = f"{self.public_realm_url}/protocol/openid-connect/userinfo"
-        self.logout_url = f"{self.public_realm_url}/protocol/openid-connect/logout"
         
-        # Expected issuer for token validation (matches public URL)
-        self.expected_issuer = f"{self.public_server_url}/realms/{self.realm}"
+        # Backend API URLs - use internal URL for token exchange, but public URL for userinfo 
+        # because tokens are issued with public URL as the issuer
+        self.token_url = f"{self.internal_realm_url}/protocol/openid-connect/token"
+        self.userinfo_url = f"{self.public_realm_url}/protocol/openid-connect/userinfo"  # Must match token issuer
+        self.logout_url = f"{self.internal_realm_url}/protocol/openid-connect/logout"
+        self.admin_url = f"{self.internal_url}/admin/realms/{self.realm}"
+        
+        # Expected issuer for token validation (must match what Keycloak issues)
+        self.expected_issuer = f"{self.public_url}/realms/{self.realm}"
         
         # Cache for admin token
         self._admin_token = None
@@ -54,6 +55,12 @@ class KeycloakClient:
         """Generate authorization URL for OAuth flow"""
         if scopes is None:
             scopes = ['openid', 'profile', 'email', 'roles']
+        
+        logger.info(f"🔐 [KEYCLOAK] Generating authorization URL")
+        logger.info(f"🔐 [KEYCLOAK] Client ID: {self.client_id}")
+        logger.info(f"🔐 [KEYCLOAK] Redirect URI: {self.redirect_uri}")
+        logger.info(f"🔐 [KEYCLOAK] Requested scopes: {scopes}")
+        logger.info(f"🔐 [KEYCLOAK] State: {state}")
         
         params = {
             'client_id': self.client_id,
@@ -65,24 +72,79 @@ class KeycloakClient:
         if state:
             params['state'] = state
         
-        return f"{self.auth_url}?{urlencode(params)}"
+        auth_url = f"{self.auth_url}?{urlencode(params)}"
+        logger.info(f"🔐 [KEYCLOAK] Generated authorization URL: {auth_url}")
+        return auth_url
     
-    def exchange_code_for_tokens(self, authorization_code: str) -> Dict[str, Any]:
+    def exchange_code_for_tokens(self, authorization_code: str, scopes: List[str] = None) -> Dict[str, Any]:
         """Exchange authorization code for access and refresh tokens"""
+        if scopes is None:
+            scopes = ['openid', 'profile', 'email', 'roles']
+        
+        logger.info(f"🔐 [KEYCLOAK] Starting token exchange")
+        logger.info(f"🔐 [KEYCLOAK] Authorization code (first 20 chars): {authorization_code[:20]}...")
+        logger.info(f"🔐 [KEYCLOAK] Token URL: {self.token_url}")
+        logger.info(f"🔐 [KEYCLOAK] Client ID: {self.client_id}")
+        logger.info(f"🔐 [KEYCLOAK] Client secret present: {'Yes' if self.client_secret else 'No'}")
+        logger.info(f"🔐 [KEYCLOAK] Redirect URI: {self.redirect_uri}")
+        logger.info(f"🔐 [KEYCLOAK] Requested scopes for token exchange: {scopes}")
+        
         data = {
             'grant_type': 'authorization_code',
             'client_id': self.client_id,
             'client_secret': self.client_secret,
             'code': authorization_code,
-            'redirect_uri': self.redirect_uri
+            'redirect_uri': self.redirect_uri,
+            'scope': ' '.join(scopes)
         }
         
+        logger.debug(f"🔐 [KEYCLOAK] Token request payload: {dict((k, v if k != 'client_secret' else '***') for k, v in data.items())}")
+        
         try:
+            logger.info(f"🔐 [KEYCLOAK] Making POST request to token endpoint...")
             response = requests.post(self.token_url, data=data, timeout=30)
+            logger.info(f"🔐 [KEYCLOAK] Token response status: {response.status_code}")
+            logger.debug(f"🔐 [KEYCLOAK] Token response headers: {dict(response.headers)}")
+            
             response.raise_for_status()
-            return response.json()
+            token_data = response.json()
+            
+            logger.info(f"🔐 [KEYCLOAK] ✅ Token exchange successful!")
+            logger.info(f"🔐 [KEYCLOAK] Token data keys: {list(token_data.keys())}")
+            logger.info(f"🔐 [KEYCLOAK] Token scope: {token_data.get('scope', 'No scope in token')}")
+            logger.info(f"🔐 [KEYCLOAK] Token type: {token_data.get('token_type', 'No token type')}")
+            logger.info(f"🔐 [KEYCLOAK] Expires in: {token_data.get('expires_in', 'No expiry info')} seconds")
+            
+            if 'access_token' in token_data:
+                access_token = token_data['access_token']
+                logger.info(f"🔐 [KEYCLOAK] Access token (first 50 chars): {access_token[:50]}...")
+                
+                # Decode JWT header and payload for debugging (without verification)
+                try:
+                    import base64
+                    import json
+                    parts = access_token.split('.')
+                    if len(parts) >= 2:
+                        # Decode header
+                        header = json.loads(base64.urlsafe_b64decode(parts[0] + '=='))
+                        logger.debug(f"🔐 [KEYCLOAK] Access token header: {header}")
+                        
+                        # Decode payload
+                        payload = json.loads(base64.urlsafe_b64decode(parts[1] + '=='))
+                        logger.info(f"🔐 [KEYCLOAK] Access token issuer: {payload.get('iss', 'No issuer')}")
+                        logger.info(f"🔐 [KEYCLOAK] Access token audience: {payload.get('aud', 'No audience')}")
+                        logger.info(f"🔐 [KEYCLOAK] Access token scope: {payload.get('scope', 'No scope in token')}")
+                        logger.info(f"🔐 [KEYCLOAK] Access token subject: {payload.get('sub', 'No subject')}")
+                        logger.info(f"🔐 [KEYCLOAK] Access token username: {payload.get('preferred_username', 'No username')}")
+                except Exception as decode_error:
+                    logger.debug(f"🔐 [KEYCLOAK] Could not decode access token for debugging: {decode_error}")
+            
+            return token_data
         except requests.RequestException as e:
-            logger.error(f"Token exchange failed: {e}")
+            logger.error(f"🔐 [KEYCLOAK] ❌ Token exchange failed: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"🔐 [KEYCLOAK] Response status: {e.response.status_code}")
+                logger.error(f"🔐 [KEYCLOAK] Response text: {e.response.text}")
             raise KeycloakError(f"Failed to exchange code for tokens: {e}")
     
     def refresh_access_token(self, refresh_token: str) -> Dict[str, Any]:
@@ -104,14 +166,49 @@ class KeycloakClient:
     
     def get_user_info(self, access_token: str) -> Dict[str, Any]:
         """Get user information from Keycloak using access token"""
+        logger.info(f"🔐 [KEYCLOAK] Starting user info fetch")
+        logger.info(f"🔐 [KEYCLOAK] Userinfo URL: {self.userinfo_url}")
+        logger.info(f"🔐 [KEYCLOAK] Access token (first 50 chars): {access_token[:50]}...")
+        
         headers = {'Authorization': f'Bearer {access_token}'}
+        logger.debug(f"🔐 [KEYCLOAK] Request headers: {dict((k, v if k != 'Authorization' else f'Bearer {access_token[:20]}...') for k, v in headers.items())}")
+        
+        # For userinfo endpoint, we need to use the internal URL since we're making the request from the backend
+        # but the token was issued with the public URL, so we need to convert it to use host.docker.internal
+        # This allows the container to reach the host's localhost:8081 where Keycloak is exposed
+        userinfo_url = self.userinfo_url.replace('localhost:8081', 'host.docker.internal:8081')
+        logger.info(f"🔐 [KEYCLOAK] Adjusted userinfo URL for Docker internal network: {userinfo_url}")
         
         try:
-            response = requests.get(self.userinfo_url, headers=headers, timeout=30)
+            logger.info(f"🔐 [KEYCLOAK] Making GET request to userinfo endpoint...")
+            response = requests.get(userinfo_url, headers=headers, timeout=30)
+            logger.info(f"🔐 [KEYCLOAK] Userinfo response status: {response.status_code}")
+            logger.debug(f"🔐 [KEYCLOAK] Userinfo response headers: {dict(response.headers)}")
+            
+            if response.status_code != 200:
+                logger.error(f"🔐 [KEYCLOAK] ❌ Userinfo request failed with status {response.status_code}")
+                logger.error(f"🔐 [KEYCLOAK] Response text: {response.text}")
+                
+                # Check for WWW-Authenticate header which might give us more info
+                if 'WWW-Authenticate' in response.headers:
+                    logger.error(f"🔐 [KEYCLOAK] WWW-Authenticate header: {response.headers['WWW-Authenticate']}")
+            
             response.raise_for_status()
-            return response.json()
+            user_info = response.json()
+            
+            logger.info(f"🔐 [KEYCLOAK] ✅ User info fetch successful!")
+            logger.info(f"🔐 [KEYCLOAK] User info keys: {list(user_info.keys())}")
+            logger.info(f"🔐 [KEYCLOAK] Username: {user_info.get('preferred_username', 'No username')}")
+            logger.info(f"🔐 [KEYCLOAK] Email: {user_info.get('email', 'No email')}")
+            logger.info(f"🔐 [KEYCLOAK] Subject: {user_info.get('sub', 'No subject')}")
+            
+            return user_info
         except requests.RequestException as e:
-            logger.error(f"User info fetch failed: {e}")
+            logger.error(f"🔐 [KEYCLOAK] ❌ User info fetch failed: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"🔐 [KEYCLOAK] Response status: {e.response.status_code}")
+                logger.error(f"🔐 [KEYCLOAK] Response text: {e.response.text}")
+                logger.error(f"🔐 [KEYCLOAK] Response headers: {dict(e.response.headers)}")
             raise KeycloakError(f"Failed to get user info: {e}")
     
     def logout_user(self, refresh_token: str) -> bool:
@@ -130,18 +227,33 @@ class KeycloakClient:
             return False
     
     def get_logout_url(self, post_logout_redirect_uri: Optional[str] = None) -> str:
-        """Generate logout URL"""
+        """Generate logout URL for browser redirects"""
         params = {'client_id': self.client_id}
         if post_logout_redirect_uri:
             params['post_logout_redirect_uri'] = post_logout_redirect_uri
         
-        # Use public logout URL for browser redirects
+        # Use public URL for browser redirects
         public_logout_url = f"{self.public_realm_url}/protocol/openid-connect/logout"
         return f"{public_logout_url}?{urlencode(params)}"
     
     def validate_token(self, access_token: str) -> bool:
         """Validate access token by calling userinfo endpoint"""
         try:
+            # In development, we need to handle token validation differently
+            # because tokens are issued with public URL but backend uses internal URL
+            if os.getenv('ENVIRONMENT', 'development') == 'development':
+                # For dev, skip issuer validation and just check if token works
+                headers = {'Authorization': f'Bearer {access_token}'}
+                # Try both URLs in case of network differences
+                try:
+                    response = requests.get(self.userinfo_url, headers=headers, timeout=30)
+                    response.raise_for_status()
+                    return True
+                except:
+                    # If internal URL fails, token might still be valid
+                    # but network routing is the issue
+                    pass
+            
             self.get_user_info(access_token)
             return True
         except KeycloakError:
