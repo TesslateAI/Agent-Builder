@@ -413,7 +413,12 @@ export const useStore = create((set, get) => ({
         }
       };
       set({ projects: updatedProjects });
-      console.log(`Project '${currentProject.name}' saved.`);
+      
+      // Immediately save to localStorage to ensure persistence
+      saveState('tframexStudioProjects', updatedProjects);
+      saveState('tframexStudioCurrentProject', currentProjectId);
+      
+      console.log(`Project '${currentProject.name}' saved to memory and localStorage.`);
     }
   },
 

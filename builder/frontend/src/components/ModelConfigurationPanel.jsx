@@ -154,12 +154,11 @@ const ModelConfigurationPanel = () => {
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
-          className="h-9"
+          size="icon"
+          className="h-9 w-9"
           title="Configure AI Models"
         >
-          <Settings className="h-4 w-4 mr-2" />
-          Models
+          <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
