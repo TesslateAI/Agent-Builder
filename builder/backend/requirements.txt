@@ -43,3 +43,4 @@ alembic==1.13.1
 APScheduler==3.10.4
 pytz==2023.3
 watchdog==4.0.0
+nanoid==2.0.0

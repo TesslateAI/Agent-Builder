@@ -16,9 +16,11 @@ import {
     DialogContent,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database, Check, User, ChevronDown } from 'lucide-react';
+import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database, Check, User, ChevronDown, Download, Upload } from 'lucide-react';
 import ModelConfigurationPanel from './ModelConfigurationPanel';
 import UserProfile from './auth/UserProfile';
+import ExportDialog from './ExportDialog';
+import ImportDialog from './ImportDialog';
 
 const TopBar = () => {
   const projects = useStore((state) => state.projects);
@@ -157,28 +159,26 @@ const TopBar = () => {
       {/* Right Side: Action Buttons */}
       <div className="flex items-center space-x-2">
         <ModelConfigurationPanel />
+        
+        <ImportDialog />
+        <ExportDialog />
 
         <Button
           onClick={handleSaveClick}
           variant="ghost"
-          size="sm"
-          className={`h-9 transition-colors ${
+          size="icon"
+          className={`h-9 w-9 transition-colors ${
             saveStatus === 'saved' 
               ? 'bg-green-100 text-green-700 hover:bg-green-100' 
               : ''
           }`}
           disabled={isRunning || saveStatus === 'saving'}
+          title={saveStatus === 'saved' ? 'Project saved!' : saveStatus === 'saving' ? 'Saving project...' : 'Save project'}
         >
           {saveStatus === 'saved' ? (
-            <>
-              <Check className="h-4 w-4 mr-2" />
-              Saved!
-            </>
+            <Check className="h-4 w-4" />
           ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              {saveStatus === 'saving' ? 'Saving...' : 'Save'}
-            </>
+            <Save className="h-4 w-4" />
           )}
         </Button>
 
