@@ -24,24 +24,24 @@ const PatternListItem = ({ paramName, agentIdInSlot, index, onRemove, getAgentNa
             {/* DEBUG: Uncomment to add a visual border to the item: style={{ border: '1px solid red' }} */}
             <Handle
                 type="target"
-                position={Position.Left} // React Flow uses this for default class, but style overrides precise positioning
+                position={Position.Left}
                 id={`pattern_list_item_input_${paramName}_${index}`}
+                data-handletype="list"
                 style={{ 
-                    background: '#4CAF50', 
-                    top: '50%',         // Vertically center relative to this PatternListItem
-                    left: '-10px',      // Pull out to the left
+                    top: '50%',
+                    left: '-10px',
                     width:10, 
                     height:10, 
-                    zIndex:10           // Ensure it's above other elements in the item
+                    zIndex:10
                 }}
                 title={`Connect Agent to ${paramName} slot #${index + 1}`}
                 isConnectable={true}
             />
-            <Users className="h-4 w-4 text-green-600 flex-shrink-0 ml-1" />
+            <Users className="h-4 w-4 text-secondary flex-shrink-0 ml-1" />
             {/* Added pl-2 to give a bit of space for the handle visually */}
             <div className="flex-grow text-xs truncate pl-2"> 
                 {agentIdInSlot ? (
-                    <span className="font-medium text-green-700" title={getAgentNameById(agentIdInSlot)}>{getAgentNameById(agentIdInSlot)}</span>
+                    <span className="font-medium text-success" title={getAgentNameById(agentIdInSlot)}>{getAgentNameById(agentIdInSlot)}</span>
                 ) : (
                     <span className="text-muted-foreground italic">Slot Empty - Connect Agent</span>
                 )}
@@ -254,15 +254,16 @@ const TFrameXPatternNode = memo(({ id, data, type: tframexPatternId }) => {
                     type="target"
                     position={Position.Left}
                     id={`pattern_agent_input_${paramName}`}
-                    style={{ background: '#F59E0B', top: '50%', left: -12, width:10, height:10, transform: 'translateY(-50%)', zIndex: 1 }}
+                    data-handletype="param"
+                    style={{ top: '50%', left: -12, width:10, height:10, transform: 'translateY(-50%)', zIndex: 1 }}
                     title={`Connect Agent/Pattern for ${label}`}
                     isConnectable={true}
                 />
-                <Link2 className="h-4 w-4 text-amber-600 absolute top-1/2 -translate-y-1/2 left-2.5" />
+                <Link2 className="h-4 w-4 text-warning absolute top-1/2 -translate-y-1/2 left-2.5" />
                 <div className="pl-8">
                     {connectedAgentId ? (
                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-medium text-amber-700 truncate" title={getAgentNameById(connectedAgentId)}>{getAgentNameById(connectedAgentId)}</span>
+                            <span className="font-medium text-warning truncate" title={getAgentNameById(connectedAgentId)}>{getAgentNameById(connectedAgentId)}</span>
                             <Button variant="ghost" size="icon" onClick={() => handleSimpleChange(paramName, null)} className="h-6 w-6 p-0.5 hover:bg-destructive/10">
                                 <Trash2 className="h-3.5 w-3.5 text-destructive"/>
                             </Button>
@@ -315,7 +316,7 @@ const TFrameXPatternNode = memo(({ id, data, type: tframexPatternId }) => {
 
   return (
     <Card className="w-[26rem] shadow-lg bg-card text-card-foreground relative border-0">
-      <Handle type="target" position={Position.Left} id="input_flow_in" style={{ background: '#60a5fa', top: outputHandleTop, zIndex: 1 }} title="Flow Input" />
+      <Handle type="target" position={Position.Left} id="input_flow_in" data-handletype="data" style={{ top: outputHandleTop, zIndex: 1 }} title="Flow Input" />
       
       {/* Delete button */}
       <Button 
@@ -334,13 +335,14 @@ const TFrameXPatternNode = memo(({ id, data, type: tframexPatternId }) => {
               type="source"
               position={Position.Right}
               id={handleProps.id}
-              style={{ top: handleProps.top, background: '#818cf8', width: 10, height: 10, zIndex: 1 }}
+              data-handletype="data"
+              style={{ top: handleProps.top, width: 10, height: 10, zIndex: 1 }}
               title={handleProps.title}
           />
       ))}
       
       {!hasDynamicRouteOutputs && (
-        <Handle type="source" position={Position.Right} id="output_flow_out" style={{ background: '#60a5fa', top: outputHandleTop, zIndex: 1 }} title="Flow Output" />
+        <Handle type="source" position={Position.Right} id="output_flow_out" data-handletype="data" style={{ top: outputHandleTop, zIndex: 1 }} title="Flow Output" />
       )}
 
       <CardHeader className="p-3">

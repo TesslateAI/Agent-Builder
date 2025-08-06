@@ -1,0 +1,346 @@
+/* Component-Specific Styles */
+
+/* React Flow Components */
+.react-flow__node {
+  @apply bg-card/95 border border-border/50 rounded-lg shadow-lg;
+  transition: box-shadow var(--duration-normal) var(--ease-out), 
+              border-color var(--duration-normal) var(--ease-out);
+  backdrop-filter: blur(10px);
+}
+
+.react-flow__node:hover {
+  @apply shadow-xl border-primary/50;
+}
+
+.react-flow__node.selected {
+  @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
+}
+
+.react-flow__handle {
+  @apply border-2 border-background;
+  width: 12px;
+  height: 12px;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.react-flow__handle:hover {
+  @apply scale-125;
+}
+
+.react-flow__handle-connecting {
+  @apply scale-150;
+}
+
+/* Handle Color Variants */
+.react-flow__handle[data-handletype="data"] {
+  background-color: var(--color-handle-data);
+}
+
+.react-flow__handle[data-handletype="tool"] {
+  background-color: var(--color-handle-tool);
+}
+
+.react-flow__handle[data-handletype="param"] {
+  background-color: var(--color-handle-param);
+}
+
+.react-flow__handle[data-handletype="list"] {
+  background-color: var(--color-handle-list);
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+  transition: stroke var(--duration-normal) var(--ease-out);
+}
+
+.react-flow__edge-path:hover {
+  stroke-width: 3;
+}
+
+/* Controls Styling */
+.react-flow__controls {
+  @apply bg-card/50 border border-border/50 rounded-lg shadow-lg m-4;
+  padding: var(--spacing-1);
+  backdrop-filter: blur(10px);
+}
+
+.react-flow__controls button {
+  @apply bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted rounded;
+  width: 32px;
+  height: 32px;
+  border: none;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.react-flow__controls button:hover {
+  @apply bg-muted;
+}
+
+.react-flow__controls button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Minimap Styling */
+.react-flow__minimap {
+  @apply bg-card/50 border border-border/50 rounded-lg shadow-lg;
+  margin: var(--spacing-4);
+  opacity: 0.9;
+  transition: opacity var(--duration-normal) var(--ease-out);
+  backdrop-filter: blur(10px);
+}
+
+.react-flow__minimap:hover {
+  opacity: 1;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(59, 130, 246, 0.15);
+  stroke: var(--color-primary);
+  stroke-width: 2px;
+  stroke-dasharray: 5 5;
+  animation: dash 20s linear infinite;
+}
+
+.react-flow__minimap-node {
+  fill: var(--color-muted);
+  stroke: var(--color-border);
+  stroke-width: 1px;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.react-flow__minimap-node:hover {
+  fill: var(--color-primary);
+  stroke: var(--color-primary);
+  stroke-width: 2px;
+}
+
+/* Node Components */
+.node-header {
+  @apply px-4 py-3 border-b border-border flex items-center justify-between;
+  background: var(--color-hover);
+}
+
+.node-content {
+  @apply p-4;
+}
+
+.node-input, .node-textarea, .node-select {
+  @apply w-full bg-input border border-border rounded-md px-3 py-2 text-sm;
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  @apply placeholder-muted-foreground;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.node-textarea {
+  @apply resize-none;
+  min-height: 80px;
+}
+
+.node-label {
+  @apply block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider;
+}
+
+/* Button Components */
+.btn {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium;
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  height: 36px;
+  padding: 0 var(--spacing-4);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.btn-primary {
+  @apply bg-primary text-primary-foreground;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.btn-primary:active {
+  background-color: var(--color-primary-subtle);
+}
+
+.btn-secondary {
+  @apply bg-secondary text-secondary-foreground;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.btn-secondary:active {
+  background-color: var(--color-secondary-subtle);
+}
+
+.btn-ghost {
+  @apply hover:bg-accent hover:text-accent-foreground;
+}
+
+.btn-destructive {
+  @apply bg-destructive text-white;
+}
+
+.btn-destructive:hover {
+  background-color: rgba(239, 68, 68, 0.9);
+}
+
+/* Panel Components */
+.panel {
+  @apply bg-sidebar border-sidebar-border;
+}
+
+.panel-header {
+  @apply px-4 py-3 border-b border-sidebar-border flex items-center justify-between;
+  @apply text-sm font-semibold text-sidebar-foreground;
+  background: var(--color-hover);
+}
+
+.panel-content {
+  @apply bg-card/50 rounded-lg border border-border/50;
+}
+
+/* Terminal/Output Components */
+.terminal {
+  @apply bg-card/50 rounded-lg p-4 font-mono text-sm;
+  @apply border border-border/50;
+  background: var(--color-hover);
+}
+
+.terminal-line {
+  @apply py-0.5;
+  line-height: var(--line-height-normal);
+}
+
+.terminal-prompt {
+  @apply text-primary mr-2;
+}
+
+.terminal-output {
+  @apply text-muted-foreground;
+}
+
+.terminal-error {
+  @apply text-destructive;
+}
+
+.terminal-success {
+  color: var(--color-success);
+}
+
+/* Sidebar Components */
+.sidebar {
+  @apply bg-sidebar border-r border-sidebar-border;
+  @apply flex flex-col h-full;
+}
+
+.sidebar-header {
+  @apply px-4 py-4 border-b border-sidebar-border;
+}
+
+.sidebar-content {
+  @apply flex-1 overflow-y-auto;
+}
+
+/* Tab Components */
+.tabs-list {
+  @apply bg-muted/30 p-1 rounded-lg;
+}
+
+.tab-trigger {
+  @apply px-3 py-1.5 text-sm font-medium rounded-md;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.tab-trigger:hover {
+  background-color: var(--color-hover);
+}
+
+.tab-trigger[data-state="active"] {
+  @apply bg-background shadow-sm;
+}
+
+/* Form Components */
+.form-group {
+  @apply space-y-2 mb-4;
+}
+
+.form-label {
+  @apply text-sm font-medium;
+}
+
+.form-input {
+  @apply w-full bg-input border border-border rounded-md px-3 py-2 text-sm;
+  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  @apply placeholder-muted-foreground;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+/* Card Components */
+.card {
+  @apply bg-card rounded-lg border border-border shadow-sm;
+}
+
+.card-header {
+  @apply px-4 py-3 border-b border-border;
+}
+
+.card-content {
+  @apply p-4;
+}
+
+/* Node Type Specific Styling */
+.node-agent {
+  border-left: 4px solid var(--color-node-agent);
+}
+
+.node-tool {
+  border-left: 4px solid var(--color-node-tool);
+}
+
+.node-pattern {
+  border-left: 4px solid var(--color-node-pattern);
+}
+
+.node-trigger {
+  border-left: 4px solid var(--color-node-trigger);
+}
+
+/* Status Indicators */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  margin-right: var(--spacing-2);
+}
+
+.status-success {
+  background-color: var(--color-success);
+}
+
+.status-warning {
+  background-color: var(--color-warning);
+}
+
+.status-error {
+  background-color: var(--color-error);
+}
+
+.status-info {
+  background-color: var(--color-info);
+}
+
+/* Override Indicator */
+.override-indicator {
+  position: absolute;
+  top: var(--spacing-2);
+  right: var(--spacing-2);
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-info);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}

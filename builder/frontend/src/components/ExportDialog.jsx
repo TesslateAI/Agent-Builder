@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ExportDialog = ({ trigger }) => {
   const nodes = useStore((state) => state.nodes);
@@ -151,13 +152,20 @@ const ExportDialog = ({ trigger }) => {
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="ghost" size="icon" className="h-9 w-9" title="Export Flow">
-            <Download className="h-4 w-4" />
-          </Button>
-        )}
-      </DialogTrigger>
+      {trigger || (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Download className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Export Flow</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
       
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
         <DialogHeader className="pb-4">

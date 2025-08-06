@@ -45,7 +45,7 @@ const EmailConfig = ({ config, onChange }) => {
     } else {
       handleConfigChange('provider', providerName);
     }
-  }, [config, onChange]);
+  }, [config, onChange, handleConfigChange]);
 
   const handleMonitorTypeChange = useCallback((type) => {
     const provider = COMMON_PROVIDERS.find(p => p.name === config.provider);

@@ -53,7 +53,7 @@ const Sidebar = () => {
                   <TooltipTrigger asChild>
                     <TabsTrigger 
                       value="nodes" 
-                      className="h-8 px-3 transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-700 hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-blue-500 [&[data-state=active]]:!text-white [&[data-state=active]]:!shadow-lg"
+                      className="h-8 px-3 transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-primary [&[data-state=active]]:!text-primary-foreground [&[data-state=active]]:!shadow-lg"
                     >
                       <Layers className="h-4 w-4" />
                     </TabsTrigger>
@@ -67,7 +67,7 @@ const Sidebar = () => {
                   <TooltipTrigger asChild>
                     <TabsTrigger 
                       value="triggers" 
-                      className="h-8 px-3 transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-700 hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-orange-500 [&[data-state=active]]:!text-white [&[data-state=active]]:!shadow-lg"
+                      className="h-8 px-3 transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-warning [&[data-state=active]]:!text-white [&[data-state=active]]:!shadow-lg"
                     >
                       <Zap className="h-4 w-4" />
                     </TabsTrigger>
@@ -81,7 +81,7 @@ const Sidebar = () => {
                   <TooltipTrigger asChild>
                     <TabsTrigger 
                       value="register" 
-                      className="h-8 px-3 transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-700 hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-green-500 [&[data-state=active]]:!text-white [&[data-state=active]]:!shadow-lg"
+                      className="h-8 px-3 transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted hover:shadow-md text-xs font-medium rounded-md flex items-center justify-center [&[data-state=active]]:!bg-secondary [&[data-state=active]]:!text-secondary-foreground [&[data-state=active]]:!shadow-lg"
                     >
                       <Code2 className="h-4 w-4" />
                     </TabsTrigger>

@@ -28,8 +28,8 @@ function UnauthenticatedScreen({ onLogin }) {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-red-600" />
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-destructive" />
           </div>
           <CardTitle className="text-2xl">Authentication Required</CardTitle>
           <CardDescription>
@@ -57,8 +57,8 @@ function PermissionDeniedScreen({ requiredPermission, userPermissions }) {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <Card className="max-w-lg w-full">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-yellow-600" />
+          <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-8 h-8 text-warning" />
           </div>
           <CardTitle className="text-2xl">Access Denied</CardTitle>
           <CardDescription>

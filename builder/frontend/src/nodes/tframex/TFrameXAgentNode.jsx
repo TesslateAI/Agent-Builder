@@ -126,7 +126,8 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
         type="target"
         position={Position.Left}
         id="input_message_in"
-        style={{ background: '#3b82f6', top: '30%' }}
+        data-handletype="data"
+        style={{ top: '30%' }}
         title="Input Message"
       />
       {canUseTools && (
@@ -134,7 +135,8 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
             type="target"
             position={Position.Left}
             id="tool_input_handle"
-            style={{ background: '#8b5cf6', top: '70%' }} // Purple for tool connections
+            data-handletype="tool"
+            style={{ top: '70%' }}
             title="Connect Tool for Enabling"
         />
       )}
@@ -142,13 +144,14 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
         type="source"
         position={Position.Right}
         id="output_message_out"
-        style={{ background: '#3b82f6', top: '50%' }}
+        data-handletype="data"
+        style={{ top: '50%' }}
         title="Output Message"
       />
 
       {/* --- NEW: Modified State Indicator Dot --- */}
       {isModified && (
-        <div className="absolute top-1.5 right-8 w-2.5 h-2.5 bg-blue-500 rounded-full ring-1 ring-offset-1 ring-offset-card ring-blue-400" title="Modified from base definition"></div>
+        <div className="override-indicator" title="Modified from base definition"></div>
       )}
       {/* --- END NEW --- */}
       
@@ -189,13 +192,13 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
                 const toolDef = allTools.find(t => t.id === toolId);
                 return (
                     <div key={toolId} className="flex items-center text-xs">
-                        <Wrench className="h-3 w-3 mr-1.5 text-indigo-400 flex-shrink-0" />
+                        <Wrench className="h-3 w-3 mr-1.5 text-accent flex-shrink-0" />
                         <span className="truncate" title={toolDef?.name || toolId}>
                             {toolDef?.name || toolId}
                         </span>
                     </div>
                 );
-              }) : <p className="text-xs text-muted-foreground italic">No tools explicitly enabled on this node. Connect tools to the <Zap className="inline h-3 w-3 text-indigo-400" /> handle.</p>}
+              }) : <p className="text-xs text-muted-foreground italic">No tools explicitly enabled on this node. Connect tools to the <Zap className="inline h-3 w-3 text-accent" /> handle.</p>}
             </div>
           </div>
         )}
@@ -206,12 +209,12 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
           <div className="max-h-28 overflow-y-auto space-y-1 border border-input p-2 rounded-md bg-background/50">
             {(data.connected_mcp_servers && data.connected_mcp_servers.length > 0) ? data.connected_mcp_servers.map(serverAlias => (
               <div key={serverAlias} className="flex items-center text-xs">
-                <Server className="h-3 w-3 mr-1.5 text-green-500 flex-shrink-0" />
+                <Server className="h-3 w-3 mr-1.5 text-secondary flex-shrink-0" />
                 <span className="truncate" title={`MCP Server: ${serverAlias}`}>
                   {serverAlias}
                 </span>
               </div>
-            )) : <p className="text-xs text-muted-foreground italic">No MCP servers connected. Connect MCP servers to the <Zap className="inline h-3 w-3 text-indigo-400" /> handle.</p>}
+            )) : <p className="text-xs text-muted-foreground italic">No MCP servers connected. Connect MCP servers to the <Zap className="inline h-3 w-3 text-accent" /> handle.</p>}
           </div>
         </div>
 
@@ -244,7 +247,7 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
         {/* Model indicator */}
         {data.model && data.model !== 'default' && (
           <div className="flex items-center mt-2">
-            <Bot className="h-3.5 w-3.5 mr-1 text-blue-500 flex-shrink-0" />
+            <Bot className="h-3.5 w-3.5 mr-1 text-primary flex-shrink-0" />
             <span className="text-xs text-muted-foreground truncate">
               {models.find(m => m.model_name === data.model)?.name || data.model}
             </span>
@@ -255,7 +258,7 @@ const TFrameXAgentNode = memo(({ id, data, type: tframexAgentId }) => {
         {/* Display current state only (read-only indication) */}
         <div className="flex items-center mt-2">
              {stripThink ? (
-                <MessageSquare className="h-3.5 w-3.5 mr-1 text-green-500 flex-shrink-0" />
+                <MessageSquare className="h-3.5 w-3.5 mr-1 text-success flex-shrink-0" />
              ) : (
                 <MessageSquare className="h-3.5 w-3.5 mr-1 text-muted-foreground flex-shrink-0" />
              )}
