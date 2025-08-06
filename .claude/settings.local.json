@@ -56,7 +56,9 @@
       "mcp__playwright__browser_hover",
       "mcp__playwright__browser_press_key",
       "Bash(set PYTHONIOENCODING=utf-8)",
-      "mcp__playwright__browser_type"
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_evaluate"
     ],
     "deny": []
   }

@@ -92,7 +92,7 @@ const TerminalPanel = () => {
       case 'error':
         return <AlertCircle className="h-4 w-4 text-destructive" />;
       case 'output':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-success" />;
       default:
         return <Terminal className="h-4 w-4" />;
     }

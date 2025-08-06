@@ -1,0 +1,143 @@
+/* Design Token System - Obsidian Pro Theme */
+
+@theme {
+  /* Core Colors - Obsidian Pro */
+  --color-background: #0a0a0b;          /* Deep obsidian - main background */
+  --color-surface: #131316;             /* Elevated surfaces */
+  --color-surface-elevated: #1a1a1d;    /* Modal overlays, dropdowns */
+  --color-foreground: #e5e5e7;          /* Primary text */
+  --color-foreground-muted: #a1a1aa;    /* Secondary text */
+  --color-foreground-subtle: #71717a;   /* Tertiary text, placeholders */
+
+  /* Brand Colors */
+  --color-primary: #3b82f6;             /* Blue - primary actions */
+  --color-primary-hover: #2563eb;       /* Primary hover state */
+  --color-primary-subtle: #1e40af;      /* Primary pressed state */
+  --color-primary-foreground: #ffffff;
+
+  --color-accent: #8b5cf6;              /* Purple - accents, highlights */
+  --color-accent-hover: #7c3aed;        /* Accent hover state */
+  --color-accent-subtle: #6d28d9;       /* Accent pressed state */
+  --color-accent-foreground: #ffffff;
+
+  --color-secondary: #374151;           /* Dark gray - subtle secondary actions */
+  --color-secondary-hover: #4b5563;     /* Secondary hover state */
+  --color-secondary-subtle: #6b7280;    /* Secondary pressed state */
+  --color-secondary-foreground: #e5e5e7;
+
+  /* Semantic Colors */
+  --color-success: #10b981;             /* Success states */
+  --color-warning: #f59e0b;             /* Warning states */
+  --color-error: #ef4444;               /* Error states */
+  --color-info: #06b6d4;                /* Information states */
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+
+  /* Neutral Grays */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;  
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+
+  /* Component-Specific Colors */
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
+
+  /* Interactive Elements */
+  --color-hover: #27272a;                   /* Matches muted background for consistency */
+  --color-active: rgba(255, 255, 255, 0.10);
+  --color-focus: var(--color-primary);
+
+  /* Legacy mappings for existing components */
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-foreground);
+  --color-popover: var(--color-surface-elevated);
+  --color-popover-foreground: var(--color-foreground);
+  --color-muted: #27272a;
+  --color-muted-foreground: var(--color-foreground-muted);
+  --color-input: rgba(255, 255, 255, 0.08);
+  --color-ring: var(--color-primary);
+
+  /* Sidebar */
+  --color-sidebar: #0f0f11;
+  --color-sidebar-foreground: var(--color-foreground);
+  --color-sidebar-border: rgba(255, 255, 255, 0.06);
+
+  /* React Flow Specific */
+  --color-node-agent: var(--color-primary);
+  --color-node-tool: var(--color-accent);
+  --color-node-pattern: var(--color-secondary);
+  --color-node-trigger: var(--color-warning);
+  --color-handle-data: var(--color-primary);
+  --color-handle-tool: var(--color-accent);
+  --color-handle-param: #f59e0b;
+  --color-handle-list: var(--color-secondary);
+
+  /* Typography Scale */
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-base: 1rem;      /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-2xl: 1.5rem;     /* 24px */
+  --font-size-3xl: 1.875rem;   /* 30px */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing Scale */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;   /* 4px */
+  --spacing-2: 0.5rem;    /* 8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-5: 1.25rem;   /* 20px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-8: 2rem;      /* 32px */
+  --spacing-10: 2.5rem;   /* 40px */
+  --spacing-12: 3rem;     /* 48px */
+  --spacing-16: 4rem;     /* 64px */
+
+  /* Border Radius Scale */
+  --radius: 0.375rem;
+  --radius-none: 0;
+  --radius-sm: 0.125rem;    /* 2px */
+  --radius-default: 0.375rem; /* 6px */
+  --radius-md: 0.5rem;      /* 8px */
+  --radius-lg: 0.75rem;     /* 12px */
+  --radius-xl: 1rem;        /* 16px */
+  --radius-full: 9999px;
+
+  /* Shadow System */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
+  --shadow-default: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+
+  /* Animation Timings */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@custom-variant dark (&:is(.dark *));

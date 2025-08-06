@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useReactFlow } from 'reactflow';
 import { Plus, Minus, Maximize2, Home, Shuffle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useStore } from '../store';
 import { getLayoutedElements, LAYOUT_DIRECTIONS } from '../utils/autoLayout';
 
@@ -74,17 +75,24 @@ const NavigationControls = () => {
   }, [nodes, edges, setNodes, setEdges, fitView]);
 
   return (
+    <TooltipProvider>
     <div className="absolute bottom-4 left-4 flex flex-col gap-2 z-10">
       {/* Zoom Controls Container */}
       <div className="bg-card border border-border rounded-lg shadow-lg overflow-hidden w-fit">
         {/* Zoom In */}
-        <button
-          onClick={handleZoomIn}
-          className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors"
-          title="Zoom In"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleZoomIn}
+              className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Zoom In</p>
+          </TooltipContent>
+        </Tooltip>
         
         {/* Zoom Level Display */}
         <div className="px-1 py-2 text-xs font-medium text-muted-foreground text-center border-y border-border bg-background/50 w-10">
@@ -92,46 +100,71 @@ const NavigationControls = () => {
         </div>
         
         {/* Zoom Out */}
-        <button
-          onClick={handleZoomOut}
-          className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors"
-          title="Zoom Out"
-        >
-          <Minus className="w-4 h-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleZoomOut}
+              className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Zoom Out</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Additional Controls */}
       <div className="bg-card border border-border rounded-lg shadow-lg overflow-hidden w-fit">
         {/* Auto Layout */}
-        <button
-          onClick={handleAutoLayout}
-          className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors border-b border-border"
-          title="Auto Layout"
-          disabled={nodes.length === 0}
-        >
-          <Shuffle className="w-4 h-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleAutoLayout}
+              className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors border-b border-border"
+              disabled={nodes.length === 0}
+            >
+              <Shuffle className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Auto Layout</p>
+          </TooltipContent>
+        </Tooltip>
         
         {/* Fit to Screen */}
-        <button
-          onClick={handleFitView}
-          className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors border-b border-border"
-          title="Fit to Screen"
-        >
-          <Maximize2 className="w-4 h-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleFitView}
+              className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors border-b border-border"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Fit to Screen</p>
+          </TooltipContent>
+        </Tooltip>
         
         {/* Reset View */}
-        <button
-          onClick={handleResetView}
-          className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors"
-          title="Reset View"
-        >
-          <Home className="w-4 h-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleResetView}
+              className="flex items-center justify-center w-10 h-10 hover:bg-muted transition-colors"
+            >
+              <Home className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Reset View</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
+    </TooltipProvider>
   );
 };
 

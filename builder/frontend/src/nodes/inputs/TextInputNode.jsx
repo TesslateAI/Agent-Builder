@@ -46,7 +46,7 @@ const TextInputNode = memo(({ id, data }) => {
 
       <CardHeader className="p-2">
         <div className="flex items-center space-x-1.5">
-          <MessageSquare className="h-4 w-4 text-cyan-500 flex-shrink-0" />
+          <MessageSquare className="h-4 w-4 text-secondary flex-shrink-0" />
           <Input 
                 name="label" 
                 value={data.label || "Text Input"} 

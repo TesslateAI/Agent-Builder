@@ -38,7 +38,8 @@ const TFrameXToolNode = memo(({ id, data, type: tframexToolId }) => {
         type="source"
         position={Position.Right}
         id="tool_attachment_out" 
-        style={{ background: '#8b5cf6', top: canProduceData ? '35%' : '50%', width:10, height:10, zIndex: 1 }} // Purple for attachment
+        data-handletype="tool"
+        style={{ top: canProduceData ? '35%' : '50%', width:10, height:10, zIndex: 1 }}
         title="Connect to Agent to Enable Tool"
       />
       {canProduceData && (
@@ -46,7 +47,8 @@ const TFrameXToolNode = memo(({ id, data, type: tframexToolId }) => {
           type="source" 
           position={Position.Right} 
           id="tool_output_data" 
-          style={{ background: '#ec4899', top: '65%', width:10, height:10, zIndex: 1 }} // Pink for data output
+          data-handletype="data"
+          style={{ top: '65%', width:10, height:10, zIndex: 1 }}
           title="Tool Data Output (Connect to Agent Input)"
         />
       )}
@@ -64,18 +66,18 @@ const TFrameXToolNode = memo(({ id, data, type: tframexToolId }) => {
 
       <CardHeader className="p-2.5">
          <div className="flex items-center space-x-2">
-            <Wrench className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+            <Wrench className="h-4 w-4 text-accent flex-shrink-0" />
             <CardTitle className="text-sm font-semibold truncate" title={data.label || tframexToolId}>{data.label || tframexToolId}</CardTitle>
         </div>
         {toolDefinition.description && <CardDescription className="text-xs mt-1 line-clamp-2">{toolDefinition.description}</CardDescription>}
       </CardHeader>
       <CardContent className="p-2.5 text-xs text-center text-muted-foreground nodrag">
         <div className="flex items-center justify-center">
-            <Zap className="inline h-3 w-3 mr-1 text-indigo-400" /> To Agent to enable.
+            <Zap className="inline h-3 w-3 mr-1 text-accent" /> To Agent to enable.
         </div>
         {canProduceData && (
             <div className="flex items-center justify-center mt-0.5">
-                 <Wrench className="inline h-3 w-3 mr-1 text-pink-500" /> For data output.
+                 <Wrench className="inline h-3 w-3 mr-1 text-accent" /> For data output.
             </div>
         )}
       </CardContent>

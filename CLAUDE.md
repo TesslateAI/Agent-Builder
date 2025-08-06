@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Improved Docker Setup**: Fixed build issues with proper dependencies and initialization scripts
 - **Health Monitoring**: Added comprehensive health check endpoints for all services
 - **Testing Infrastructure**: Created API test suite and comprehensive testing documentation
+- **Centralized Design System**: Implemented "Obsidian Pro" theme with comprehensive design tokens and consistent styling across all components
 
 ## Project Overview
 
@@ -135,7 +136,13 @@ async def my_agent(message: str) -> str:
 - **Blue handles**: Standard message/data flow between components
 - **Purple handles**: Tool-to-agent connections (enables tools for agents)
 - **Amber handles**: Pattern parameter assignments (e.g., router agent)
-- **Green handles**: List-based pattern parameters (e.g., discussion participants)
+- **Teal handles**: List-based pattern parameters (e.g., discussion participants)
+
+**Design System:**
+- Centralized tokens in `src/styles/tokens.css` with "Obsidian Pro" color scheme
+- Organized CSS architecture: tokens → components → utilities → animations
+- Semantic colors: Primary (blue), Accent (purple), Secondary (teal), Success, Warning, Error
+- Node type styling: Color-coded borders and handles for visual consistency
 
 ## Development Guidelines
 
@@ -352,8 +359,15 @@ Communication flow:
 - **Per-Agent Model Selection**: Configure different models for each agent in PropertiesPanel
 - **Multi-Provider Support**: OpenAI, Anthropic, Ollama, and custom OpenAI-compatible APIs
 - **Model Testing**: Built-in connectivity testing before saving configurations
-- **Visual Indicators**: Blue dots show modified agents, model names displayed in agent nodes
+- **Visual Indicators**: Info-colored dots show modified agents, model names displayed in agent nodes
 - **Runtime Model Override**: `data.model` field in agent nodes triggers `_create_llm_from_model_name()`
+
+### Design System Usage
+- **Always use design tokens**: Reference `src/styles/tokens.css` variables instead of hardcoded colors
+- **Node styling classes**: `.node-agent`, `.node-tool`, `.node-pattern`, `.node-trigger` for type-specific styling
+- **Handle types**: Use `data-handletype="data|tool|param|list"` for proper color coding
+- **Status indicators**: Use `.status-success`, `.status-warning`, `.status-error`, `.status-info` classes
+- **Interactive states**: Apply `.interactive`, `.hover-lift`, `.transition-normal` for consistent UX
 
 ### Error Handling
 - Backend validates all flow configurations before execution
