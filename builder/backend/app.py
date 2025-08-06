@@ -21,6 +21,7 @@ from routes.files import files_bp, init_generated_files_dir
 from routes.auth import auth_bp
 from routes.health import health_bp
 from routes.triggers import triggers_bp
+from routes.export_import import export_import_bp
 
 # Import authentication middleware
 from middleware.auth import JWTMiddleware
@@ -138,6 +139,7 @@ def create_app():
     app.register_blueprint(chatbot_bp)
     app.register_blueprint(files_bp)
     app.register_blueprint(triggers_bp)
+    app.register_blueprint(export_import_bp)
 
     # Basic routes
     @app.route('/health', methods=['GET'])
