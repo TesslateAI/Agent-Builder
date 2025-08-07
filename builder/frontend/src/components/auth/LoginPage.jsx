@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Alert } from '../ui/alert';
+import { Alert, AlertDescription } from '../ui/alert';
 import { LogIn, Shield, Users, FileText } from 'lucide-react';
 
 export function LoginPage() {
@@ -92,7 +92,9 @@ export function LoginPage() {
           <CardContent className="space-y-6">
             {(error || loginError) && (
               <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
-                {error || loginError}
+                <AlertDescription>
+                  {error || loginError}
+                </AlertDescription>
               </Alert>
             )}
             
