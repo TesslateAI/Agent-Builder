@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { XIcon, Cog, MessageSquare, Palette, Bot, Settings } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox'; // Assuming created
+import { XIcon, Cog, MessageSquare, Palette, Bot, Settings, Webhook, Mail, Clock, FolderOpen } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MCPServerPropertiesPanel from './MCPServerPropertiesPanel';
 
@@ -250,6 +250,273 @@ const PropertiesPanel = () => {
     </>
   );
 
+  const renderWebhookTriggerProperties = () => (
+    <>
+      <div className="mb-3">
+        <Label htmlFor="prop-label" className="text-xs">Display Label</Label>
+        <Input id="prop-label" name="label" value={localData.label || ''} onChange={handleInputChange} className="text-sm h-8 border-input" />
+      </div>
+      
+      <div className="mb-3">
+        <Label htmlFor="prop-url" className="text-xs">Webhook URL</Label>
+        <Input 
+          id="prop-url" 
+          name="url" 
+          value={localData.url || ''} 
+          onChange={handleInputChange} 
+          placeholder="https://api.example.com/webhook"
+          className="text-sm h-8 border-input font-mono" 
+        />
+      </div>
+      
+      <div className="mb-3">
+        <Label htmlFor="prop-method" className="text-xs">HTTP Method</Label>
+        <Select value={localData.method || 'POST'} onValueChange={(value) => setLocalData(prev => ({ ...prev, method: value }))}>
+          <SelectTrigger className="text-sm h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="GET">GET</SelectItem>
+            <SelectItem value="POST">POST</SelectItem>
+            <SelectItem value="PUT">PUT</SelectItem>
+            <SelectItem value="DELETE">DELETE</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="mb-3">
+        <Checkbox
+          id="prop-enabled"
+          checked={localData.enabled !== false}
+          onCheckedChange={(checked) => setLocalData(prev => ({ ...prev, enabled: checked }))}
+        />
+        <label htmlFor="prop-enabled" className="text-xs ml-2 cursor-pointer">
+          Enable webhook trigger
+        </label>
+      </div>
+    </>
+  );
+  
+  const renderEmailTriggerProperties = () => (
+    <>
+      <div className="mb-3">
+        <Label htmlFor="prop-label" className="text-xs">Display Label</Label>
+        <Input id="prop-label" name="label" value={localData.label || ''} onChange={handleInputChange} className="text-sm h-8 border-input" />
+      </div>
+      
+      <div className="mb-3">
+        <Label htmlFor="prop-email" className="text-xs">Email Address</Label>
+        <Input 
+          id="prop-email" 
+          name="email" 
+          value={localData.email || ''} 
+          onChange={handleInputChange} 
+          placeholder="user@gmail.com"
+          className="text-sm h-8 border-input" 
+        />
+      </div>
+      
+      <div className="mb-3">
+        <Label htmlFor="prop-host" className="text-xs">IMAP Server</Label>
+        <Input 
+          id="prop-host" 
+          name="host" 
+          value={localData.host || 'imap.gmail.com'} 
+          onChange={handleInputChange} 
+          className="text-sm h-8 border-input" 
+        />
+      </div>
+      
+      <div className="flex space-x-2 mb-3">
+        <div className="flex-1">
+          <Label htmlFor="prop-port" className="text-xs">Port</Label>
+          <Input 
+            id="prop-port" 
+            name="port" 
+            value={localData.port || '993'} 
+            onChange={handleInputChange} 
+            className="text-sm h-8 border-input" 
+          />
+        </div>
+        <div className="flex-1">
+          <Label htmlFor="prop-ssl" className="text-xs">SSL</Label>
+          <Select value={localData.ssl || 'true'} onValueChange={(value) => setLocalData(prev => ({ ...prev, ssl: value }))}>
+            <SelectTrigger className="text-sm h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="true">Yes</SelectItem>
+              <SelectItem value="false">No</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="mb-3">
+        <Checkbox
+          id="prop-enabled"
+          checked={localData.enabled !== false}
+          onCheckedChange={(checked) => setLocalData(prev => ({ ...prev, enabled: checked }))}
+        />
+        <label htmlFor="prop-enabled" className="text-xs ml-2 cursor-pointer">
+          Enable email monitoring
+        </label>
+      </div>
+    </>
+  );
+  
+  const renderScheduleTriggerProperties = () => (
+    <>
+      <div className="mb-3">
+        <Label htmlFor="prop-label" className="text-xs">Display Label</Label>
+        <Input id="prop-label" name="label" value={localData.label || ''} onChange={handleInputChange} className="text-sm h-8 border-input" />
+      </div>
+      
+      <div className="mb-3">
+        <Label htmlFor="prop-scheduleType" className="text-xs">Schedule Type</Label>
+        <Select value={localData.scheduleType || 'interval'} onValueChange={(value) => setLocalData(prev => ({ ...prev, scheduleType: value }))}>
+          <SelectTrigger className="text-sm h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="interval">Interval</SelectItem>
+            <SelectItem value="cron">Cron Expression</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {(localData.scheduleType === 'interval' || !localData.scheduleType) && (
+        <div className="flex space-x-2 mb-3">
+          <div className="flex-1">
+            <Label htmlFor="prop-interval" className="text-xs">Every</Label>
+            <Input 
+              id="prop-interval" 
+              name="interval" 
+              type="number"
+              value={localData.interval || '5'} 
+              onChange={handleInputChange} 
+              className="text-sm h-8 border-input" 
+            />
+          </div>
+          <div className="flex-1">
+            <Label htmlFor="prop-intervalUnit" className="text-xs">Unit</Label>
+            <Select value={localData.intervalUnit || 'minutes'} onValueChange={(value) => setLocalData(prev => ({ ...prev, intervalUnit: value }))}>
+              <SelectTrigger className="text-sm h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="seconds">Seconds</SelectItem>
+                <SelectItem value="minutes">Minutes</SelectItem>
+                <SelectItem value="hours">Hours</SelectItem>
+                <SelectItem value="days">Days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+      
+      {localData.scheduleType === 'cron' && (
+        <div className="mb-3">
+          <Label htmlFor="prop-cron" className="text-xs">Cron Expression</Label>
+          <Input 
+            id="prop-cron" 
+            name="cron" 
+            value={localData.cron || ''} 
+            onChange={handleInputChange} 
+            placeholder="0 */5 * * * *"
+            className="text-sm h-8 border-input font-mono" 
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Format: second minute hour day month weekday
+          </p>
+        </div>
+      )}
+      
+      <div className="mb-3">
+        <Checkbox
+          id="prop-enabled"
+          checked={localData.enabled !== false}
+          onCheckedChange={(checked) => setLocalData(prev => ({ ...prev, enabled: checked }))}
+        />
+        <label htmlFor="prop-enabled" className="text-xs ml-2 cursor-pointer">
+          Enable scheduled trigger
+        </label>
+      </div>
+    </>
+  );
+  
+  const renderFileTriggerProperties = () => {
+    const handleEventChange = (event, checked) => {
+      const currentEvents = localData.events || [];
+      const newEvents = checked 
+        ? [...currentEvents, event]
+        : currentEvents.filter(e => e !== event);
+      setLocalData(prev => ({ ...prev, events: newEvents }));
+    };
+
+    return (
+      <>
+        <div className="mb-3">
+          <Label htmlFor="prop-label" className="text-xs">Display Label</Label>
+          <Input id="prop-label" name="label" value={localData.label || ''} onChange={handleInputChange} className="text-sm h-8 border-input" />
+        </div>
+        
+        <div className="mb-3">
+          <Label htmlFor="prop-path" className="text-xs">Watch Path</Label>
+          <Input 
+            id="prop-path" 
+            name="path" 
+            value={localData.path || ''} 
+            onChange={handleInputChange} 
+            placeholder="/path/to/watch"
+            className="text-sm h-8 border-input font-mono" 
+          />
+        </div>
+        
+        <div className="mb-3">
+          <Label htmlFor="prop-pattern" className="text-xs">File Pattern</Label>
+          <Input 
+            id="prop-pattern" 
+            name="pattern" 
+            value={localData.pattern || '*'} 
+            onChange={handleInputChange} 
+            placeholder="*.txt"
+            className="text-sm h-8 border-input font-mono" 
+          />
+        </div>
+        
+        <div className="mb-3">
+          <Label className="text-xs block mb-2">Watch Events</Label>
+          <div className="space-y-2">
+            {['created', 'modified', 'deleted', 'moved'].map(event => (
+              <div key={event} className="flex items-center space-x-2">
+                <Checkbox 
+                  id={`event-${event}`}
+                  checked={(localData.events || []).includes(event)}
+                  onCheckedChange={(checked) => handleEventChange(event, checked)}
+                />
+                <label htmlFor={`event-${event}`} className="text-xs capitalize cursor-pointer">
+                  {event}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="mb-3">
+          <Checkbox
+            id="prop-enabled"
+            checked={localData.enabled !== false}
+            onCheckedChange={(checked) => setLocalData(prev => ({ ...prev, enabled: checked }))}
+          />
+          <label htmlFor="prop-enabled" className="text-xs ml-2 cursor-pointer">
+            Enable file system watching
+          </label>
+        </div>
+      </>
+    );
+  };
+
   let content;
   let titleIcon = <Palette className="h-5 w-5 mr-2 text-primary" />;
   let titleText = "Node Properties";
@@ -275,6 +542,22 @@ const PropertiesPanel = () => {
   } else if (selectedNode.data.component_category === 'mcp_server' || selectedNode.type === 'MCPServerNode') {
     // Use the specialized MCP Server Properties Panel
     return <MCPServerPropertiesPanel nodeId={selectedNodeId} nodeData={selectedNode.data} />;
+  } else if (selectedNode.type === 'webhookTrigger') {
+    content = renderWebhookTriggerProperties();
+    titleIcon = <Webhook className="h-5 w-5 mr-2 text-warning" />;
+    titleText = "Webhook Trigger Properties";
+  } else if (selectedNode.type === 'emailTrigger') {
+    content = renderEmailTriggerProperties();
+    titleIcon = <Mail className="h-5 w-5 mr-2 text-info" />;
+    titleText = "Email Trigger Properties";
+  } else if (selectedNode.type === 'scheduleTrigger') {
+    content = renderScheduleTriggerProperties();
+    titleIcon = <Clock className="h-5 w-5 mr-2 text-success" />;
+    titleText = "Schedule Trigger Properties";
+  } else if (selectedNode.type === 'fileTrigger') {
+    content = renderFileTriggerProperties();
+    titleIcon = <FolderOpen className="h-5 w-5 mr-2 text-accent-foreground" />;
+    titleText = "File Trigger Properties";
   } else {
     content = <p className="text-sm text-muted-foreground">No editable properties for this node type.</p>;
   }

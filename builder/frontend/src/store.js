@@ -43,12 +43,26 @@ const initialProjects = {
 };
 
 const savedProjects = loadState('tframexStudioProjects') || initialProjects;
-const initialProjectId = loadState('tframexStudioCurrentProject') || 'default_project';
+const savedCurrentProjectId = loadState('tframexStudioCurrentProject');
+
+// Ensure currentProjectId is valid - if saved ID doesn't exist in projects, use first available project
+const initialProjectId = savedCurrentProjectId && savedProjects[savedCurrentProjectId] 
+  ? savedCurrentProjectId 
+  : Object.keys(savedProjects)[0] || 'default_project';
 
 // Debounced save function for performance during dragging
 const debouncedSaveProjects = debounce((projects) => {
   saveState('tframexStudioProjects', projects);
 }, 500);
+
+// Debounced auto-save function with longer delay for regular changes
+const debouncedAutoSave = debounce(() => {
+  const state = useStore.getState();
+  if (state.currentProjectId && state.projects[state.currentProjectId]) {
+    state.saveCurrentProject();
+    state.setAutoSaveStatus('saved');
+  }
+}, 2000); // 2 second delay for auto-save
 
 export const useStore = create((set, get) => ({
   // === React Flow State ===
@@ -58,8 +72,16 @@ export const useStore = create((set, get) => ({
 
   setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }),
 
-  onNodesChange: (changes) => set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) })),
-  onEdgesChange: (changes) => set((state) => ({ edges: applyEdgeChanges(changes, state.edges) })),
+  onNodesChange: (changes) => {
+    set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) }));
+    get().setAutoSaveStatus('saving');
+    debouncedAutoSave();
+  },
+  onEdgesChange: (changes) => {
+    set((state) => ({ edges: applyEdgeChanges(changes, state.edges) }));
+    get().setAutoSaveStatus('saving');
+    debouncedAutoSave();
+  },
 
   onConnect: (connection) => {
     console.log('onConnect fired! Connection:', connection);
@@ -245,6 +267,10 @@ export const useStore = create((set, get) => ({
         style: { strokeWidth: 2 }
       }, state.edges),
     }));
+    
+    // Trigger auto-save after any connection
+    get().setAutoSaveStatus('saving');
+    debouncedAutoSave();
   },
 
   addNode: (nodeDataFromDrop, position) => {
@@ -361,6 +387,70 @@ export const useStore = create((set, get) => ({
         text_content: "",
         component_category: 'utility',
       };
+    } else if (component_category === 'triggers') {
+      // Handle individual trigger types
+      if (componentId === 'webhookTrigger') {
+        nodeType = 'webhookTrigger';
+        defaultNodeData = {
+          label: "Webhook Trigger",
+          name: "Webhook Trigger",
+          description: "",
+          enabled: true,
+          component_category: 'triggers',
+          webhookConfig: {
+            method: 'POST',
+            path: '/webhook',
+            headers: {},
+            auth: { type: 'none' }
+          }
+        };
+      } else if (componentId === 'emailTrigger') {
+        nodeType = 'emailTrigger';
+        defaultNodeData = {
+          label: "Email Trigger",
+          name: "Email Trigger", 
+          description: "",
+          enabled: true,
+          component_category: 'triggers',
+          emailConfig: {
+            host: 'imap.gmail.com',
+            port: 993,
+            username: '',
+            password: '',
+            folder: 'INBOX'
+          }
+        };
+      } else if (componentId === 'scheduleTrigger') {
+        nodeType = 'scheduleTrigger';
+        defaultNodeData = {
+          label: "Schedule Trigger",
+          name: "Schedule Trigger",
+          description: "",
+          enabled: true,
+          component_category: 'triggers',
+          scheduleConfig: {
+            type: 'interval',
+            interval: 5,
+            intervalUnit: 'minutes',
+            cron: ''
+          }
+        };
+      } else if (componentId === 'fileTrigger') {
+        nodeType = 'fileTrigger';
+        defaultNodeData = {
+          label: "File Trigger",
+          name: "File Trigger",
+          description: "",
+          enabled: true,
+          component_category: 'triggers',
+          fileConfig: {
+            path: '',
+            pattern: '*',
+            events: ['created', 'modified'],
+            recursive: false
+          }
+        };
+      }
     }
 
     const newNode = {
@@ -370,6 +460,10 @@ export const useStore = create((set, get) => ({
       data: defaultNodeData,
     };
     set((state) => ({ nodes: [...state.nodes, newNode] }));
+    
+    // Trigger auto-save after adding a node
+    get().setAutoSaveStatus('saving');
+    debouncedAutoSave();
   },
 
   setNodes: (nodes) => set({ nodes }),
@@ -383,6 +477,8 @@ export const useStore = create((set, get) => ({
           : node
       ),
     }));
+    get().setAutoSaveStatus('saving');
+    debouncedAutoSave();
   },
 
   deleteNode: (nodeId) => {
@@ -393,6 +489,8 @@ export const useStore = create((set, get) => ({
       ),
       selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
     }));
+    get().setAutoSaveStatus('saving');
+    debouncedAutoSave();
   },
 
   // === Project Management State ===
@@ -436,6 +534,10 @@ export const useStore = create((set, get) => ({
         chatHistory: [],
         selectedNodeId: null,
       });
+      
+      // Save the current project ID to localStorage
+      saveState('tframexStudioCurrentProject', projectId);
+      
       console.log(`Project '${projectToLoad.name}' loaded.`);
     } else {
       console.warn(`Project with ID ${projectId} not found.`);
@@ -463,6 +565,11 @@ export const useStore = create((set, get) => ({
       chatHistory: [],
       selectedNodeId: null,
     });
+    
+    // Save the new project and current project ID to localStorage
+    saveState('tframexStudioProjects', updatedProjects);
+    saveState('tframexStudioCurrentProject', newProjectId);
+    
     console.log(`Project '${newProject.name}' created.`);
   },
 
@@ -486,6 +593,9 @@ export const useStore = create((set, get) => ({
     }
 
     set({ projects: updatedProjects });
+    
+    // Save updated projects to localStorage
+    saveState('tframexStudioProjects', updatedProjects);
 
     if (currentProjectId === projectId) {
       loadProject(nextProjectId);
@@ -496,6 +606,27 @@ export const useStore = create((set, get) => ({
   // === Execution State ===
   output: "Output will appear here...",
   isRunning: false,
+  
+  // === Auto-save State ===
+  autoSaveEnabled: true, // Always enabled
+  autoSaveStatus: 'idle', // 'idle', 'saving', 'saved'
+  lastSaveTime: null,
+  
+  setAutoSaveStatus: (status) => {
+    set({ 
+      autoSaveStatus: status,
+      lastSaveTime: status === 'saved' ? new Date().toISOString() : get().lastSaveTime
+    });
+    // Reset status after showing saved
+    if (status === 'saved') {
+      setTimeout(() => {
+        const currentStatus = get().autoSaveStatus;
+        if (currentStatus === 'saved') {
+          set({ autoSaveStatus: 'idle' });
+        }
+      }, 3000);
+    }
+  },
   runFlow: async () => {
     const { nodes, edges, saveCurrentProject } = get();
     saveCurrentProject(); // This will save viewport too
@@ -549,7 +680,7 @@ export const useStore = create((set, get) => ({
   clearOutput: () => set({ output: "" }),
 
   // === TFrameX Components State ===
-  tframexComponents: { agents: [], tools: [], patterns: [], utility: [], mcp_servers: [] },
+  tframexComponents: { agents: [], tools: [], patterns: [], utility: [], mcp_servers: [], triggers: [] },
   isComponentLoading: false,
   componentError: null,
   fetchTFrameXComponents: async () => {
@@ -567,6 +698,37 @@ export const useStore = create((set, get) => ({
             config_options: {}
           }
         ];
+
+        const triggerComponents = [
+          {
+            id: 'webhookTrigger',
+            name: 'Webhook Trigger',
+            description: 'HTTP endpoint that triggers flows when receiving requests',
+            component_category: 'triggers',
+            config_options: {}
+          },
+          {
+            id: 'emailTrigger',
+            name: 'Email Trigger',
+            description: 'Monitor email accounts and trigger flows on new messages',
+            component_category: 'triggers',
+            config_options: {}
+          },
+          {
+            id: 'scheduleTrigger',
+            name: 'Schedule Trigger',
+            description: 'Time-based triggers using cron expressions or intervals',
+            component_category: 'triggers',
+            config_options: {}
+          },
+          {
+            id: 'fileTrigger',
+            name: 'File Trigger',
+            description: 'Watch file systems for changes and trigger flows',
+            component_category: 'triggers',
+            config_options: {}
+          }
+        ];
         set({
           tframexComponents: {
             agents: response.data.agents || [],
@@ -574,6 +736,7 @@ export const useStore = create((set, get) => ({
             patterns: response.data.patterns || [],
             utility: utilityComponents,
             mcp_servers: response.data.mcp_servers || [],
+            triggers: triggerComponents,
           },
           isComponentLoading: false,
         });
@@ -585,7 +748,7 @@ export const useStore = create((set, get) => ({
       console.error("Failed to fetch TFrameX components:", err);
       set({
         componentError: `Could not load TFrameX components. Backend error: ${err.message}. Is the backend running and accessible?`,
-        tframexComponents: { agents: [], tools: [], patterns: [], utility: [], mcp_servers: [] },
+        tframexComponents: { agents: [], tools: [], patterns: [], utility: [], mcp_servers: [], triggers: [] },
         isComponentLoading: false,
       });
     }
@@ -715,7 +878,8 @@ export const useStore = create((set, get) => ({
             patterns: currentState.tframexComponents.patterns.length,
             tools: currentState.tframexComponents.tools.length,
             utility: currentState.tframexComponents.utility.length,
-            mcp_servers: currentState.tframexComponents.mcp_servers.length
+            mcp_servers: currentState.tframexComponents.mcp_servers.length,
+            triggers: currentState.tframexComponents.triggers.length
           }
         });
         
@@ -727,7 +891,8 @@ export const useStore = create((set, get) => ({
          ...currentState.tframexComponents.patterns, 
          ...currentState.tframexComponents.tools,
          ...currentState.tframexComponents.utility,
-         ...currentState.tframexComponents.mcp_servers].forEach(comp => {
+         ...currentState.tframexComponents.mcp_servers,
+         ...currentState.tframexComponents.triggers].forEach(comp => {
           componentTypeMap.set(comp.id, comp.id);
           componentTypeMap.set(comp.name, comp.id);
         });

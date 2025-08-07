@@ -20,7 +20,7 @@ const TerminalPanel = () => {
   ]);
 
   useEffect(() => {
-    if (output) {
+    if (output && output !== "Output will appear here...") {
       setMessages(prev => [...prev, {
         type: 'output',
         content: output,

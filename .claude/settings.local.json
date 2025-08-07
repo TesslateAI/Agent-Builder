@@ -58,7 +58,12 @@
       "Bash(set PYTHONIOENCODING=utf-8)",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_console_messages",
-      "mcp__playwright__browser_evaluate"
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_handle_dialog",
+      "mcp__playwright__browser_close",
+      "Bash(winpty docker exec -it agent-builder-backend-dev pip install nanoid)",
+      "mcp__playwright__browser_drag",
+      "mcp__playwright__browser_take_screenshot"
     ],
     "deny": []
   }

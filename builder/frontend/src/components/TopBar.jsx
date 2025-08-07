@@ -15,8 +15,12 @@ import {
     Dialog,
     DialogContent,
     DialogTrigger,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
 } from "@/components/ui/dialog";
-import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database, Check, User, ChevronDown, Download, Upload } from 'lucide-react';
+import { Save, Play, Trash2, Plus, FolderOpen, Code, Settings, Database, Check, User, ChevronDown, Download, Upload, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import ModelConfigurationPanel from './ModelConfigurationPanel';
 import UserProfile from './auth/UserProfile';
@@ -46,6 +50,10 @@ const TopBar = () => {
   const saveCurrentProject = useStore((state) => state.saveCurrentProject);
   const runFlow = useStore((state) => state.runFlow);
   const isRunning = useStore((state) => state.isRunning);
+  
+  // Auto-save state
+  const autoSaveStatus = useStore((state) => state.autoSaveStatus);
+  const lastSaveTime = useStore((state) => state.lastSaveTime);
 
   // Auth state
   const { user, isAuthenticated } = useAuth();
@@ -53,6 +61,7 @@ const TopBar = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved'
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, projectId: null, projectName: '' });
 
   const handleCreateProject = useCallback(() => {
     if (newProjectName.trim()) {
@@ -67,10 +76,20 @@ const TopBar = () => {
     }
   };
 
-  const handleDeleteClick = () => {
-    if (currentProjectId && window.confirm(`Delete project "${projects[currentProjectId]?.name}"?`)) {
-      deleteProject(currentProjectId);
+  const handleDeleteClick = (e, projectId, projectName) => {
+    e.stopPropagation(); // Prevent select from triggering
+    setDeleteConfirm({ show: true, projectId, projectName });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirm.projectId) {
+      deleteProject(deleteConfirm.projectId);
+      setDeleteConfirm({ show: false, projectId: null, projectName: '' });
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ show: false, projectId: null, projectName: '' });
   };
 
   const handleSaveClick = useCallback(() => {
@@ -121,21 +140,53 @@ const TopBar = () => {
 
         {/* Project Controls */}
         <div className="flex items-center space-x-2">
+          {/* Auto-save Status */}
+          <div className="flex items-center justify-center w-4 h-4 mr-1">
+            {autoSaveStatus === 'saving' && (
+              <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            )}
+            {autoSaveStatus === 'saved' && (
+              <Check className="h-3 w-3 text-success" />
+            )}
+          </div>
           <Select
             value={currentProjectId || ''}
             onValueChange={handleProjectChange}
             disabled={isRunning}
           >
-            <SelectTrigger className="w-[200px] h-9">
+            <SelectTrigger className="w-[200px] h-9 focus:ring-0">
               <FolderOpen className="h-4 w-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Select Project" />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(projects).map(([id, project]) => (
-                <SelectItem key={id} value={id}>
-                  {project.name}
-                </SelectItem>
-              ))}
+              {Object.entries(projects).map(([id, project]) => {
+                const isDeletable = Object.keys(projects).length > 1;
+                const isCurrentProject = id === currentProjectId;
+                return (
+                  <SelectItem key={id} value={id} className="hover:bg-sidebar-border focus:bg-sidebar-border pr-12">
+                    <div className="flex items-center justify-between w-full group">
+                      <span className="flex-1 min-w-0 truncate">
+                        {project.name}
+                      </span>
+                      {isDeletable && (
+                        <Button
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDeleteClick(e, id, project.name);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 z-10 h-6 w-6 p-0 text-muted-foreground hover:bg-destructive/20 hover:text-destructive rounded shrink-0"
+                          title="Delete project"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
 
@@ -146,7 +197,7 @@ const TopBar = () => {
               onChange={(e) => setNewProjectName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleCreateProject()}
               placeholder="New project..."
-              className="w-32 h-9 rounded-r-none border-r-0"
+              className="w-32 h-9 rounded-r-none border-r-0 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               disabled={isRunning}
             />
             <TooltipButton
@@ -160,17 +211,6 @@ const TopBar = () => {
               <Plus className="h-4 w-4" />
             </TooltipButton>
           </div>
-
-          <TooltipButton
-            tooltip="Delete project"
-            onClick={handleDeleteClick}
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9"
-            disabled={isRunning || !currentProjectId || Object.keys(projects).length <= 1}
-          >
-            <Trash2 className="h-4 w-4" />
-          </TooltipButton>
         </div>
       </div>
 
@@ -225,6 +265,30 @@ const TopBar = () => {
         </TooltipButton>
 
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirm.show} onOpenChange={(open) => !open && cancelDelete()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete Project
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deleteConfirm.projectName}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={cancelDelete}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </TooltipProvider>
   );

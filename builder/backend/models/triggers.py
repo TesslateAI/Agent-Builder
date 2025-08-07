@@ -49,7 +49,7 @@ class TriggerExecutions(Base):
     
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)
     trigger_id: Mapped[str] = mapped_column(String(64), ForeignKey('triggers.id', ondelete='CASCADE'), nullable=False)
-    flow_execution_id: Mapped[Optional[str]] = mapped_column(String(64), ForeignKey('flow_executions.id'), nullable=True)
+    flow_execution_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('flow_executions.id'), nullable=True)
     triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False)  # 'success', 'failure', 'timeout', 'running'

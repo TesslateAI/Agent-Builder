@@ -593,8 +593,8 @@ Remember to provide comprehensive, well-researched responses that cite sources a
 """
 
     @app.agent(
-        name="ResearchAgent",
-        description="General-purpose agent that intelligently uses available tools to help users accomplish various tasks and goals.",
+        name="SmartResearchAgent",
+        description="Adaptive research agent that balances speed and thoroughness. Automatically adjusts its approach based on query complexity.",
         system_prompt=research_agent_prompt,
         agent_class=ResearchAgent,
         can_use_tools=True,
@@ -630,10 +630,10 @@ Remember to provide comprehensive, well-researched responses that cite sources a
         """
         pass
 
-    # Also register simpler variants for different use cases
+    # Register a faster variant for quick responses
     @app.agent(
-        name="QuickAssistant",
-        description="Fast assistant for quick task completion with minimal tool usage.",
+        name="QuickResearchAgent",
+        description="Fast research agent that provides quick answers using minimal tool calls. Best for simple queries or when speed is important.",
         system_prompt=research_agent_prompt,
         agent_class=ResearchAgent,
         can_use_tools=True,
@@ -644,12 +644,12 @@ Remember to provide comprehensive, well-researched responses that cite sources a
         strip_think_tags=True
     )
     async def _quick_researcher_placeholder():
-        """Quick assistant variant optimized for speed and minimal tool usage."""
+        """Quick research variant optimized for speed with minimal tool usage."""
         pass
 
     @app.agent(
-        name="ComprehensiveAssistant", 
-        description="Thorough assistant for comprehensive task completion with extensive tool usage.",
+        name="DeepResearchAgent", 
+        description="Thorough research agent that gathers comprehensive information from multiple sources. Best for complex queries requiring detailed analysis.",
         system_prompt=research_agent_prompt,
         agent_class=ResearchAgent,
         can_use_tools=True,
@@ -660,5 +660,5 @@ Remember to provide comprehensive, well-researched responses that cite sources a
         strip_think_tags=True
     )
     async def _deep_researcher_placeholder():
-        """Comprehensive assistant variant for thorough task completion."""
+        """Deep research variant for thorough analysis with extensive tool usage."""
         pass
