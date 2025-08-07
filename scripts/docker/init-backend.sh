@@ -3,21 +3,21 @@ set -e
 
 echo "Starting Agent-Builder backend with init script..."
 
-# Check if SQLAlchemy is already installed
-if ! /opt/venv/bin/python -c "import sqlalchemy" 2>/dev/null; then
-    echo "SQLAlchemy not found, installing..."
+# Check if all requirements are installed (using nanoid as a test package)
+if ! /opt/venv/bin/python -c "import nanoid" 2>/dev/null; then
+    echo "Missing dependencies detected, installing from requirements.txt..."
     # Create a temporary directory for pip cache
     export PIP_CACHE_DIR=/tmp/pip-cache
     mkdir -p $PIP_CACHE_DIR
     
-    # Install as root
-    /opt/venv/bin/pip install --cache-dir=$PIP_CACHE_DIR SQLAlchemy==2.0.23 psycopg2-binary==2.9.9 alembic==1.13.1
+    # Install all requirements
+    /opt/venv/bin/pip install --cache-dir=$PIP_CACHE_DIR -r /app/builder/backend/requirements.txt
     
     # Clean up
     rm -rf $PIP_CACHE_DIR
     echo "Installation complete!"
 else
-    echo "SQLAlchemy already installed"
+    echo "All requirements already installed"
 fi
 
 # Set up environment
