@@ -5,7 +5,16 @@ from dotenv import load_dotenv
 from tframex import TFrameXApp, OpenAIChatLLM, setup_logging
 from pathlib import Path
 from builtin_tools import register_builtin_tools
-from agents import register_conversational_assistant, register_flow_builder_agent, register_orchestrator_agent, register_research_agent
+from agents import (
+    register_conversational_assistant, 
+    register_flow_builder_agent, 
+    register_orchestrator_agent, 
+    register_research_agent,
+    register_content_generator_agent,
+    register_data_transform_agent,
+    register_validation_agent,
+    register_file_processor_agent
+)
 
 load_dotenv()
 
@@ -89,7 +98,11 @@ def init_tframex_app():
     register_flow_builder_agent(tframex_app_instance)
     register_orchestrator_agent(tframex_app_instance)
     register_research_agent(tframex_app_instance)
-    logger.info("ConversationalAssistant, FlowBuilderAgent, OrchestratorAgent, and ResearchAgent registered.")
+    register_content_generator_agent(tframex_app_instance)
+    register_data_transform_agent(tframex_app_instance)
+    register_validation_agent(tframex_app_instance)
+    register_file_processor_agent(tframex_app_instance)
+    logger.info("All agents registered: ConversationalAssistant, FlowBuilderAgent, OrchestratorAgent, ResearchAgent, ContentGeneratorAgent, DataTransformAgent, ValidationAgent, FileProcessorAgent.")
     
     # Register built-in tools
     try:

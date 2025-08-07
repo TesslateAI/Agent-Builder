@@ -27,6 +27,10 @@ import TFrameXPatternNode from './nodes/tframex/TFrameXPatternNode';
 import TFrameXToolNode from './nodes/tframex/TFrameXToolNode';
 import MCPServerNode from './nodes/tframex/MCPServerNode';
 import TriggerNode from './nodes/tframex/TriggerNode';
+import WebhookTriggerNode from './nodes/triggers/WebhookTriggerNode';
+import EmailTriggerNode from './nodes/triggers/EmailTriggerNode';
+import ScheduleTriggerNode from './nodes/triggers/ScheduleTriggerNode';
+import FileTriggerNode from './nodes/triggers/FileTriggerNode';
 
 
 const staticNodeTypes = {
@@ -35,7 +39,13 @@ const staticNodeTypes = {
   tframexTool: TFrameXToolNode,       // Fallback if specific tool type not found
   textInput: TextInputNode,         // For the new TextInputNode
   MCPServerNode: MCPServerNode,     // For MCP server nodes
-  trigger: TriggerNode,             // For trigger nodes
+  trigger: TriggerNode,             // For trigger nodes (legacy)
+  
+  // New individual trigger node types
+  webhookTrigger: WebhookTriggerNode,
+  emailTrigger: EmailTriggerNode,
+  scheduleTrigger: ScheduleTriggerNode,
+  fileTrigger: FileTriggerNode,
 };
 
 const FlowEditor = () => {

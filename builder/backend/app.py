@@ -7,11 +7,6 @@ from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# TFrameX v1.1.0 core components
-from tframex import (
-    setup_logging
-)
-
 # Import all blueprints
 from routes.models import models_bp, init_default_model
 from routes.mcp_servers import mcp_servers_bp  
@@ -26,13 +21,12 @@ from routes.export_import import export_import_bp
 # Import authentication middleware
 from middleware.auth import JWTMiddleware
 
-# Initialize TFrameX App on startup
+# Initialize TFrameX App on startup (this also sets up logging)
 from tframex_config import get_tframex_app_instance
 
 load_dotenv()
 
-# Use TFrameX's setup_logging for consistency
-setup_logging(level=logging.DEBUG, use_colors=True)
+# Don't call setup_logging here - it's already done in tframex_config.py
 logger = logging.getLogger("FlaskTFrameXStudio")
 
 def create_app():
