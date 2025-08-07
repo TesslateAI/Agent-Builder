@@ -36,7 +36,7 @@ def register_web_tools(tframex_app):
         name="web_search_tool",
         description="Search the web using multiple search methods and return formatted results with web scraping fallback"
     )
-    async def web_search(query: str, max_results: int = 5) -> Dict[str, Any]:
+    async def web_search(query: str, max_results: int = 5, **kwargs) -> Dict[str, Any]:
         """Search the web and return structured results with multiple fallback methods."""
         results = []
         
@@ -172,7 +172,8 @@ def register_web_tools(tframex_app):
         method: str = "GET",
         headers: Dict[str, str] = None,
         data: Union[str, Dict] = None,
-        timeout: int = 30
+        timeout: int = 30,
+        **kwargs
     ) -> Dict[str, Any]:
         """Make HTTP requests with full control over parameters."""
         try:
@@ -216,7 +217,7 @@ def register_web_tools(tframex_app):
         name="news_search_tool",
         description="Search for current news and headlines from multiple reliable news sources"
     )
-    async def news_search(query: str = "latest news", max_results: int = 5) -> Dict[str, Any]:
+    async def news_search(query: str = "latest news", max_results: int = 5, **kwargs) -> Dict[str, Any]:
         """Search for current news from reliable sources."""
         results = []
         sources_tried = []
@@ -377,7 +378,8 @@ def register_web_tools(tframex_app):
             url: str, 
             selector: str = None, 
             extract_links: bool = False,
-            max_content_length: int = 10000
+            max_content_length: int = 10000,
+            **kwargs
         ) -> Dict[str, Any]:
             """Scrape content from a web page."""
             import re
