@@ -126,3 +126,7 @@ tframex/
 *.bak
 *.backup
 *~
+
+# Claude Code files
+CLAUDE.md
+.claude/
