@@ -1,0 +1,39 @@
+# Placeholder Images and GIFs for README.md
+
+This directory contains visual assets referenced in the main README.md file.
+
+## Current Placeholders Needed:
+
+### Main Banner & Demo
+- `banner.png` - Main TFrameX Agent Builder banner image
+- `demo-animation.gif` - Animated demo of the visual flow builder
+
+### UI Components
+- `model-config-panel.png` - Screenshot of the Model Configuration Panel
+- `auth-flow-diagram.png` - Authentication flow diagram
+- `production-architecture.png` - Production deployment architecture diagram
+
+### Interface Screenshots
+- `main-interface.png` - Full interface overview
+- `component-palette.png` - Left sidebar component palette
+- `properties-panel.png` - Right sidebar properties panel
+- `ai-assistant-chat.png` - AI Flow Builder conversation example
+
+### Workflow Examples
+- `simple-flow-example.png` - Basic agent-to-agent workflow
+- `complex-flow-example.png` - Multi-pattern workflow with triggers
+- `handle-connections.png` - Visual guide to handle types and colors
+
+## Recommended Specifications:
+
+- **Banner**: 1200x300px, PNG with transparent background
+- **Screenshots**: 1920x1080px or similar high resolution
+- **GIFs**: Max 10MB, optimized for web viewing
+- **Diagrams**: Vector-based (SVG) or high-res PNG with clear text
+
+## Usage in README:
+
+Replace placeholder references with actual file paths:
+- `placeholder-banner-image.png` → `docs/assets/images/banner.png`
+- `placeholder-demo-animation.gif` → `docs/assets/images/demo-animation.gif`
+- etc.

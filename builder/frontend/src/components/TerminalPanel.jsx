@@ -4,7 +4,8 @@ import { useStore } from '../store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Terminal, Bot, User, AlertCircle, CheckCircle, Loader2, Copy, Trash2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Send, Terminal, Bot, User, AlertCircle, CheckCircle, Loader2, Copy, Trash2, Info } from 'lucide-react';
 
 const TerminalPanel = () => {
   const [input, setInput] = useState('');
@@ -211,18 +212,44 @@ const TerminalPanel = () => {
 
       {/* Input */}
       <div className="border-t border-sidebar-border p-3 flex-shrink-0">
-        <div className="flex space-x-2">
+        <div className="flex items-center bg-card border border-border rounded-lg overflow-hidden">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 flex-shrink-0 rounded-none hover:bg-muted/50"
+                >
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-sm">
+                <div className="space-y-1">
+                  <p className="font-medium">Try these example prompts:</p>
+                  <ul className="text-xs space-y-1">
+                    <li>• "Create a weather agent that tells me today's forecast"</li>
+                    <li>• "Make a recipe finder that suggests meals based on ingredients"</li>
+                    <li>• "Build a travel planner that finds flights and hotels"</li>
+                    <li>• "Create a news summarizer that reads articles and gives me key points"</li>
+                    <li>• "Make a shopping assistant that compares prices across websites"</li>
+                  </ul>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
             placeholder="Ask AI to build a flow or type a command..."
-            className="flex-1"
+            className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none h-10"
             disabled={isProcessing || isRunning}
           />
           <Button
             onClick={handleSend}
             size="icon"
+            className="h-10 w-10 flex-shrink-0 rounded-none"
             disabled={!input.trim() || isProcessing || isRunning}
           >
             {isProcessing ? (
@@ -232,9 +259,6 @@ const TerminalPanel = () => {
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Try: "Create a flow with a weather agent that calls a city info agent"
-        </p>
       </div>
     </div>
   );

@@ -212,6 +212,8 @@ python
 
 ### Test Scripts
 
+> **Note**: This is an example test script that you can create for testing the API. Save it as `test_api.py` in your project root.
+
 Create a test script `test_api.py`:
 
 ```python
@@ -267,8 +269,12 @@ if __name__ == "__main__":
     test_flow_execution()
 ```
 
-Run the test script:
+Run the test script (after creating it):
 ```bash
+# First, copy the test script to the container (if created locally)
+docker cp test_api.py agent-builder-backend-dev:/app/test_api.py
+
+# Then run it
 docker exec agent-builder-backend-dev python /app/test_api.py
 ```
 
@@ -401,7 +407,12 @@ echo "Running API tests..."
 docker exec agent-builder-backend-dev pytest tests/
 
 echo "Running integration tests..."
-python test_api.py
+# Run the test script if it exists
+if [ -f "test_api.py" ]; then
+    python test_api.py
+else
+    echo "test_api.py not found - create it using the example above"
+fi
 
 echo "Test completed!"
 ```

@@ -1,9 +1,9 @@
 # Agent-Builder for TFrameX v1.1.0
 
-![TFrameX Agent Builder](https://github.com/user-attachments/assets/d29608da-1218-4628-bb49-ba5a943beffc)
+![TFrameX Agent Builder Banner](docs/assets/images/banner.jpeg)
 
 <p align="center">
-  <strong>Visual agent builder for TFrameX - Create sophisticated LLM agents and workflows with a drag-and-drop interface.</strong>
+  <strong>Enterprise-grade visual agent builder for TFrameX - Create, deploy, and manage sophisticated LLM workflows with a powerful drag-and-drop interface.</strong>
 </p>
 
 <p align="center">
@@ -16,250 +16,453 @@
   <a href="https://github.com/TesslateAI/Agent-Builder">
     <img src="https://img.shields.io/badge/github-Agent--Builder-orange.svg" alt="GitHub">
   </a>
+  <a href="https://hub.docker.com/r/tesslate/agent-builder">
+    <img src="https://img.shields.io/badge/docker-ready-blue.svg" alt="Docker Ready">
+  </a>
 </p>
 
 ---
 
-**Agent-Builder** is a powerful visual development environment for [TFrameX v1.1.0](https://github.com/TesslateAI/TFrameX), the extensible task & flow orchestration framework for LLMs. Build, test, and deploy sophisticated multi-agent systems with enterprise-grade features.
+**Agent-Builder** is a comprehensive visual development environment for [TFrameX v1.1.0](https://github.com/TesslateAI/TFrameX), providing enterprise-grade features for building, testing, and deploying multi-agent LLM systems. With built-in authentication, database persistence, and production-ready infrastructure, it's the complete solution for LLM workflow orchestration.
 
-![Animation](https://github.com/user-attachments/assets/829692a1-6fa1-41e1-8c59-98f4a9cffedd)
+![Demo Animation](docs/assets/images/demo-animation.gif)
 
-## ✨ Features
+## ✨ Key Features
 
-### Core Features
-- 🎨 **Visual Flow Designer**: Drag-and-drop interface powered by ReactFlow
-- 🤖 **TFrameX 1.1.0 Integration**: Full support for all v1.1.0 features
-- 🔌 **MCP Support**: Model Context Protocol integration for external services
-- 🚀 **Production Ready**: Optimized build process with Docker support
-- 🛠️ **Dynamic Code Registration**: Add agents and tools on the fly
-- 📊 **Enterprise Features**: Authentication, RBAC, metrics, and audit logging ready
+### 🚀 Core Capabilities
+- **🎨 Visual Flow Designer**: Intuitive drag-and-drop interface powered by ReactFlow
+- **🤖 TFrameX 1.1.0 Integration**: Complete support for all framework features
+- **🔌 MCP Support**: Model Context Protocol integration for external tools and services
+- **📦 Import/Export**: Share and version control your flows as JSON
+- **🛠️ Dynamic Code Registration**: Add agents and tools on-the-fly without restart
+- **🎯 Multi-Model Support**: Configure different LLMs for each agent (OpenAI, Anthropic, Ollama)
+- **⚡ Hot Reload Development**: Fast iteration with Docker Compose volumes
 
-### TFrameX v1.1.0 Features
-- **Enhanced Agents**: LLMAgent, ToolAgent with strip_think_tags support
-- **MCP Integration**: Connect to external services via MCP servers
-- **Improved APIs**: Modern async/await patterns throughout
-- **Multi-LLM Support**: OpenAI, Anthropic, Ollama, and more
-- **Enterprise Ready**: Metrics, storage backends, session management
-- **CLI Integration**: Compatible with `tframex` CLI tools
+### 🏢 Enterprise Features
+- **🔐 Authentication**: Keycloak OAuth2/OIDC integration
+- **👥 Multi-Tenancy**: Organization-based isolation
+- **🔑 RBAC**: Role-based access control with hierarchical permissions
+- **📊 Audit Logging**: Complete activity tracking
+- **💾 Database Persistence**: PostgreSQL with Alembic migrations
+- **🚦 Health Monitoring**: Comprehensive health check endpoints
+- **📈 Metrics & Telemetry**: Production monitoring ready
 
-### Visual Builder Features
-- **Component Palette**: All TFrameX components available to drag and drop
-- **Pattern Support**: Sequential, Parallel, Router, and Discussion patterns
-- **Agent-as-Tool**: Visual connections for agent delegation
-- **Properties Panel**: Fine-tune every aspect of agents and tools
-- **Real-time Execution**: See results and logs immediately
-- **AI Assistant**: Natural language flow building helper
-- **Project Management**: Save and load flow designs
+### 🎯 Workflow Triggers (Experimental)
+- **🌐 HTTP/Webhook Triggers**: REST API endpoints for flow execution
+- **⏰ Schedule Triggers**: Cron-based workflow automation
+- **📧 Email Triggers**: Process incoming emails (requires SMTP configuration)
+- **📁 File Watchers**: Monitor directories for changes
+- **📬 Event Triggers**: Custom event-driven workflows
+- **🔗 Integration Ready**: Extensible for GitHub, Slack, and custom webhooks
 
 ## 🚀 Quick Start
 
-### For Local TFrameX Development
+### 🐳 Docker Compose (Recommended)
 
-If you have TFrameX cloned locally (recommended for now):
+The fastest way to get started with full enterprise features:
 
 ```bash
-# Make sure TFrameX is in the parent directory
-cd /path/to/parent
-git clone https://github.com/TesslateAI/TFrameX.git
+# Clone the repository
 git clone https://github.com/TesslateAI/Agent-Builder.git
 cd Agent-Builder
 
-# Use the development start script
-./start-dev.sh
+# Configure environment
+cp deploy/docker/.env.example deploy/docker/.env
+# Edit .env with your API keys
+
+# Start all services
+docker-compose -f deploy/docker/docker-compose.dev.yml up -d
+
+# Access the application
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:5000
+# Keycloak Admin: http://localhost:8081 (admin/admin)
 ```
 
-### Standard Installation
+### 🖥️ Local Development
+
+For development with hot reload:
+
+```bash
+# Quick start script
+./scripts/dev/start-dev.sh
+
+# OR using Python
+python scripts/dev/start-dev.py
+```
+
+### 🔧 Local TFrameX Development
+
+If you're developing TFrameX locally alongside Agent-Builder:
+
+```bash
+# Clone both repositories to the same parent directory
+cd /path/to/parent
+git clone https://github.com/TesslateAI/TFrameX.git
+git clone https://github.com/TesslateAI/Agent-Builder.git
+
+# Agent-Builder will automatically detect and use local TFrameX
+cd Agent-Builder
+./scripts/dev/start-dev.sh
+```
+
+This setup allows you to:
+- Modify TFrameX source code and see changes immediately
+- Test new TFrameX features in the visual builder
+- Develop both projects simultaneously
+
+### 📦 Standard Installation
 
 When TFrameX 1.1.0 is published to PyPI:
 
 ```bash
-git clone https://github.com/TesslateAI/Agent-Builder.git
-cd Agent-Builder
-./start.sh
-```
-
-The application will be available at **http://localhost:5000**
-
-### Alternative Installation Methods
-
-#### Using Make
-```bash
+# Using Make
 make install     # Install dependencies and build
-make run         # Run in production mode
-# OR
-make run-dev     # Run with hot reload for development
-```
+make run         # Run in production mode (serves at http://localhost:5000)
 
-#### Using Docker
-```bash
-docker build -t agent-builder .
-docker run -p 5000:5000 -e OPENAI_API_KEY=your-key agent-builder
-```
-
-#### Manual Setup with uv
-```bash
-# Install uv package manager
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Set up environment
+# OR manual setup
 uv venv
-source .venv/bin/activate
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e .
-
-# Build frontend
 cd builder/frontend && npm install && npm run build
 cd ../..
-
-# Run
 cd builder/backend && python app.py
 ```
-    *   Customize an agent's system prompt or its list of enabled tools.
-    *   Define parameters for patterns (e.g., which agent is the router in a `RouterPattern`).
-    *   Set the content for a `Text Input` node.
-4.  **Extend (Optional):** Use the **Add Code** tab in the sidebar to register new TFrameX agents or tools by pasting Python code. They'll appear in the "Components" tab.
-5.  **AI Assist (Optional):** Use the **AI Flow Builder** chat to describe changes or additions to your flow, and let the AI attempt to update the canvas.
-6.  **Run:** Click the "Run Flow" button in the Top Bar to execute your entire visual flow.
-7.  **Iterate:** Observe the results in the **Output Panel**, refine your design, and run again!
+
+The application will be available at **http://localhost:5000** (production) or **http://localhost:5173** (development)
+
+## 🏗️ Architecture
+
+### Technology Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| **Frontend** | React 18, ReactFlow, Zustand, Vite 6, shadcn/ui, Tailwind CSS |
+| **Backend** | Flask, TFrameX v1.1.0, SQLAlchemy 2.0 |
+| **Database** | PostgreSQL, Redis, Alembic migrations |
+| **Authentication** | Keycloak (OAuth2/OIDC), JWT |
+| **Infrastructure** | Docker, Traefik, Docker Compose |
+| **Development** | Hot reload, PgAdmin, RedisInsight |
+| **Testing** | pytest, API integration tests |
+
+**Core Stack**: React + Vite + ReactFlow (Frontend) • Flask + TFrameX (Backend)
 
 ## 📋 Prerequisites
 
-*   **Python 3.8+**
-*   **TFrameX Library:** Ensure TFrameX is installed in your Python environment.
-    ```bash
-    pip install tframex
-    ```
-*   **Node.js and npm (or yarn):** Required for the frontend.
-*   **LLM API Access:** An OpenAI-compatible API endpoint (e.g., a local Ollama instance, vLLM, etc).
-*   **Environment Variables:** Your backend needs to know how to connect to your LLM. See "Backend Setup" below.
+- **Docker & Docker Compose** (recommended)
+- **Python 3.8+** (for local development)
+- **Node.js 18+** (for frontend development)
+- **LLM API Access** (OpenAI, Anthropic, or Ollama)
 
-## 🚀 Getting Started
+## 🔧 Configuration
 
-Follow these steps to get Tesslate Studio up and running:
+### Environment Variables
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone <repository_url>
-    cd <repository_name>
-    ```
+```env
+# LLM Configuration (choose one or multiple)
+OPENAI_API_KEY=your-openai-key
+ANTHROPIC_API_KEY=your-anthropic-key
+LLAMA_BASE_URL=http://localhost:11434
+LLAMA_MODEL=llama3
 
-2.  **Backend Setup (Flask & TFrameX):**
-    *   Navigate to the backend directory: `cd builder/backend`
-    *   Create and activate a Python virtual environment:
-        ```bash
-        python -m venv venv
-        source venv/bin/activate  # On Windows: venv\Scripts\activate
-        ```
-    *   Install Python dependencies:
-        ```bash
-        pip install -r requirements.txt
-        ```
-    *   **Configure your LLM:**
-        *   Copy the example environment file: `cp deploy/docker/.env.example deploy/docker/.env`
-        *   Edit the `deploy/docker/.env` file with your LLM details. Example for local Ollama:
-            ```env
-            OPENAI_API_BASE="http://localhost:11434/v1"
-            OPENAI_API_KEY="ollama" # Placeholder for Ollama
-            OPENAI_MODEL_NAME="llama3" # Your preferred model
-            ```
-            For OpenAI API:
-            ```env
-            # OPENAI_API_KEY="your_actual_openai_api_key"
-            # OPENAI_MODEL_NAME="gpt-3.5-turbo"
-            # OPENAI_API_BASE="https://api.openai.com/v1" # (Often default)
-            ```
-    *   Run the backend server:
-        ```bash
-        python app.py
-        ```
-        The backend will typically start on `http://127.0.0.1:5001`.
+# Database (auto-configured in Docker)
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=agentbuilder_dev
+DB_USER=devuser
+DB_PASSWORD=devpass
 
-3.  **Frontend Setup (React & Vite):**
-    *   Open a new terminal.
-    *   Navigate to the frontend directory: `cd builder/frontend`
-    *   Install Node.js dependencies:
-        ```bash
-        npm install
-        # or if you use yarn:
-        # yarn install
-        ```
-    *   Run the frontend development server:
-        ```bash
-        npm run dev
-        # or
-        # yarn dev
-        ```
-        The frontend will typically start on `http://localhost:5173`.
+# Authentication (production)
+JWT_SECRET_KEY=your-secret-key
+KEYCLOAK_CLIENT_SECRET=your-client-secret
 
-4.  **Access Tesslate Studio:**
-    Open your web browser and navigate to the frontend URL (e.g., `http://localhost:5173`).
+# MCP Configuration
+MCP_CONFIG_FILE=servers_config.json
+```
 
-## 🧭 Exploring the Interface
+### Model Configuration
 
-*   **Top Bar:**
-    *   **Logo & Title:** "Tesslate Studio".
-    *   **Project Management:** Select, create, save, or delete your visual flow projects.
-    *   **Run Flow Button:** The primary button to execute the current visual flow on the canvas.
+Configure multiple LLM providers through the UI:
 
-*   **Left Sidebar (Tabs):**
-    *   **Components:** A palette of draggable TFrameX components:
-        *   **Agents:** Your defined `LLMAgent`s, `ToolAgent`s.
-        *   **Patterns:** `SequentialPattern`, `ParallelPattern`, `RouterPattern`, `DiscussionPattern`.
-        *   **Tools:** Your registered TFrameX tools.
-        *   **Utility:** Nodes like `Text Input` to feed initial data into your flows.
-    *   **AI Flow Builder:** A chat interface to get AI assistance. Describe what you want to build or modify, and the AI will attempt to generate the ReactFlow JSON to update your canvas.
-    *   **Add Code:** A panel where you can paste Python code defining new TFrameX agents or tools (using `@tframex_app.agent(...)` or `@tframex_app.tool(...)`). Successful registration makes them available in the "Components" tab.
+![Model Configuration Panel](/docs/assets/images/model-config-panel.jpeg)
 
-*   **Main Canvas:** This is your workspace! A ReactFlow powered area where you drag components from the palette, connect their handles to define relationships, and arrange your visual flow.
+1. Click the **Settings** button in the top bar
+2. Add providers (OpenAI, Anthropic, Ollama, Custom)
+3. Test connectivity
+4. Assign models to specific agents
 
-*   **Right Panel (Tabs):**
-    *   **Output:** Displays detailed logs and the final result from TFrameX when you run a flow. If your flow generates files (e.g., using a tool), preview links might appear here.
-    *   **Properties:** This panel becomes active when you select a node on the canvas. It provides contextual options to configure the selected node:
-        *   **Agent Nodes:** Edit display label, override the system prompt, manage which tools are enabled (tools are enabled by connecting them to the agent's dedicated tool input handle), toggle `strip_think_tags`, and configure template variables for the system prompt. A blue dot indicator shows if an agent's configuration is modified from its base TFrameX definition.
-        *   **Pattern Nodes:** Edit display label and configure all necessary parameters for the specific pattern (e.g., list of agent/pattern names for `SequentialPattern`'s `steps`, the router agent for `RouterPattern`). Agent/Pattern parameters are often set by connecting other nodes to the pattern's input handles or by selecting from dropdowns.
-        *   **Text Input Node:** Set the text content that this node will output.
-        *   **Tool Nodes:** Primarily informational, showing the tool's name and description. Tools are "enabled" for agents by connecting the tool's attachment handle to an agent's tool input handle.
+## 🎮 Usage Guide
 
-## 🔧 Key Features in Detail
+### How It Works - Quick Overview
 
-### Visual Flow Construction
-Drag components onto the canvas and connect their handles. Handles are color-coded or styled to indicate their purpose:
-*   **Blue Handles (typically):** Standard message/data flow between agents and patterns.
-*   **Purple Handles (on Tools/Agents):** Connect a Tool node to an Agent node to enable that tool for the agent.
-*   **Amber Handles (on Patterns):** Connect an Agent or another Pattern to a Pattern's specific parameter input (e.g., assigning a `RouterAgent` to a `RouterPattern`).
-*   **Green Handles (on Patterns):** Connect Agents to list-based parameters of a Pattern (e.g., adding agents to a `DiscussionPattern`'s participants).
-*   Edges are styled (solid, dashed, animated) to visually differentiate connection types.
+Build sophisticated multi-agent workflows in 7 simple steps:
 
-### Dynamic Code Registration
-The "Add Code" tab allows you to paste Python code snippets that define new TFrameX agents or tools.
-*   **Important:** Your code *must* use the globally available `tframex_app` instance for decorators (e.g., `@tframex_app.agent(...)`).
-*   The backend executes this code, registering the new components with the running TFrameX application.
-*   Upon successful registration, the new components will appear in the "Components" palette, ready to be used.
+1. **Drag** - Pull TFrameX components (agents, tools, patterns) from the palette onto the canvas
+2. **Connect** - Link nodes using color-coded handles to define relationships and data flow
+3. **Configure** - Customize agent prompts, enable tools, set pattern parameters in the Properties panel
+4. **Extend (Optional)** - Use the "Add Code" tab to register new TFrameX agents or tools dynamically
+5. **AI Assist (Optional)** - Describe your workflow in natural language and let the AI Flow Builder help
+6. **Run** - Click "Run Flow" to execute your visual workflow through TFrameX
+7. **Iterate** - Observe results in the Output panel, refine your design, and run again
 
-### AI Flow Builder
-Chat with an AI assistant to help build your flows.
-*   The AI considers your text prompt, the list of available TFrameX components, and the current state of your visual flow on the canvas.
-*   It attempts to generate a new ReactFlow JSON structure (nodes and edges) that you can apply to your canvas.
+### Building Your First Flow
 
-### Execution and Overrides
+1. **Drag Components**: Select from the component palette
+2. **Connect Nodes**: Link handles to define data flow
+3. **Configure Properties**: Set prompts, tools, and parameters
+4. **Add Triggers**: Configure how flows are initiated
+5. **Test Execution**: Run and observe results in real-time
+6. **Export/Import**: Share flows with your team
+
+### Exploring the Interface
+
+#### Top Bar
+- **Logo & Title**: Agent-Builder branding
+- **Project Management**: Select, create, save, or delete your visual flow projects
+- **Models Button**: Opens the Model Configuration Panel for multi-LLM setup
+- **Import/Export**: Share and version control your flows
+- **Run Flow Button**: Primary action to execute your visual workflow
+
+#### Left Sidebar (Tabs)
+- **Components**: Draggable TFrameX component palette
+  - **Agents**: Your defined LLMAgents, ToolAgents, and custom agents
+  - **Patterns**: Sequential, Parallel, Router, Discussion patterns
+  - **Tools**: Registered TFrameX tools and utilities
+  - **Triggers**: HTTP, Cron, Email, Webhook, File watchers (Experimental)
+  - **Utility**: Text Input nodes for initial data
+- **AI Flow Builder**: Natural language interface for workflow creation
+- **Add Code**: Dynamic Python code registration panel for new agents/tools
+
+#### Main Canvas
+- **ReactFlow workspace**: Drag, connect, and arrange your visual flow
+- **Zoom controls**: Navigate large workflows easily
+- **Grid background**: Visual alignment assistance
+
+#### Right Panel (Tabs)
+- **Output**: Execution results, logs, and file preview links
+- **Properties**: Context-sensitive configuration for selected nodes
+  - Agent overrides (system prompt, tools, strip_think_tags)
+  - Pattern parameters (router agent, discussion participants)
+  - Trigger configurations (schedules, endpoints, watchers)
+  - Blue dot indicator shows modified configurations
+
+### Handle Types & Connections
+
+Visual connections use color-coded handles to indicate data flow types:
+
+| Handle Color | Purpose | Example |
+|--------------|---------|---------|
+| **Blue** | Standard data flow | Agent → Agent |
+| **Purple** | Tool attachment | Tool → Agent |
+| **Amber** | Pattern parameters | Router agent assignment |
+| **Teal** | List parameters | Discussion participants |
+
+Edges are styled (solid, dashed, animated) to visually differentiate connection types.
+
+### Key Features in Detail
+
+#### Visual Flow Construction
+- Drag components onto the canvas from the palette
+- Connect handles to define relationships and data flow
+- Handles are color-coded and styled to indicate their purpose
+- Automatic validation prevents invalid connections
+- Real-time visual feedback for active connections
+
+#### Dynamic Code Registration
+The "Add Code" tab allows you to extend Agent-Builder on the fly:
+- Paste Python code defining new TFrameX agents or tools
+- Code must use the globally available `tframex_app` instance
+- Use decorators like `@tframex_app.agent(...)` or `@tframex_app.tool(...)`
+- Backend executes and registers components immediately
+- New components appear in the palette ready to use
+- No restart required - true hot-reload development
+
+#### AI Flow Builder Assistant
+Chat with an AI to build flows using natural language:
+- Describe what you want to build in plain English
+- AI understands available components and current canvas state
+- Generates ReactFlow JSON structure automatically
+- Review and apply suggested changes with one click
+- Iteratively refine your flow through conversation
+
+#### Execution and Runtime Overrides
 When you click "Run Flow":
-1.  The frontend sends the current visual graph (nodes and edges) to the backend.
-2.  The backend's `flow_translator.py` intelligently converts this visual representation into an executable `tframex.Flow` object.
-3.  **Important:** Agent configurations made in the Studio's Properties Panel (like system prompt overrides or specific tool selections for a node) are applied as *temporary overrides* for that specific agent instance *within that run*. This means your base TFrameX agent definitions (in your Python code) are not permanently altered by the Studio unless you explicitly re-register them via the "Add Code" panel. This allows for flexible experimentation in the UI.
+1. Frontend sends the visual graph to the backend
+2. `flow_translator.py` converts the graph to a TFrameX Flow object
+3. UI configurations create **runtime overrides** without modifying base definitions
+4. System prompts, tool selections, and parameters are applied per-execution
+5. Blue dot indicators show nodes with active overrides
+6. Base TFrameX definitions remain unchanged unless explicitly re-registered
 
-## 🔗 How Tesslate Studio Works with TFrameX
+### How Agent-Builder Works with TFrameX
 
-*   **Studio as the Conductor:** Tesslate Studio acts as the visual conductor, allowing you to define *how* TFrameX components interact.
-*   **TFrameX as the Orchestra:** TFrameX is the underlying engine that provides the agents, tools, patterns, and executes the actual LLM calls and logic.
-*   **Translation Layer:** The backend of Tesslate Studio (specifically `flow_translator.py` and `component_manager.py`) is responsible for:
-    *   Discovering agents, tools, and patterns from your TFrameX application.
-    *   Translating the visual graph from the frontend into a TFrameX `Flow` object.
-    *   Managing temporary, run-specific configurations for agents based on your UI settings.
-    *   Dynamically registering new Python-defined components into the TFrameX application.
+Think of it as a musical performance:
 
-## 💻 Tech Stack
+- **Agent-Builder as the Conductor**: The visual interface orchestrates how components interact, defining the flow and coordination of your multi-agent system
+- **TFrameX as the Orchestra**: The powerful engine providing the agents, tools, patterns, and execution runtime that performs the actual work
+- **Translation Layer**: The backend seamlessly bridges visual design and code execution:
+  - `component_manager.py` discovers available TFrameX components
+  - `flow_translator.py` converts visual graphs to executable Flow objects
+  - Runtime overrides allow UI experimentation without code changes
+  - Dynamic registration enables real-time component addition
 
-*   **Frontend:** React, Vite, ReactFlow, Zustand, Tailwind CSS, shadcn/ui
-*   **Backend:** Flask, TFrameX
+This separation enables rapid visual prototyping while maintaining the full power and flexibility of TFrameX's code-based approach.
+
+### Authentication & Security
+
+![Authentication Flow](docs/assets/images/auth-login-page.jpeg)
+
+**Default Test Users** (Development):
+- `admin/admin` - Full administrator access
+- `developer/dev` - Developer role (create/edit flows)
+- `user/user` - User role (view/execute flows)
+
+### Workflow Triggers (Experimental)
+
+![Trigger Flow](docs/assets/images/trigger-demo.jpeg)
+
+Configure automated workflow execution through the UI or API:
+
+```bash
+# HTTP/Webhook Trigger Example
+POST /api/triggers/webhook/{trigger_id}
+{
+  "input": "Process this data",
+  "context": {...}
+}
+
+# Schedule Trigger Configuration
+{
+  "type": "schedule",
+  "config": {
+    "cron": "0 9 * * MON-FRI",  # Every weekday at 9 AM
+    "timezone": "UTC"
+  }
+}
+
+# File Watcher Configuration
+{
+  "type": "file",
+  "config": {
+    "path": "/data/incoming",
+    "pattern": "*.csv",
+    "action": "process_on_create"
+  }
+}
+```
+
+## 📊 Monitoring & Operations
+
+### Health Endpoints
+- `/health` - Basic health check
+- `/health/ready` - Readiness probe
+- `/health/live` - Liveness probe
+- `/health/detailed` - Full service status
+
+### Database Management
+```bash
+# Run migrations
+docker exec agent-builder-backend-dev alembic upgrade head
+
+# Create new migration
+docker exec agent-builder-backend-dev alembic revision --autogenerate -m "Description"
+
+# Database CLI
+docker exec agent-builder-backend-dev python builder/backend/manage_db.py init
+```
+
+### Logs & Debugging
+```bash
+# View all logs
+docker-compose -f docker-compose.dev.yml logs -f
+
+# Specific service logs
+docker-compose -f docker-compose.dev.yml logs -f backend
+docker-compose -f docker-compose.dev.yml logs -f frontend
+```
+
+## 🚢 Production Deployment
+
+### Docker Production Stack
+
+```bash
+# Configure production environment
+cp deploy/docker/.env.prod.example deploy/docker/.env.prod
+# Edit with production values
+
+# Deploy production stack
+docker-compose -f deploy/docker/docker-compose.prod.yml up -d
+
+# Access at:
+# Application: https://your-domain.com
+# Keycloak: https://auth.your-domain.com
+```
+
+## 📊 Implementation Status
+
+### ✅ Production Ready
+- Visual flow designer with ReactFlow
+- TFrameX v1.1.0 full integration
+- Multi-model support (OpenAI, Anthropic, Ollama)
+- Dynamic code registration
+- Import/Export functionality
+- Docker Compose development environment
+- PostgreSQL persistence with migrations
+- Redis caching
+- Health monitoring endpoints
+- Project management with auto-save
+
+### 🚧 Beta Features
+- Workflow triggers (HTTP, Schedule, Email, File, Event)
+- Keycloak authentication (configured, testing in progress)
+- RBAC and multi-tenancy (database models ready)
+- MCP server integration (basic support)
+- Audit logging (models implemented)
+
+### 🔮 Roadmap
+- Production deployment manifests (Kubernetes)
+- Advanced MCP server management UI
+- Workflow versioning and rollback
+- Team collaboration features
+- Performance metrics dashboard
+- Plugin marketplace
+
+## 🎯 Project-Specific Patterns
+
+### Two-Agent AI Assistant Architecture
+Agent-Builder includes a sophisticated two-agent system for natural language flow building:
+
+1. **OrchestratorAgent**: Advanced conversational agent with tool-calling capabilities that understands user intent and coordinates flow operations
+2. **FlowBuilderAgent**: Specialized agent that converts natural language instructions into ReactFlow JSON structures
+
+Communication flow:
+- User describes desired workflow in natural language via chat
+- OrchestratorAgent processes the request and determines if flow modification is needed
+- When flow changes are required, OrchestratorAgent appends `FLOW_INSTRUCTION: [detailed instruction]` to its response
+- FlowBuilderAgent receives the instruction and generates valid ReactFlow JSON (nodes and edges)
+- Visual flow updates automatically on the canvas with the generated structure
+
+Additional OrchestratorAgent capabilities:
+- **Flow Analysis**: Analyze existing flow structures for optimization opportunities
+- **Component Prediction**: Suggest next components based on current flow state
+- **Flow Optimization**: Provide recommendations for performance and maintainability
+- **Tool Integration**: Can use various tools to enhance flow building assistance
+
+### State Persistence & Project Management
+- Flows automatically save to localStorage (`tframexStudioProjects`)
+- Multiple project support with instant switching
+- Auto-save triggers on every node/edge change
+- Export/import for team collaboration and version control
+- Project metadata includes timestamps and descriptions
+
+### Model Configuration System
+Advanced multi-model orchestration capabilities:
+- **Provider Support**: OpenAI, Anthropic, Ollama, and OpenAI-compatible APIs
+- **Per-Agent Models**: Each agent can use a different LLM
+- **Visual Indicators**: Info-colored dots show modified agents
+- **Model Testing**: Built-in connectivity validation
+- **Runtime Selection**: Models specified in `data.model` field
+- **Dynamic Switching**: Change models without code modifications
 
 ## 🤝 Contributing
 
@@ -267,6 +470,46 @@ Contributions are highly welcome! Whether it's bug reports, feature requests, do
 
 Please feel free to open an issue to discuss your ideas or submit a pull request.
 
+### Development Setup
+```bash
+# Fork and clone
+git clone https://github.com/YOUR-USERNAME/Agent-Builder.git
+cd Agent-Builder
+
+# Create branch
+git checkout -b feature/your-feature
+
+# Make changes and test
+make test
+make lint
+
+# Submit PR
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| Docker services not starting | Check logs: `docker-compose logs` |
+| Authentication errors | Verify Keycloak is running: `http://localhost:8081` |
+| Database connection failed | Ensure PostgreSQL is running and migrations are applied |
+| LLM connection errors | Verify API keys and endpoints in `.env` |
+
 ## 📜 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+<p align="center">
+  <em>Developed by Tesslate</em>
+</p>
+
+<p align="center">
+  <a href="https://tesslate.ai">Website</a> •
+  <a href="https://docs.agent-builder.ai">Documentation</a> •
+  <a href="https://discord.gg/agent-builder">Community</a> •
+  <a href="https://twitter.com/tesslateai">Twitter</a>
+</p>
