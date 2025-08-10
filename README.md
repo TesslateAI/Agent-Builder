@@ -21,7 +21,10 @@
   </a>
 </p>
 
-**[Join our Discord for support and discussions](https://discord.com/invite/DkzMzwBTaw)**
+<h3 align="center">
+  <a href="https://discord.com/invite/DkzMzwBTaw"><strong>Join our Discord for support and discussions</strong></a>
+</h3>
+
 
 ---
 
