@@ -21,6 +21,8 @@
   </a>
 </p>
 
+Please join our discord for support: [Discord](https://discord.gg/DkzMzwBTaw)
+
 ---
 
 **Agent-Builder** is a comprehensive visual development environment for [TFrameX v1.1.0](https://github.com/TesslateAI/TFrameX), providing enterprise-grade features for building, testing, and deploying multi-agent LLM systems. With built-in authentication, database persistence, and production-ready infrastructure, it's the complete solution for LLM workflow orchestration.
