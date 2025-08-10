@@ -21,7 +21,7 @@
   </a>
 </p>
 
-Please join our discord for support: [Discord](https://discord.gg/DkzMzwBTaw)
+**[Join our Discord for support and discussions](https://discord.com/invite/DkzMzwBTaw)**
 
 ---
 
@@ -29,37 +29,37 @@ Please join our discord for support: [Discord](https://discord.gg/DkzMzwBTaw)
 
 ![Demo Animation](docs/assets/images/demo-animation.gif)
 
-## ✨ Key Features
+## Key Features
 
-### 🚀 Core Capabilities
-- **🎨 Visual Flow Designer**: Intuitive drag-and-drop interface powered by ReactFlow
-- **🤖 TFrameX 1.1.0 Integration**: Complete support for all framework features
-- **🔌 MCP Support**: Model Context Protocol integration for external tools and services
-- **📦 Import/Export**: Share and version control your flows as JSON
-- **🛠️ Dynamic Code Registration**: Add agents and tools on-the-fly without restart
-- **🎯 Multi-Model Support**: Configure different LLMs for each agent (OpenAI, Anthropic, Ollama)
-- **⚡ Hot Reload Development**: Fast iteration with Docker Compose volumes
+### Core Capabilities
+- **Visual Flow Designer**: Intuitive drag-and-drop interface powered by ReactFlow
+- **TFrameX 1.1.0 Integration**: Complete support for all framework features
+- **MCP in TFrameX**: Model Context Protocol integration for external tools and services
+- **Import/Export**: Share and version control your flows as JSON
+- **Dynamic Code Registration**: Add agents and tools on-the-fly without restart
+- **Multi-Model Support**: Configure different LLMs for each agent (OpenAI, Anthropic, Ollama)
+- **Hot Reload Development**: Fast iteration with Docker Compose volumes
 
-### 🏢 Enterprise Features
-- **🔐 Authentication**: Keycloak OAuth2/OIDC integration
-- **👥 Multi-Tenancy**: Organization-based isolation
-- **🔑 RBAC**: Role-based access control with hierarchical permissions
-- **📊 Audit Logging**: Complete activity tracking
-- **💾 Database Persistence**: PostgreSQL with Alembic migrations
-- **🚦 Health Monitoring**: Comprehensive health check endpoints
-- **📈 Metrics & Telemetry**: Production monitoring ready
+### Enterprise Features
+- **Authentication**: Keycloak OAuth2/OIDC integration
+- **Multi-Tenancy**: Organization-based isolation
+- **RBAC**: Role-based access control with hierarchical permissions
+- **Audit Logging**: Complete activity tracking
+- **Database Persistence**: PostgreSQL with Alembic migrations
+- **Health Monitoring**: Comprehensive health check endpoints
+- **Metrics & Telemetry**: Production monitoring ready
 
-### 🎯 Workflow Triggers (Experimental)
-- **🌐 HTTP/Webhook Triggers**: REST API endpoints for flow execution
-- **⏰ Schedule Triggers**: Cron-based workflow automation
-- **📧 Email Triggers**: Process incoming emails (requires SMTP configuration)
-- **📁 File Watchers**: Monitor directories for changes
-- **📬 Event Triggers**: Custom event-driven workflows
-- **🔗 Integration Ready**: Extensible for GitHub, Slack, and custom webhooks
+### Workflow Triggers (Experimental)
+- **HTTP/Webhook Triggers**: REST API endpoints for flow execution
+- **Schedule Triggers**: Cron-based workflow automation
+- **Email Triggers**: Process incoming emails (requires SMTP configuration)
+- **File Watchers**: Monitor directories for changes
+- **Event Triggers**: Custom event-driven workflows
+- **Integration Ready**: Extensible for GitHub, Slack, and custom webhooks
 
-## 🚀 Quick Start
+## Quick Start
 
-### 🐳 Docker Compose (Recommended)
+### Docker Compose (Recommended)
 
 The fastest way to get started with full enterprise features:
 
@@ -81,7 +81,7 @@ docker-compose -f deploy/docker/docker-compose.dev.yml up -d
 # Keycloak Admin: http://localhost:8081 (admin/admin)
 ```
 
-### 🖥️ Local Development
+### Local Development
 
 For development with hot reload:
 
@@ -93,7 +93,7 @@ For development with hot reload:
 python scripts/dev/start-dev.py
 ```
 
-### 🔧 Local TFrameX Development
+### Local TFrameX Development
 
 If you're developing TFrameX locally alongside Agent-Builder:
 
@@ -113,7 +113,7 @@ This setup allows you to:
 - Test new TFrameX features in the visual builder
 - Develop both projects simultaneously
 
-### 📦 Standard Installation
+### Standard Installation
 
 When TFrameX 1.1.0 is published to PyPI:
 
@@ -133,7 +133,7 @@ cd builder/backend && python app.py
 
 The application will be available at **http://localhost:5000** (production) or **http://localhost:5173** (development)
 
-## 🏗️ Architecture
+## Architecture
 
 ### Technology Stack
 
@@ -149,14 +149,14 @@ The application will be available at **http://localhost:5000** (production) or *
 
 **Core Stack**: React + Vite + ReactFlow (Frontend) • Flask + TFrameX (Backend)
 
-## 📋 Prerequisites
+## Prerequisites
 
 - **Docker & Docker Compose** (recommended)
 - **Python 3.8+** (for local development)
 - **Node.js 18+** (for frontend development)
 - **LLM API Access** (OpenAI, Anthropic, or Ollama)
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -178,7 +178,7 @@ DB_PASSWORD=devpass
 JWT_SECRET_KEY=your-secret-key
 KEYCLOAK_CLIENT_SECRET=your-client-secret
 
-# MCP Configuration
+# MCP Configuration (via TFrameX)
 MCP_CONFIG_FILE=servers_config.json
 ```
 
@@ -186,14 +186,14 @@ MCP_CONFIG_FILE=servers_config.json
 
 Configure multiple LLM providers through the UI:
 
-![Model Configuration Panel](/docs/assets/images/model-config-panel.jpeg)
+![Model Configuration Panel](docs/assets/images/model-config-panel.jpeg)
 
 1. Click the **Settings** button in the top bar
 2. Add providers (OpenAI, Anthropic, Ollama, Custom)
 3. Test connectivity
 4. Assign models to specific agents
 
-## 🎮 Usage Guide
+## Usage Guide
 
 ### How It Works - Quick Overview
 
@@ -353,7 +353,7 @@ POST /api/triggers/webhook/{trigger_id}
 }
 ```
 
-## 📊 Monitoring & Operations
+## Monitoring & Operations
 
 ### Health Endpoints
 - `/health` - Basic health check
@@ -383,7 +383,7 @@ docker-compose -f docker-compose.dev.yml logs -f backend
 docker-compose -f docker-compose.dev.yml logs -f frontend
 ```
 
-## 🚢 Production Deployment
+## Production Deployment
 
 ### Docker Production Stack
 
@@ -400,9 +400,9 @@ docker-compose -f deploy/docker/docker-compose.prod.yml up -d
 # Keycloak: https://auth.your-domain.com
 ```
 
-## 📊 Implementation Status
+## Implementation Status
 
-### ✅ Production Ready
+### Production Ready
 - Visual flow designer with ReactFlow
 - TFrameX v1.1.0 full integration
 - Multi-model support (OpenAI, Anthropic, Ollama)
@@ -414,22 +414,22 @@ docker-compose -f deploy/docker/docker-compose.prod.yml up -d
 - Health monitoring endpoints
 - Project management with auto-save
 
-### 🚧 Beta Features
+### Beta Features
 - Workflow triggers (HTTP, Schedule, Email, File, Event)
 - Keycloak authentication (configured, testing in progress)
 - RBAC and multi-tenancy (database models ready)
-- MCP server integration (basic support)
+- MCP integration via TFrameX (basic support)
 - Audit logging (models implemented)
 
-### 🔮 Roadmap
+### Roadmap
 - Production deployment manifests (Kubernetes)
-- Advanced MCP server management UI
+- Advanced MCP management UI (via TFrameX)
 - Workflow versioning and rollback
 - Team collaboration features
 - Performance metrics dashboard
 - Plugin marketplace
 
-## 🎯 Project-Specific Patterns
+## Project-Specific Patterns
 
 ### Two-Agent AI Assistant Architecture
 Agent-Builder includes a sophisticated two-agent system for natural language flow building:
@@ -466,9 +466,9 @@ Advanced multi-model orchestration capabilities:
 - **Runtime Selection**: Models specified in `data.model` field
 - **Dynamic Switching**: Change models without code modifications
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are highly welcome! Whether it's bug reports, feature requests, documentation improvements, or code contributions, we'd love to see how you can help make Tesslate Studio even better.
+Contributions are highly welcome! Whether it's bug reports, feature requests, documentation improvements, or code contributions, we'd love to see how you can help make Agent-Builder even better.
 
 Please feel free to open an issue to discuss your ideas or submit a pull request.
 
@@ -488,7 +488,7 @@ make lint
 # Submit PR
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -499,7 +499,7 @@ make lint
 | Database connection failed | Ensure PostgreSQL is running and migrations are applied |
 | LLM connection errors | Verify API keys and endpoints in `.env` |
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
@@ -512,6 +512,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 <p align="center">
   <a href="https://tesslate.ai">Website</a> •
   <a href="https://docs.agent-builder.ai">Documentation</a> •
-  <a href="https://discord.gg/agent-builder">Community</a> •
+  <a href="https://discord.com/invite/DkzMzwBTaw">Community</a> •
   <a href="https://twitter.com/tesslateai">Twitter</a>
 </p>
