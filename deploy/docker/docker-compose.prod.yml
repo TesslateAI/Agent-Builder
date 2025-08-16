@@ -27,6 +27,7 @@ services:
       - KEYCLOAK_REDIRECT_URI=${BACKEND_URL:-https://api.example.com}/api/auth/callback
       - FRONTEND_URL=${FRONTEND_URL:-https://example.com}
       - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     env_file:
@@ -159,11 +160,10 @@ services:
       postgres:
         condition: service_healthy
     command: 
-      - start
+      - start-dev
       - --import-realm
-      - --optimized
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/"]
       interval: 30s
       timeout: 10s
       retries: 5

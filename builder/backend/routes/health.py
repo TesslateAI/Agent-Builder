@@ -31,7 +31,8 @@ def check_redis_connection():
     try:
         redis_host = os.getenv('REDIS_HOST', 'localhost')
         redis_port = int(os.getenv('REDIS_PORT', 6379))
-        r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True, socket_connect_timeout=2)
+        redis_password = os.getenv('REDIS_PASSWORD')
+        r = redis.Redis(host=redis_host, port=redis_port, password=redis_password, decode_responses=True, socket_connect_timeout=2)
         r.ping()
         return True, "Connected"
     except Exception as e:
