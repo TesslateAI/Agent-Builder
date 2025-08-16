@@ -17,5 +17,10 @@ export PYTHONPATH=/app:$PYTHONPATH
 
 echo "Starting Flask application..."
 
-# Execute the command passed to the container (or default command)
-exec "$@"
+# If no command is provided, run the Flask app
+if [ $# -eq 0 ]; then
+    exec python app.py
+else
+    # Execute the command passed to the container
+    exec "$@"
+fi

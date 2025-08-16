@@ -9,7 +9,23 @@ ARG PYTHON_VERSION=3.11-slim
 ARG BUILD_ENV=production
 
 # =============================================================================
-# Stage 1: Frontend Builder
+# Stage 1a: Frontend Dependencies
+# =============================================================================
+FROM node:${NODE_VERSION} AS frontend-deps
+
+# Set working directory
+WORKDIR /app/frontend
+
+# Copy only package files for dependency installation
+COPY builder/frontend/package*.json ./
+
+# Install ALL dependencies (including devDependencies needed for build)
+# Using npm ci for reproducible builds from package-lock.json
+RUN npm ci --silent && \
+    npm cache clean --force
+
+# =============================================================================
+# Stage 1b: Frontend Builder
 # =============================================================================
 FROM node:${NODE_VERSION} AS frontend-builder
 
@@ -24,15 +40,18 @@ RUN addgroup -g 1001 -S nodejs && \
 # Set working directory
 WORKDIR /app/frontend
 
-# Install dependencies first (better caching)
-COPY builder/frontend/package*.json ./
-RUN npm ci --only=production --silent
+# Copy installed dependencies from deps stage
+COPY --from=frontend-deps --chown=nextjs:nodejs /app/frontend/node_modules ./node_modules
 
-# Copy source code
+# Copy package files and source code
+COPY --chown=nextjs:nodejs builder/frontend/package*.json ./
 COPY --chown=nextjs:nodejs builder/frontend/ ./
 
-# Build frontend
+# Build frontend and remove dev dependencies
+# This ensures build has all necessary deps but final output is optimized
 RUN npm run build && \
+    npm prune --production --silent && \
+    rm -rf node_modules/.cache && \
     npm cache clean --force
 
 # =============================================================================
@@ -61,7 +80,25 @@ COPY pyproject.toml ./
 COPY builder/backend/requirements.txt ./builder/backend/
 
 # Install Python dependencies including TFrameX and auth dependencies
-RUN uv pip install --no-cache-dir flask flask-cors python-dotenv httpx pydantic PyYAML aiohttp beautifulsoup4 pandas tframex==1.1.0 PyJWT==2.8.0 redis==5.0.1 requests==2.32.3 SQLAlchemy==2.0.23 psycopg2-binary==2.9.9 alembic==1.13.1
+RUN uv pip install --no-cache-dir \
+    flask \
+    flask-cors \
+    python-dotenv \
+    httpx \
+    pydantic \
+    PyYAML \
+    aiohttp \
+    beautifulsoup4 \
+    pandas \
+    tframex==1.1.0 \
+    PyJWT==2.8.0 \
+    redis==5.0.1 \
+    requests==2.32.3 \
+    SQLAlchemy==2.0.23 \
+    psycopg2-binary==2.9.9 \
+    alembic==1.13.1 \
+    nanoid==2.0.0 \
+    apscheduler==3.10.4
 
 # =============================================================================
 # Stage 3: Production Runtime
@@ -87,8 +124,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy backend application
 COPY --chown=appuser:appuser builder/backend/ ./builder/backend/
 
-# Copy built frontend from builder stage
+# Copy ONLY built frontend assets (no node_modules needed in production)
 COPY --from=frontend-builder --chown=appuser:appuser /app/frontend/dist ./builder/frontend/dist
+# Copy package.json for reference (if needed by backend)
+COPY --from=frontend-builder --chown=appuser:appuser /app/frontend/package.json ./builder/frontend/package.json
 
 # Copy configuration files
 COPY --chown=appuser:appuser builder/backend/.env.example ./builder/backend/.env.example
@@ -123,7 +162,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Run the application
-CMD ["python", "builder/backend/app.py"]
+CMD ["python", "app.py"]
 
 # =============================================================================
 # Stage 4: Development Runtime
